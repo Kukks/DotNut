@@ -1,0 +1,12 @@
+C:\Git\DotNuts\DotNuts\bin\Debug\net8.0\DotNuts.deps.json
+C:\Git\DotNuts\DotNuts\bin\Debug\net8.0\DotNuts.dll
+C:\Git\DotNuts\DotNuts\bin\Debug\net8.0\DotNuts.pdb
+C:\Git\DotNuts\DotNuts\obj\Debug\net8.0\DotNuts.csproj.AssemblyReference.cache
+C:\Git\DotNuts\DotNuts\obj\Debug\net8.0\DotNuts.GeneratedMSBuildEditorConfig.editorconfig
+C:\Git\DotNuts\DotNuts\obj\Debug\net8.0\DotNuts.AssemblyInfoInputs.cache
+C:\Git\DotNuts\DotNuts\obj\Debug\net8.0\DotNuts.AssemblyInfo.cs
+C:\Git\DotNuts\DotNuts\obj\Debug\net8.0\DotNuts.csproj.CoreCompileInputs.cache
+C:\Git\DotNuts\DotNuts\obj\Debug\net8.0\DotNuts.dll
+C:\Git\DotNuts\DotNuts\obj\Debug\net8.0\refint\DotNuts.dll
+C:\Git\DotNuts\DotNuts\obj\Debug\net8.0\DotNuts.pdb
+C:\Git\DotNuts\DotNuts\obj\Debug\net8.0\ref\DotNuts.dll

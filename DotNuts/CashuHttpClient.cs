@@ -1,10 +1,8 @@
 ﻿using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using NBitcoin.Secp256k1;
 
 namespace DotNuts;
 
@@ -31,7 +29,7 @@ public class CashuHttpClient
         return await HandleResponse<GetKeysetsResponse>(response, cancellationToken);
     }
 
-    public async Task<GetKeysetsResponse> GetKeys(string keysetId, CancellationToken cancellationToken = default)
+    public async Task<GetKeysetsResponse> GetKeys(KeysetId keysetId, CancellationToken cancellationToken = default)
 
     {
         var response = await _httpClient.GetAsync($"v1/keys/{keysetId}", cancellationToken);
@@ -50,6 +48,18 @@ public class CashuHttpClient
         var response = await _httpClient.PostAsync($"v1/mint/quote/{method}", new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json"), cancellationToken);
         return await HandleResponse<TResponse>(response, cancellationToken);
     }
+        public async Task<TResponse> CreateMeltQuote<TResponse, TRequest>(string method, TRequest request, CancellationToken
+        cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsync($"v1/melt/quote/{method}", new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json"), cancellationToken);
+        return await HandleResponse<TResponse>(response, cancellationToken);
+    }
+      public async Task<TResponse> Melt<TResponse, TRequest>(string method, TRequest request, CancellationToken
+        cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsync($"v1/melt/{method}", new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json"), cancellationToken);
+        return await HandleResponse<TResponse>(response, cancellationToken);
+    }
     
     public async Task<TResponse> CheckMintQuote<TResponse>(string method, string quoteId, CancellationToken
         cancellationToken = default)
@@ -62,6 +72,16 @@ public class CashuHttpClient
     {
         var response = await _httpClient.PostAsync($"v1/mint/{method}", new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json"), cancellationToken);
         return await HandleResponse<TResponse>(response, cancellationToken);
+    }
+    public async Task<PostCheckStateResponse> CheckState(PostCheckStateRequest request,  CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsync($"v1/checkstate", new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json"), cancellationToken);
+        return await HandleResponse<PostCheckStateResponse>(response, cancellationToken);
+    }
+    public async Task<PostRestoreResponse> Restore(PostRestoreRequest request,  CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsync($"v1/restore", new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json"), cancellationToken);
+        return await HandleResponse<PostRestoreResponse>(response, cancellationToken);
     }
 
     protected async Task<T> HandleResponse<T>(HttpResponseMessage response, CancellationToken cancellationToken)
@@ -89,36 +109,60 @@ public class CashuHttpClient
     }
 }
 
-public class PostSwapRequest
+public class ProofSecretSet: Dictionary<string,ProofSecret>
 {
-    [JsonPropertyName("inputs")] public Proof[] Inputs { get; set; }
-    [JsonPropertyName("outputs")] public BlindedMessage[] Outputs { get; set; }
-}
-public class PostSwapResponse
-{
-    [JsonPropertyName("signatures")] public BlindSignature[] Signatures { get; set; }
+    
 }
 
-public class GetKeysResponse
+public class ProofSecret
 {
-    [JsonPropertyName("keysets")] public Keyset[] Keysets { get; set; }
+    
+    [JsonPropertyName("nonce")]
+    public string Nonce { get; set; }
+    [JsonPropertyName("data")]
+    public string Data { get; set; }
+    [JsonPropertyName("tags")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string[][]? Tags { get; set; }
+}
 
-    public class Keyset
+public class PostRestoreRequest
+{
+[JsonPropertyName("outputs")]
+    public BlindedMessage[] Outputs { get; set; }
+}public class PostRestoreResponse
+{
+[JsonPropertyName("outputs")]
+    public BlindedMessage[] Outputs { get; set; }
+[JsonPropertyName("signatures")]
+    public BlindSignature[] Signatures { get; set; }
+}
+
+public class PostCheckStateRequest
+{
+    [JsonPropertyName("Ys")]
+    public string[] Ys { get; set; }
+}
+
+public class PostCheckStateResponse
+{
+
+    [JsonPropertyName("states")]
+    public StateResponseItem[] States { get; set; }
+}
+
+public class StateResponseItem
+{
+    
+    public string Y { get; set; }
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public TokenState State { get; set; }
+    public string? Witness { get; set; }
+
+    public enum TokenState
     {
-        [JsonPropertyName("id")] public string Id { get; set; }
-        [JsonPropertyName("unit")] public string Unit { get; set; }
-        [JsonPropertyName("keys")] public Dictionary<int, string> Keys { get; set; }
-    }
-}
-
-public class GetKeysetsResponse
-{
-    [JsonPropertyName("keysets")] public Keyset[] Keysets { get; set; }
-
-    public class Keyset
-    {
-        [JsonPropertyName("id")] public string Id { get; set; }
-        [JsonPropertyName("unit")] public string Unit { get; set; }
-        [JsonPropertyName("active")] public bool Active { get; set; }
+        UNSPENT,
+        PENDING,
+        SPENT
     }
 }

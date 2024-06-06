@@ -11,6 +11,7 @@
         <Copyright>MIT</Copyright>
         <PackageProjectUrl>https://github.com/Kukks/DotNut</PackageProjectUrl>
         <PackageLicenseUrl>https://github.com/Kukks/DotNut/blob/master/LICENSE</PackageLicenseUrl>
+        <PackageVersion>1.0.0</PackageVersion>
         <RepositoryUrl>https://github.com/Kukks/DotNut</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageTags>bitcoin cashu ecash secp256k1</PackageTags>

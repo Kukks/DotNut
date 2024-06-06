@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Title>DotNut</Title>
+        <Authors>Kukks</Authors>
+        <Description>A full C# native implementation of the Cashu protocol</Description>
+        <Copyright>MIT</Copyright>
+        <PackageProjectUrl>https://github.com/Kukks/DotNut</PackageProjectUrl>
+        <PackageLicenseUrl>https://github.com/Kukks/DotNut/blob/master/LICENSE</PackageLicenseUrl>
+        <RepositoryUrl>https://github.com/Kukks/DotNut</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>bitcoin cashu ecash secp256k1</PackageTags>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="NBitcoin.Secp256k1" Version="3.1.5" />
+    </ItemGroup>
+
+</Project>

@@ -15,10 +15,22 @@
         <RepositoryUrl>https://github.com/Kukks/DotNut</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageTags>bitcoin cashu ecash secp256k1</PackageTags>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+
     </PropertyGroup>
 
     <ItemGroup>
       <PackageReference Include="NBitcoin.Secp256k1" Version="3.1.5" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None  Include="..\README.md" Pack="true">
+        <Link>README.md</Link>
+      </None >
+      <None  Include="..\LICENSE" Pack="true">
+        <Link>LICENSE</Link>
+      </None >
     </ItemGroup>
 
 </Project>

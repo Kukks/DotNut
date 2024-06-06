@@ -21,7 +21,7 @@ jobs:
         if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
         uses: Rebel028/publish-nuget@v2.7.0
         with:
-          PROJECT_FILE_PATH: DotNut.Client/DotNut.csproj
+          PROJECT_FILE_PATH: DotNut/DotNut.csproj
           NUGET_KEY: ${{secrets.NUGET_KEY}}
           PACKAGE_NAME: DotNut
           INCLUDE_SYMBOLS: false
@@ -32,7 +32,7 @@ jobs:
         if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
         uses: Rebel028/publish-nuget@v2.7.0
         with:
-          PROJECT_FILE_PATH: DotNut.Client/DotNut.Client.csproj
+          PROJECT_FILE_PATH: DotNut/DotNut.csproj
           NUGET_SOURCE: "https://nuget.pkg.github.com/Kukks"
           NUGET_KEY: ${{secrets.GH_TOKEN}}
           PACKAGE_NAME: DotNut

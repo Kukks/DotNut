@@ -23,8 +23,6 @@ dotnet add package DotNut
 - :heavy_check_mark: [NUT-10](https://github.com/cashubtc/nuts/blob/main/10.md)
 - :heavy_check_mark: [NUT-11](https://github.com/cashubtc/nuts/blob/main/11.md)
 - :heavy_check_mark: [NUT-12](https://github.com/cashubtc/nuts/blob/main/12.md)
+- :heavy_check_mark: [NUT-13](https://github.com/cashubtc/nuts/blob/main/13.md)
 - :heavy_check_mark: [NUT-14](https://github.com/cashubtc/nuts/blob/main/14.md)
 - :heavy_check_mark: [NUT-15](https://github.com/cashubtc/nuts/blob/main/15.md)
-
-## Why is NUT13 missing? 
-[NUT13](https://github.com/cashubtc/nuts/blob/main/13.md) uses very Bitcoin-specific logic such as mnemonic seeds, and wallet derivation paths, which would require adding a dependency on [NBitcoin](https://github.com/MetacoSA/NBitcoin/).

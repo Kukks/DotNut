@@ -21,11 +21,11 @@ public static class Cashu
     }
     public static ECPubKey HashToCurve(byte[] x)
     {
-        var msg_hash = SHA256.HashData(Concat(DOMAIN_SEPARATOR, x));
+        var msgHash = SHA256.HashData(Concat(DOMAIN_SEPARATOR, x));
         for (uint counter = 0;; counter++)
         {
             var counterBytes = BitConverter.GetBytes(counter);
-            var publicKeyBytes = Concat([0x02], SHA256.HashData(Concat(msg_hash, counterBytes)));
+            var publicKeyBytes = Concat([0x02], SHA256.HashData(Concat(msgHash, counterBytes)));
             try
             {
                 return ECPubKey.Create(publicKeyBytes);

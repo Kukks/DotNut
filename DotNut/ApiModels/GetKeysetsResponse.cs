@@ -4,9 +4,9 @@ namespace DotNut.ApiModels;
 
 public class GetKeysetsResponse
 {
-    [JsonPropertyName("keysets")] public Keyset[] Keysets { get; set; }
+    [JsonPropertyName("keysets")] public KeysetItemResponse[] Keysets { get; set; }
 
-    public class Keyset
+    public class KeysetItemResponse
     {
         [JsonPropertyName("id")] public KeysetId Id { get; set; }
         [JsonPropertyName("unit")] public string Unit { get; set; }

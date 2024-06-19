@@ -1,5 +1,7 @@
 using System.Text.Json;
-using DotNut;
+using DotNut.NUT13;
+using NBip32Fast;
+using NBitcoin;
 using NBitcoin.Secp256k1;
 
 namespace DotNut.Tests;
@@ -298,16 +300,19 @@ public class UnitTest1
     public void Nut12Tests_ProofDLEQ()
     {
         var A = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798".ToPubKey();
-        var proof = JsonSerializer.Deserialize<Proof>("{\"amount\": 1,\"id\": \"00882760bfa2eb41\",\"secret\": \"daf4dd00a2b68a0858a80450f52c8a7d2ccf87d375e43e216e0c571f089f63e9\",\"C\": \"024369d2d22a80ecf78f3937da9d5f30c1b9f74f0c32684d583cca0fa6a61cdcfc\",\"dleq\": {\"e\": \"b31e58ac6527f34975ffab13e70a48b6d2b0d35abc4b03f0151f09ee1a9763d4\",\"s\": \"8fbae004c59e754d71df67e392b6ae4e29293113ddc2ec86592a0431d16306d8\",\"r\": \"a6d13fcd7a18442e6076f5e1e7c887ad5de40a019824bdfa9fe740d302e8d861\"}}");
+        var proof = JsonSerializer.Deserialize<Proof>(
+            "{\"amount\": 1,\"id\": \"00882760bfa2eb41\",\"secret\": \"daf4dd00a2b68a0858a80450f52c8a7d2ccf87d375e43e216e0c571f089f63e9\",\"C\": \"024369d2d22a80ecf78f3937da9d5f30c1b9f74f0c32684d583cca0fa6a61cdcfc\",\"dleq\": {\"e\": \"b31e58ac6527f34975ffab13e70a48b6d2b0d35abc4b03f0151f09ee1a9763d4\",\"s\": \"8fbae004c59e754d71df67e392b6ae4e29293113ddc2ec86592a0431d16306d8\",\"r\": \"a6d13fcd7a18442e6076f5e1e7c887ad5de40a019824bdfa9fe740d302e8d861\"}}");
         Assert.NotNull(proof?.DLEQ);
-        Assert.Equal("024369d2d22a80ecf78f3937da9d5f30c1b9f74f0c32684d583cca0fa6a61cdcfc".ToPubKey(), proof.Secret.ToCurve());
+        Assert.Equal("024369d2d22a80ecf78f3937da9d5f30c1b9f74f0c32684d583cca0fa6a61cdcfc".ToPubKey(),
+            proof.Secret.ToCurve());
         Assert.True(proof.Verify(A));
     }
 
     [Fact]
     public void Nut14Tests_HTLCSecret()
     {
-        var htlcSecretStr = "[\n  \"HTLC\",\n  {\n    \"nonce\": \"da62796403af76c80cd6ce9153ed3746\",\n    \"data\": \"023192200a0cfd3867e48eb63b03ff599c7e46c8f4e41146b2d281173ca6c50c54\",\n    \"tags\": [\n      [\n        \"pubkeys\",\n        \"02698c4e2b5f9534cd0687d87513c759790cf829aa5739184a3e3735471fbda904\"\n      ],\n      [\n        \"locktime\",\n        \"1689418329\"\n      ],                   \n      [\n        \"refund\",\n        \"033281c37677ea273eb7183b783067f5244933ef78d8c3f15b1a77cb246099c26e\"\n      ]\n    ]\n  }\n]";
+        var htlcSecretStr =
+            "[\n  \"HTLC\",\n  {\n    \"nonce\": \"da62796403af76c80cd6ce9153ed3746\",\n    \"data\": \"023192200a0cfd3867e48eb63b03ff599c7e46c8f4e41146b2d281173ca6c50c54\",\n    \"tags\": [\n      [\n        \"pubkeys\",\n        \"02698c4e2b5f9534cd0687d87513c759790cf829aa5739184a3e3735471fbda904\"\n      ],\n      [\n        \"locktime\",\n        \"1689418329\"\n      ],                   \n      [\n        \"refund\",\n        \"033281c37677ea273eb7183b783067f5244933ef78d8c3f15b1a77cb246099c26e\"\n      ]\n    ]\n  }\n]";
         var secret = JsonSerializer.Deserialize<ISecret>(htlcSecretStr);
         var nut10Secret = Assert.IsType<Nut10Secret>(secret);
         Assert.Equal(HTLCProofSecret.Key, nut10Secret.Key);
@@ -319,4 +324,73 @@ public class UnitTest1
         Assert.Equal(JsonSerializer.Serialize(nut10Secret), JsonSerializer.Serialize(rebuiltNut10));
     }
     
+    internal readonly struct TestCase(in string path, in string keyHex, in string ccHex)
+    {
+        internal static readonly ReadOnlyMemory<byte> Seed = Convert.FromHexString(
+            "e4a964f4973ce5750a6a5a5126e8258442c197b2e71b683ccba58688f21242eae1b0f12bee21d6e983d4a5c61f081bf3f0669546eb576dec1b22ec8d481b00fb");
+
+        internal readonly ReadOnlyMemory<byte> Key = Convert.FromHexString(keyHex);
+        internal readonly ReadOnlyMemory<byte> ChainCode = Convert.FromHexString(ccHex);
+
+        internal readonly KeyPath Path = path;
+    }
+    
+    private static readonly TestCase Case1SecP256K1 = new(
+        "m/0'/0/0",
+        "6144c1daf8222d6dab77e7a20c2f338519b83bd1423602c56c7dfb5e9ea99c02",
+        "55b36970e7ab8434f9b04f1c2e52da7422d2bce7e284ca353419dddfa2e34bdb");
+
+    [Fact]
+    public void Bip32Test()
+    {
+        var masterKeyFromSeed = BIP32.Instance.GetMasterKeyFromSeed(TestCase.Seed.Span);
+        
+        Assert.Equal("5A876CC4B4AB2F6717951AEE7F97AB69844DBFFFF7074E6E6F71D2BA04BD6EC9", Convert.ToHexString( masterKeyFromSeed.ChainCode));
+        Assert.Equal("8D18D3F0CF9D74B53A935D97E8DE85955ED9F6EEFC6D6D45F0C169031A11B669", Convert.ToHexString( masterKeyFromSeed.PrivateKey));
+        
+        
+        Assert.Equal("026cf0d14fcfa930347e7da26281319ac5959d02f1b6331812261efdb7e347788b",ECPrivKey.Create(masterKeyFromSeed.PrivateKey).CreatePubKey().ToHex());
+        
+        var der1 = BIP32.Instance.DerivePath(Case1SecP256K1.Path, TestCase.Seed.Span);
+        Assert.True(der1.PrivateKey.SequenceEqual(Case1SecP256K1.Key.Span));
+        Assert.True(der1.ChainCode.SequenceEqual(Case1SecP256K1.ChainCode.Span));
+    }
+
+    [Fact]
+    public void Nut13Tests()
+    {
+        var keysetId = new KeysetId("009a1f293253e41e");
+
+        Assert.Equal(864559728, Nut13.GetKeysetIdInt(keysetId));
+        var path = "m/129372'/0'/864559728'/{counter}'";
+        var mnemonicPhrase = "half depart obvious quality work element tank gorilla view sugar picture humble";
+        var mnemonic = new Mnemonic(mnemonicPhrase);
+        Assert.Equal("dd44ee516b0647e80b488e8dcc56d736a148f15276bef588b37057476d4b2b25780d3688a32b37353d6995997842c0fd8b412475c891c16310471fbc86dcbda8", 
+            Convert.ToHexString(mnemonic.DeriveSeed()).ToLowerInvariant());
+        
+        Assert.Equal("m/129372'/0'/864559728'/0'/0", Nut13.GetNut13DerivationPath(keysetId, 0, true));
+        Assert.Equal("m/129372'/0'/864559728'/0'/1", Nut13.GetNut13DerivationPath(keysetId, 0, false));
+        
+        Assert.Equal("485875df74771877439ac06339e284c3acfcd9be7abf3bc20b516faeadfe77ae",
+            mnemonic.DeriveSecret(keysetId, 0).Secret);
+        Assert.Equal("8f2b39e8e594a4056eb1e6dbb4b0c38ef13b1b2c751f64f810ec04ee35b77270",
+            mnemonic.DeriveSecret(keysetId, 1).Secret);
+        Assert.Equal("bc628c79accd2364fd31511216a0fab62afd4a18ff77a20deded7b858c9860c8",
+            mnemonic.DeriveSecret(keysetId, 2).Secret);
+        Assert.Equal("59284fd1650ea9fa17db2b3acf59ecd0f2d52ec3261dd4152785813ff27a33bf",
+            mnemonic.DeriveSecret(keysetId, 3).Secret);
+        Assert.Equal("576c23393a8b31cc8da6688d9c9a96394ec74b40fdaf1f693a6bb84284334ea0",
+            mnemonic.DeriveSecret(keysetId, 4).Secret);
+
+        Assert.Equal("ad00d431add9c673e843d4c2bf9a778a5f402b985b8da2d5550bf39cda41d679",
+            Convert.ToHexString(mnemonic.DeriveBlindingFactor(keysetId, 0)).ToLowerInvariant());
+        Assert.Equal("967d5232515e10b81ff226ecf5a9e2e2aff92d66ebc3edf0987eb56357fd6248",
+            Convert.ToHexString(mnemonic.DeriveBlindingFactor(keysetId, 1)).ToLowerInvariant());
+        Assert.Equal("b20f47bb6ae083659f3aa986bfa0435c55c6d93f687d51a01f26862d9b9a4899",
+            Convert.ToHexString(mnemonic.DeriveBlindingFactor(keysetId, 2)).ToLowerInvariant());
+        Assert.Equal("fb5fca398eb0b1deb955a2988b5ac77d32956155f1c002a373535211a2dfdc29",
+            Convert.ToHexString(mnemonic.DeriveBlindingFactor(keysetId, 3)).ToLowerInvariant());
+        Assert.Equal("5f09bfbfe27c439a597719321e061e2e40aad4a36768bb2bcc3de547c9644bf9",
+            Convert.ToHexString(mnemonic.DeriveBlindingFactor(keysetId, 4)).ToLowerInvariant());
+    }
 }

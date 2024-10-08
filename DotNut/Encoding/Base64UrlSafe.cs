@@ -8,7 +8,7 @@ public static class Base64UrlSafe
     public static string Encode(byte[] data)
     {
         return System.Convert.ToBase64String(data)
-            .TrimEnd(padding).Replace('+', '-').Replace('/', '_');
+            .TrimEnd(padding).Replace('+', '-').Replace('/', '_').TrimEnd(padding);
     }
 
     public static byte[] Decode(string base64)

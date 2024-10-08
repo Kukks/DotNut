@@ -89,7 +89,7 @@ public class UnitTest1
             }
         );
 
-        Assert.Equal(originalToken, CashuTokenHelper.Encode(result, "A", false));
+        Assert.Equal(originalToken, result.Encode("A", false));
 
         Assert.Throws<FormatException>(() => CashuTokenHelper.Decode(
             "casshuAeyJ0b2tlbiI6W3sibWludCI6Imh0dHBzOi8vODMzMy5zcGFjZTozMzM4IiwicHJvb2ZzIjpbeyJhbW91bnQiOjIsImlkIjoiMDA5YTFmMjkzMjUzZTQxZSIsInNlY3JldCI6IjQwNzkxNWJjMjEyYmU2MWE3N2UzZTZkMmFlYjRjNzI3OTgwYmRhNTFjZDA2YTZhZmMyOWUyODYxNzY4YTc4MzciLCJDIjoiMDJiYzkwOTc5OTdkODFhZmIyY2M3MzQ2YjVlNDM0NWE5MzQ2YmQyYTUwNmViNzk1ODU5OGE3MmYwY2Y4NTE2M2VhIn0seyJhbW91bnQiOjgsImlkIjoiMDA5YTFmMjkzMjUzZTQxZSIsInNlY3JldCI6ImZlMTUxMDkzMTRlNjFkNzc1NmIwZjhlZTBmMjNhNjI0YWNhYTNmNGUwNDJmNjE0MzNjNzI4YzcwNTdiOTMxYmUiLCJDIjoiMDI5ZThlNTA1MGI4OTBhN2Q2YzA5NjhkYjE2YmMxZDVkNWZhMDQwZWExZGUyODRmNmVjNjlkNjEyOTlmNjcxMDU5In1dfV0sInVuaXQiOiJzYXQiLCJtZW1vIjoiVGhhbmsgeW91LiJ9",
@@ -97,6 +97,50 @@ public class UnitTest1
         Assert.Throws<FormatException>(() => CashuTokenHelper.Decode(
             "eyJ0b2tlbiI6W3sibWludCI6Imh0dHBzOi8vODMzMy5zcGFjZTozMzM4IiwicHJvb2ZzIjpbeyJhbW91bnQiOjIsImlkIjoiMDA5YTFmMjkzMjUzZTQxZSIsInNlY3JldCI6IjQwNzkxNWJjMjEyYmU2MWE3N2UzZTZkMmFlYjRjNzI3OTgwYmRhNTFjZDA2YTZhZmMyOWUyODYxNzY4YTc4MzciLCJDIjoiMDJiYzkwOTc5OTdkODFhZmIyY2M3MzQ2YjVlNDM0NWE5MzQ2YmQyYTUwNmViNzk1ODU5OGE3MmYwY2Y4NTE2M2VhIn0seyJhbW91bnQiOjgsImlkIjoiMDA5YTFmMjkzMjUzZTQxZSIsInNlY3JldCI6ImZlMTUxMDkzMTRlNjFkNzc1NmIwZjhlZTBmMjNhNjI0YWNhYTNmNGUwNDJmNjE0MzNjNzI4YzcwNTdiOTMxYmUiLCJDIjoiMDI5ZThlNTA1MGI4OTBhN2Q2YzA5NjhkYjE2YmMxZDVkNWZhMDQwZWExZGUyODRmNmVjNjlkNjEyOTlmNjcxMDU5In1dfV0sInVuaXQiOiJzYXQiLCJtZW1vIjoiVGhhbmsgeW91LiJ9",
             out _));
+
+
+
+        
+        var v4Token =
+            "cashuBo2F0gqJhaUgA_9SLj17PgGFwgaNhYQFhc3hAYWNjMTI0MzVlN2I4NDg0YzNjZjE4NTAxNDkyMThhZjkwZjcxNmE1MmJmNGE1ZWQzNDdlNDhlY2MxM2Y3NzM4OGFjWCECRFODGd5IXVW-07KaZCvuWHk3WrnnpiDhHki6SCQh88-iYWlIAK0mjE0fWCZhcIKjYWECYXN4QDEzMjNkM2Q0NzA3YTU4YWQyZTIzYWRhNGU5ZjFmNDlmNWE1YjRhYzdiNzA4ZWIwZDYxZjczOGY0ODMwN2U4ZWVhY1ghAjRWqhENhLSsdHrr2Cw7AFrKUL9Ffr1XN6RBT6w659lNo2FhAWFzeEA1NmJjYmNiYjdjYzY0MDZiM2ZhNWQ1N2QyMTc0ZjRlZmY4YjQ0MDJiMTc2OTI2ZDNhNTdkM2MzZGNiYjU5ZDU3YWNYIQJzEpxXGeWZN5qXSmJjY8MzxWyvwObQGr5G1YCCgHicY2FtdWh0dHA6Ly9sb2NhbGhvc3Q6MzMzOGF1Y3NhdA";
+        result = CashuTokenHelper.Decode(v4Token, out v);
+        
+        Assert.Equal("B", v);
+        Assert.Null(result.Memo);
+        Assert.Equal("sat", result.Unit);
+        token = Assert.Single(result.Tokens);
+        Assert.Equal("http://localhost:3338", token.Mint);
+        Assert.Equal(3, token.Proofs.Count);
+        Assert.Collection(token.Proofs, proof =>
+            {
+                Assert.Equal(1, proof.Amount);
+                Assert.Equal(new KeysetId("00ffd48b8f5ecf80"), proof.Id);
+
+                Assert.Equal("acc12435e7b8484c3cf1850149218af90f716a52bf4a5ed347e48ecc13f77388",
+                    Assert.IsType<StringSecret>(proof.Secret).Secret);
+                Assert.Equal("0244538319de485d55bed3b29a642bee5879375ab9e7a620e11e48ba482421f3cf".ToPubKey(),
+                    (ECPubKey) proof.C);
+            }, proof =>
+            {
+                Assert.Equal(2, proof.Amount);
+                Assert.Equal(new KeysetId("00ad268c4d1f5826"), proof.Id);
+                Assert.Equal("1323d3d4707a58ad2e23ada4e9f1f49f5a5b4ac7b708eb0d61f738f48307e8ee",
+                    Assert.IsType<StringSecret>(proof.Secret).Secret);
+                Assert.Equal("023456aa110d84b4ac747aebd82c3b005aca50bf457ebd5737a4414fac3ae7d94d".ToPubKey(),
+                    (ECPubKey) proof.C);
+            }, proof =>
+            {
+                Assert.Equal(1, proof.Amount);
+                Assert.Equal(new KeysetId("00ad268c4d1f5826"), proof.Id);
+                Assert.Equal("56bcbcbb7cc6406b3fa5d57d2174f4eff8b4402b176926d3a57d3c3dcbb59d57",
+                    Assert.IsType<StringSecret>(proof.Secret).Secret);
+                Assert.Equal("0273129c5719e599379a974a626363c333c56cafc0e6d01abe46d5808280789c63".ToPubKey(),
+                    (ECPubKey) proof.C);
+            }
+        );
+        Assert.Equal(v4Token, result.Encode("B", false));
+
+
     }
 
     [Theory]

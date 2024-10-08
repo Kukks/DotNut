@@ -25,6 +25,11 @@ public static class CashuTokenHelper
             throw new NotSupportedException($"Version {version} is not supported");
         }
 
+        //trim trailing slash from mint url
+        foreach (var token2 in token.Tokens.Where(token1 => token1.Mint.EndsWith("/")))
+        {
+            token2.Mint = token2.Mint.TrimEnd('/');
+        }
         var result = encoder.Encode(token);
 
         if (makeUri)

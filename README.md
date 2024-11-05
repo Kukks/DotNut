@@ -26,3 +26,4 @@ dotnet add package DotNut
 - :heavy_check_mark: [NUT-13](https://github.com/cashubtc/nuts/blob/main/13.md)
 - :heavy_check_mark: [NUT-14](https://github.com/cashubtc/nuts/blob/main/14.md)
 - :heavy_check_mark: [NUT-15](https://github.com/cashubtc/nuts/blob/main/15.md)
+- :heavy_check_mark: [NUT-18](https://github.com/cashubtc/nuts/blob/main/18.md)

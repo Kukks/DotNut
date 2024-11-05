@@ -1,14 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using DotNut.JsonConverters;
 
-//
-// [JsonConverter(typeof(HexSecretJsonConverter))]
-// public class HexSecret:IProofSecret
-// {
-//     public byte[] Secret { get; set; }
-// }
-//
-
 
 namespace DotNut;
 

@@ -48,9 +48,3 @@ public class GetInfoResponse
     [JsonPropertyName("nuts")]
     public Dictionary<string, JsonDocument>? Nuts { get; set; }
 }
-
-public class ContactInfo
-{
-    [JsonPropertyName("method")] public string Method { get; set; }
-    [JsonPropertyName("info")] public string Info { get; set; }
-}

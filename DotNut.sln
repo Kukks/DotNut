@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNut", "DotNut\DotNut.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNut.Tests", "DotNut.Tests\DotNut.Tests.csproj", "{0AAAA85C-9FDC-4FD5-9CC2-ED8385B40106}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNut.Nostr", "DotNut.Nostr\DotNut.Nostr.csproj", "{EDBCFA42-B7A0-4443-9359-8A44BDA17935}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{0AAAA85C-9FDC-4FD5-9CC2-ED8385B40106}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0AAAA85C-9FDC-4FD5-9CC2-ED8385B40106}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0AAAA85C-9FDC-4FD5-9CC2-ED8385B40106}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EDBCFA42-B7A0-4443-9359-8A44BDA17935}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EDBCFA42-B7A0-4443-9359-8A44BDA17935}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EDBCFA42-B7A0-4443-9359-8A44BDA17935}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EDBCFA42-B7A0-4443-9359-8A44BDA17935}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

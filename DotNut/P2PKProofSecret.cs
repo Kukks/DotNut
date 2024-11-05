@@ -57,7 +57,8 @@ public class P2PKProofSecret : Nut10ProofSecret
             {
                 var sig = key.SignBIP340(msg);
 
-                key.CreatePubKey().SigVerifySchnorr(sig, msg);
+                
+                key.CreateXOnlyPubKey().SigVerifyBIP340(sig, msg);
                 result.Signatures = result.Signatures.Append(sig.ToHex()).ToArray();
             }
 

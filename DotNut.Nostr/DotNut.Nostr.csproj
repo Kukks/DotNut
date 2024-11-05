@@ -5,23 +5,23 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Title>DotNut</Title>
+        <Title>DotNut.Nostr</Title>
         <Authors>Kukks</Authors>
-        <Description>A full C# native implementation of the Cashu protocol</Description>
+        <Description>Support Cashu payment requests through Nostr </Description>
         <Copyright>MIT</Copyright>
         <PackageProjectUrl>https://github.com/Kukks/DotNut</PackageProjectUrl>
-        <PackageVersion>1.0.2</PackageVersion>
+        <PackageVersion>1.0.0</PackageVersion>
         <RepositoryUrl>https://github.com/Kukks/DotNut</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
-        <PackageTags>bitcoin cashu ecash secp256k1</PackageTags>
+        <PackageTags>bitcoin cashu ecash secp256k1 nostr</PackageTags>
         <PackageLicenseUrl>https://github.com/Kukks/DotNut/blob/master/LICENSE</PackageLicenseUrl>
 
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="NBitcoin.Secp256k1" Version="3.1.6" />
-        <PackageReference Include="NBip32Fast" Version="1.0.5" />
-        <PackageReference Include="PeterO.Cbor" Version="4.5.5" />
+
+      <PackageReference Include="NNostr.Client" Version="0.0.53" />
+      <ProjectReference Include="..\DotNut\DotNut.csproj" />
     </ItemGroup>
 
 </Project>

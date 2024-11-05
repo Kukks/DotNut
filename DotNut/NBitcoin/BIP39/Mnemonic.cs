@@ -207,13 +207,5 @@ namespace NBitcoin
 
 
 	}
-	public enum WordCount : int
-	{
-		Twelve = 12,
-		Fifteen = 15,
-		Eighteen = 18,
-		TwentyOne = 21,
-		TwentyFour = 24
-	}
 }
 #pragma warning restore CS0618 // Type or member is obsolete

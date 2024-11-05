@@ -40,3 +40,26 @@ jobs:
           VERSION_REGEX: ^\s*<PackageVersion>(.*)<\/PackageVersion>\s*$
           TAG_COMMIT: true
           TAG_FORMAT: DotNut/v*
+      - name: Publish NuGet for nostr
+        if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
+        uses: Rebel028/publish-nuget@v2.7.0
+        with:
+          PROJECT_FILE_PATH: DotNut.Nostr/DotNut.Nostr.csproj
+          NUGET_KEY: ${{secrets.NUGET_KEY}}
+          PACKAGE_NAME: DotNut.Nostr
+          INCLUDE_SYMBOLS: false
+          VERSION_REGEX: ^\s*<PackageVersion>(.*)<\/PackageVersion>\s*$
+          TAG_COMMIT: true
+          TAG_FORMAT: DotNut.Nostr/v*
+      - name: Publish Github Package Registry for nostr
+        if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master
+        uses: Rebel028/publish-nuget@v2.7.0
+        with:
+          PROJECT_FILE_PATH: DotNut.Nostr/DotNut.Nostr.csproj
+          NUGET_SOURCE: "https://nuget.pkg.github.com/Kukks"
+          NUGET_KEY: ${{secrets.GH_TOKEN}}
+          PACKAGE_NAME: DotNut.Nostr
+          INCLUDE_SYMBOLS: false
+          VERSION_REGEX: ^\s*<PackageVersion>(.*)<\/PackageVersion>\s*$
+          TAG_COMMIT: true
+          TAG_FORMAT: DotNut/v*

@@ -83,14 +83,8 @@ namespace NBitcoin
 		int _Position;
 		public int Position
 		{
-			get
-			{
-				return _Position;
-			}
-			set
-			{
-				_Position = value;
-			}
+			get => _Position;
+			set => _Position = value;
 		}
 		public void Write(BitArray bitArray, int bitCount)
 		{

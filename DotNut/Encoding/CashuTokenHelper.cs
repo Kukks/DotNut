@@ -59,4 +59,9 @@ public static class CashuTokenHelper
         token = token.Substring(1);
         return encoder.Decode(token);
     }
+    
+    public static int SumProofs(CashuToken token)
+    {
+        return token.Tokens.Single().Proofs.Sum(p => p.Amount);
+    }
 }

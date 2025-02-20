@@ -21,4 +21,8 @@ public class PostMeltQuoteBolt11Response
     
     [JsonPropertyName("payment_preimage")]
     public string? PaymentPreimage {get; set;}
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("change")]
+    public BlindSignature[]? Change { get; set; }
 }

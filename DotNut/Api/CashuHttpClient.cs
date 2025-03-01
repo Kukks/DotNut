@@ -29,11 +29,11 @@ public class CashuHttpClient : ICashuApi
         return await HandleResponse<GetKeysetsResponse>(response, cancellationToken);
     }
 
-    public async Task<GetKeysetsResponse> GetKeys(KeysetId keysetId, CancellationToken cancellationToken = default)
+    public async Task<GetKeysResponse> GetKeys(KeysetId keysetId, CancellationToken cancellationToken = default)
 
     {
         var response = await _httpClient.GetAsync($"v1/keys/{keysetId}", cancellationToken);
-        return await HandleResponse<GetKeysetsResponse>(response, cancellationToken);
+        return await HandleResponse<GetKeysResponse>(response, cancellationToken);
     }
 
     public async Task<PostSwapResponse> Swap(PostSwapRequest request, CancellationToken cancellationToken = default)

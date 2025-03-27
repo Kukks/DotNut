@@ -74,7 +74,14 @@ public static class Cashu
         //C_ = kB_
         return (B_.Q * k.sec).ToPubkey();
     }
-    
+
+    public static ECPubKey UnblindC(ECPubKey C_, ECPrivKey r, ECPubKey A)
+    {
+        var rA = A.Q * r.sec; // r * A
+        var negatedRA = rA.Negate(); // -r * A
+        return C_.Q.ToGroupElementJacobian().Add((negatedRA).ToGroupElement()).ToPubkey(); // C_ - r * A
+    }
+
 
     public static (ECPrivKey e, ECPrivKey s) ComputeProof(ECPubKey B_, ECPrivKey a, ECPrivKey p)
     {

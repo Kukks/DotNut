@@ -220,6 +220,35 @@ public class UnitTest1
     }
 
     [Fact]
+    public void Nut04Tests_UnblindC()
+    {
+        // Mint-Key
+        var k = "0000000000000000000000000000000000000000000000000000000000000001".ToPrivKey();
+        var A = k.CreatePubKey();
+        Assert.Equal("0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798".ToPubKey(), A);
+
+        // Secret and blinding factor
+        var message = "test_secret";
+        var blindingFactor = "0000000000000000000000000000000000000000000000000000000000000002".ToPrivKey();
+
+        // Steps to blind and sign
+        var Y = Cashu.MessageToCurve(message); // Y = HashToCurve(message)
+        var B_ = Cashu.ComputeB_(Y, blindingFactor); // B_ = Y + r * G
+        var C_ = Cashu.ComputeC_(B_, k); // C_ = k * B_
+
+        // Unblinding with the new function
+        var C = Cashu.UnblindC(C_, blindingFactor, A); // C = C_ - r * A
+
+        // Check that C = k * Y
+        var expectedC = (Y.Q * k.sec).ToPubkey(); // k * Y
+        Assert.Equal(expectedC.ToHex(), C.ToHex());
+
+        // Additional verification with VerifyProof
+        var proof = Cashu.ComputeProof(B_, k, blindingFactor);
+        Assert.True(Cashu.VerifyProof(Y, blindingFactor, C, proof.e, proof.s, A));
+    }
+
+    [Fact]
     public void Nut11_Signatures()
     {
         var secretKey =

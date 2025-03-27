@@ -1,10 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35507.96 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNut", "DotNut\DotNut.csproj", "{997966AE-DC46-4473-9C82-A0F1750B2481}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNut.Tests", "DotNut.Tests\DotNut.Tests.csproj", "{0AAAA85C-9FDC-4FD5-9CC2-ED8385B40106}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNut.Nostr", "DotNut.Nostr\DotNut.Nostr.csproj", "{EDBCFA42-B7A0-4443-9359-8A44BDA17935}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNut.Demo", "DotNut.Demo\DotNut.Demo.csproj", "{F7962032-A399-459D-BD12-958A56CABF08}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,5 +29,12 @@ Global
 		{EDBCFA42-B7A0-4443-9359-8A44BDA17935}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EDBCFA42-B7A0-4443-9359-8A44BDA17935}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EDBCFA42-B7A0-4443-9359-8A44BDA17935}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7962032-A399-459D-BD12-958A56CABF08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7962032-A399-459D-BD12-958A56CABF08}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7962032-A399-459D-BD12-958A56CABF08}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7962032-A399-459D-BD12-958A56CABF08}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 EndGlobal

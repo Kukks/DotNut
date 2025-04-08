@@ -122,7 +122,8 @@ public static class Cashu
 
     public static ECPubKey ComputeC(ECPubKey C_, ECPrivKey r, ECPubKey A)
     {
-        return C_.Q.ToGroupElementJacobian().Add((A.Q * r.sec).ToGroupElement()).ToPubkey();
+        //C_ - rA = C
+        return C_.Q.ToGroupElementJacobian().Add((A.Q * r.sec).ToGroupElement().Negate()).ToPubkey();
     }
 
     private static byte[] Concat(params byte[][] arrays)

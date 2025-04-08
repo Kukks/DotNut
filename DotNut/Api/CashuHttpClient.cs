@@ -68,6 +68,13 @@ public class CashuHttpClient : ICashuApi
         return await HandleResponse<TResponse>(response, cancellationToken);
     }
 
+    public async Task<TResponse> CheckMeltQuote<TResponse>(string method, string quoteId, CancellationToken
+        cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync($"v1/melt/quote/{method}/{quoteId}", cancellationToken);
+        return await HandleResponse<TResponse>(response, cancellationToken);
+    }
+
     public async Task<TResponse> CheckMintQuote<TResponse>(string method, string quoteId, CancellationToken
         cancellationToken = default)
     {

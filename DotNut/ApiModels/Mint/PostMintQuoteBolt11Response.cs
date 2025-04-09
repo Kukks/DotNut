@@ -15,4 +15,13 @@ public class PostMintQuoteBolt11Response
     
     [JsonPropertyName("expiry")] 
     public int Expiry { get; set; }
+    
+    // 'amount' and 'unit' were recently added to the spec in PostMintQuoteBolt11Response, so they are optional for now
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("amount")]
+    public int? Amount { get; set; }
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("unit")]
+    public string? Unit {get; set;}
 }

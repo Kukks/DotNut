@@ -12,6 +12,7 @@ public class PostMintQuoteBolt11Request
     [JsonPropertyName("unit")] 
     public string Unit {get; set;}
     
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     [JsonPropertyName("description")] 
     public string? Description {get; set;}
 }

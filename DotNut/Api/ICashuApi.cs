@@ -5,7 +5,7 @@ namespace DotNut.Api;
 public interface ICashuApi
 {
     Task<GetKeysResponse> GetKeys(CancellationToken cancellationToken = default);
-    Task<GetKeysetsResponse> GetKeys(KeysetId keysetId, CancellationToken cancellationToken = default);
+    Task<GetKeysResponse> GetKeys(KeysetId keysetId, CancellationToken cancellationToken = default);
     Task<GetKeysetsResponse> GetKeysets(CancellationToken cancellationToken = default);
     Task<PostSwapResponse> Swap(PostSwapRequest request, CancellationToken cancellationToken = default);
 

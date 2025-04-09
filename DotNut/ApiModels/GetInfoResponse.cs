@@ -33,16 +33,23 @@ public class GetInfoResponse
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     [JsonPropertyName("motd")]
     public string? Motd { get; set; }
-
-
+    
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     [JsonPropertyName("icon_url")]
     public string? IconUrl { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [JsonPropertyName("urls")]
+    public string[]? Urls { get; set; }
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     [JsonConverter(typeof(UnixDateTimeOffsetConverter))]
     [JsonPropertyName("time")]
     public DateTimeOffset? Time { get; set; }
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [JsonPropertyName("tos_url")]
+    public string? TosUrl { get; set; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     [JsonPropertyName("nuts")]

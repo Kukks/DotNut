@@ -71,7 +71,7 @@ public class UnitTest1
         Assert.Equal(2, token.Proofs.Count);
         Assert.Collection(token.Proofs, proof =>
             {
-                Assert.Equal(2, proof.Amount);
+                Assert.Equal((ulong)2, proof.Amount);
                 Assert.Equal(new KeysetId("009a1f293253e41e"), proof.Id);
 
                 Assert.Equal("407915bc212be61a77e3e6d2aeb4c727980bda51cd06a6afc29e2861768a7837",
@@ -80,7 +80,7 @@ public class UnitTest1
                     (ECPubKey) proof.C);
             }, proof =>
             {
-                Assert.Equal(8, proof.Amount);
+                Assert.Equal((ulong)8, proof.Amount);
                 Assert.Equal(new KeysetId("009a1f293253e41e"), proof.Id);
                 Assert.Equal("fe15109314e61d7756b0f8ee0f23a624acaa3f4e042f61433c728c7057b931be",
                     Assert.IsType<StringSecret>(proof.Secret).Secret);
@@ -113,7 +113,7 @@ public class UnitTest1
         Assert.Equal(3, token.Proofs.Count);
         Assert.Collection(token.Proofs, proof =>
             {
-                Assert.Equal(1, proof.Amount);
+                Assert.Equal((ulong)1, proof.Amount);
                 Assert.Equal(new KeysetId("00ffd48b8f5ecf80"), proof.Id);
 
                 Assert.Equal("acc12435e7b8484c3cf1850149218af90f716a52bf4a5ed347e48ecc13f77388",
@@ -122,7 +122,7 @@ public class UnitTest1
                     (ECPubKey) proof.C);
             }, proof =>
             {
-                Assert.Equal(2, proof.Amount);
+                Assert.Equal((ulong)2, proof.Amount);
                 Assert.Equal(new KeysetId("00ad268c4d1f5826"), proof.Id);
                 Assert.Equal("1323d3d4707a58ad2e23ada4e9f1f49f5a5b4ac7b708eb0d61f738f48307e8ee",
                     Assert.IsType<StringSecret>(proof.Secret).Secret);
@@ -130,7 +130,7 @@ public class UnitTest1
                     (ECPubKey) proof.C);
             }, proof =>
             {
-                Assert.Equal(1, proof.Amount);
+                Assert.Equal((ulong)1, proof.Amount);
                 Assert.Equal(new KeysetId("00ad268c4d1f5826"), proof.Id);
                 Assert.Equal("56bcbcbb7cc6406b3fa5d57d2174f4eff8b4402b176926d3a57d3c3dcbb59d57",
                     Assert.IsType<StringSecret>(proof.Secret).Secret);
@@ -181,11 +181,14 @@ public class UnitTest1
         var a = "0000000000000000000000000000000000000000000000000000000000000001".ToPrivKey();
         var A = a.CreatePubKey();
         Assert.Equal("0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798".ToPubKey(), A);
-        var message = "secret_msg";
+        var message = new StringSecret("secret_msg");
         var blindingFactor = "0000000000000000000000000000000000000000000000000000000000000001".ToPrivKey();
-        var Y = Cashu.MessageToCurve(message);
+        // var Y = Cashu.MessageToCurve(message);
+        var Y = message.ToCurve();
         var B_ = Cashu.ComputeB_(Y, blindingFactor);
         var C_ = Cashu.ComputeC_(B_, a);
+        //p doesn;t have to be blinding factor. in fact it should be random nonce 
+        
         var proof = Cashu.ComputeProof(B_, a, blindingFactor);
         Cashu.VerifyProof(B_, C_, proof.e, proof.s, A);
         var C = Cashu.ComputeC(C_, blindingFactor, A);
@@ -375,7 +378,7 @@ public class UnitTest1
             "creqApWF0gaNhdGVub3N0cmFheKlucHJvZmlsZTFxeTI4d3VtbjhnaGo3dW45ZDNzaGp0bnl2OWtoMnVld2Q5aHN6OW1od2RlbjV0ZTB3ZmprY2N0ZTljdXJ4dmVuOWVlaHFjdHJ2NWhzenJ0aHdkZW41dGUwZGVoaHh0bnZkYWtxcWd5ZGFxeTdjdXJrNDM5eWtwdGt5c3Y3dWRoZGh1NjhzdWNtMjk1YWtxZWZkZWhrZjBkNDk1Y3d1bmw1YWeBgmFuYjE3YWloYjdhOTAxNzZhYQphdWNzYXRhbYF4Imh0dHBzOi8vbm9mZWVzLnRlc3RudXQuY2FzaHUuc3BhY2U=";
         var pr = PaymentRequest.Parse(creqA);
         Assert.Equal("https://nofees.testnut.cashu.space", Assert.Single( pr.Mints));
-        Assert.Equal(10, pr.Amount);
+        Assert.Equal((ulong)10, pr.Amount);
         Assert.Equal("b7a90176", pr.PaymentId);
         Assert.Equal("sat", pr.Unit);
         var t = Assert.Single(pr.Transports);

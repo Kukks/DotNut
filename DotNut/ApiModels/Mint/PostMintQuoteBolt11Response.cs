@@ -19,7 +19,7 @@ public class PostMintQuoteBolt11Response
     // 'amount' and 'unit' were recently added to the spec in PostMintQuoteBolt11Response, so they are optional for now
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("amount")]
-    public int? Amount { get; set; }
+    public ulong? Amount { get; set; }
     
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("unit")]

@@ -5,9 +5,9 @@ namespace DotNut;
 public static class FeeHelper
 {
 
-    public static int ComputeFee(this IEnumerable<Proof> proofsToSpend, Dictionary<KeysetId, int> keysetFees)
+    public static ulong ComputeFee(this IEnumerable<Proof> proofsToSpend, Dictionary<KeysetId, ulong> keysetFees)
     {
-        var sum = 0;
+        ulong sum = 0;
         foreach (var proof in proofsToSpend)
         {
             if (keysetFees.TryGetValue(proof.Id, out var fee))

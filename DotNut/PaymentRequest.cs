@@ -5,7 +5,7 @@ namespace DotNut;
 public class PaymentRequest
 {
     public string? PaymentId { get; set; }
-    public int? Amount { get; set; }
+    public ulong? Amount { get; set; }
     public string? Unit { get; set; }
     public bool? OneTimeUse { get; set; }
     public string[]? Mints { get; set; }

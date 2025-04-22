@@ -16,28 +16,24 @@ public class CashuHttpClient : ICashuApi
     }
 
     public async Task<GetKeysResponse> GetKeys(CancellationToken cancellationToken = default)
-
     {
         var response = await _httpClient.GetAsync("v1/keys", cancellationToken);
         return await HandleResponse<GetKeysResponse>(response, cancellationToken);
     }
 
     public async Task<GetKeysetsResponse> GetKeysets(CancellationToken cancellationToken = default)
-
     {
         var response = await _httpClient.GetAsync("v1/keysets", cancellationToken);
         return await HandleResponse<GetKeysetsResponse>(response, cancellationToken);
     }
 
     public async Task<GetKeysResponse> GetKeys(KeysetId keysetId, CancellationToken cancellationToken = default)
-
     {
         var response = await _httpClient.GetAsync($"v1/keys/{keysetId}", cancellationToken);
         return await HandleResponse<GetKeysResponse>(response, cancellationToken);
     }
 
     public async Task<PostSwapResponse> Swap(PostSwapRequest request, CancellationToken cancellationToken = default)
-
     {
         var response = await _httpClient.PostAsync($"v1/swap",
             new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json"), cancellationToken);
@@ -104,6 +100,12 @@ public class CashuHttpClient : ICashuApi
         var response = await _httpClient.PostAsync($"v1/restore",
             new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json"), cancellationToken);
         return await HandleResponse<PostRestoreResponse>(response, cancellationToken);
+    }
+
+    public async Task<GetInfoResponse> GetInfo(CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync("v1/info", cancellationToken);
+        return await HandleResponse<GetInfoResponse>(response, cancellationToken);
     }
 
     protected async Task<T> HandleResponse<T>(HttpResponseMessage response, CancellationToken cancellationToken)

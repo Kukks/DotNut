@@ -7,7 +7,7 @@ public class PostMintQuoteBolt11Request
 {
   
     [JsonPropertyName("amount")] 
-    public int Amount {get; set;}
+    public ulong Amount {get; set;}
     
     [JsonPropertyName("unit")] 
     public string Unit {get; set;}

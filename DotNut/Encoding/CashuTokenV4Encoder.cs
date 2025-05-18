@@ -86,7 +86,7 @@ public class CashuTokenV4Encoder : ICashuTokenEncoder, ICBORToFromConverter<Cash
 
                         return proofSet["p"].Values.Select(proof => new Proof()
                         {
-                            Amount = proof["a"].AsInt32(),
+                            Amount = proof["a"].ToObject<ulong>(),
                             Secret = JsonSerializer.Deserialize<ISecret>(proof["s"].ToJSONString())!,
                             C = ECPubKey.Create(proof["c"].GetByteString()),
                             Witness = proof.GetOrDefault("w", null)?.AsString(),

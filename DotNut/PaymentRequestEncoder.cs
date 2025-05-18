@@ -60,7 +60,7 @@ public class PaymentRequestEncoder : ICBORToFromConverter<PaymentRequest>
                     paymentRequest.PaymentId = value.AsString();
                     break;
                 case "a":
-                    paymentRequest.Amount = value.AsInt32();
+                    paymentRequest.Amount = value.ToObject<ulong>();
                     break;
                 case "u":
                     paymentRequest.Unit = value.AsString();

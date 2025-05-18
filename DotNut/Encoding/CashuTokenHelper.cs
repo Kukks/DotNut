@@ -10,10 +10,10 @@ public static class CashuTokenHelper
         Encoders.Add("B", new CashuTokenV4Encoder());
     }
 
-    public const string CashuUriScheme = "cashu";
+    public const string CashuUriScheme = "cashu:";
     public const string CashuPrefix = "cashu";
 
-    public static string Encode(this CashuToken token, string version = "B", bool makeUri = true)
+    public static string Encode(this CashuToken token, string version = "B", bool makeUri = false)
     {
         if (!Encoders.TryGetValue(version, out var encoder))
         {
@@ -25,14 +25,17 @@ public static class CashuTokenHelper
         {
             token2.Mint = token2.Mint.TrimEnd('/');
         }
-        var result = encoder.Encode(token);
+        
+        var encoded = encoder.Encode(token);
+
+        var result = $"{CashuPrefix}{version}{encoded}";
 
         if (makeUri)
         {
             return CashuUriScheme + result;
         }
 
-        return $"{CashuPrefix}{version}{result}";
+        return result;
     }
 
     public static CashuToken Decode(string token, out string? version)
@@ -40,7 +43,7 @@ public static class CashuTokenHelper
         version = null;
         if (Uri.IsWellFormedUriString(token, UriKind.Absolute))
         {
-            token = token.Replace(CashuUriScheme + ":", "");
+            token = token.Replace(CashuUriScheme, "");
         }
 
         if (!token.StartsWith(CashuPrefix))

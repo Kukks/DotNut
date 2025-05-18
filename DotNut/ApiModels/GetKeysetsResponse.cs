@@ -12,6 +12,6 @@ public class GetKeysetsResponse
         [JsonPropertyName("unit")] public string Unit { get; set; }
         [JsonPropertyName("active")] public bool Active { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        [JsonPropertyName("input_fee_ppk")] public int? InputFee { get; set; }
+        [JsonPropertyName("input_fee_ppk")] public ulong? InputFee { get; set; }
     }
 }

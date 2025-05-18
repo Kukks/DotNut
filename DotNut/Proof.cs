@@ -6,7 +6,7 @@ namespace DotNut;
 
 public class Proof
 {
-    [JsonPropertyName("amount")] public int Amount { get; set; }
+    [JsonPropertyName("amount")] public ulong Amount { get; set; }
 
     [JsonConverter(typeof(KeysetIdJsonConverter))]
     [JsonPropertyName("id")]

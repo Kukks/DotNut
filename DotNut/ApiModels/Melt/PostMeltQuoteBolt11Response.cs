@@ -8,7 +8,7 @@ public class PostMeltQuoteBolt11Response
     public string Quote { get; set; }
     
     [JsonPropertyName("amount")] 
-    public int Amount { get; set; }
+    public ulong Amount { get; set; }
     
     [JsonPropertyName("fee_reserve")] 
     public int FeeReserve { get; set; }

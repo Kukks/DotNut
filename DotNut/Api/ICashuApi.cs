@@ -24,4 +24,5 @@ public interface ICashuApi
     Task<TResponse> Mint<TRequest,TResponse>(string method, TRequest request,  CancellationToken cancellationToken = default);
     Task<PostCheckStateResponse> CheckState(PostCheckStateRequest request,  CancellationToken cancellationToken = default);
     Task<PostRestoreResponse> Restore(PostRestoreRequest request,  CancellationToken cancellationToken = default);
+    Task<GetInfoResponse> GetInfo(CancellationToken cancellationToken = default);
 }

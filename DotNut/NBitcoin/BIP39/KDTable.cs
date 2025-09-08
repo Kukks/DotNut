@@ -1,7 +1,6 @@
 ﻿using System.Text;
 
-// ReSharper disable once CheckNamespace
-namespace NBitcoin
+namespace DotNut.NBitcoin.BIP39
 {
 	class KDTable
 	{

@@ -1,4 +1,4 @@
-﻿namespace NBitcoin;
+﻿namespace DotNut.NBitcoin.BIP39;
 
 public class HardcodedWordlistSource : IWordlistSource
 {

@@ -1,4 +1,5 @@
-﻿using NBip32Fast;
+﻿using DotNut.NBitcoin.BIP39;
+using NBip32Fast;
 using NBitcoin;
 
 namespace DotNut.NUT13;

@@ -1,6 +1,4 @@
-﻿
-// ReSharper disable once CheckNamespace
-namespace NBitcoin
+﻿namespace DotNut.NBitcoin.BIP39
 {
 	public enum Language
 	{

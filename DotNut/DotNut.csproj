@@ -10,7 +10,7 @@
         <Description>A full C# native implementation of the Cashu protocol</Description>
         <Copyright>MIT</Copyright>
         <PackageProjectUrl>https://github.com/Kukks/DotNut</PackageProjectUrl>
-        <PackageVersion>1.0.4</PackageVersion>
+        <PackageVersion>1.0.5</PackageVersion>
         <RepositoryUrl>https://github.com/Kukks/DotNut</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageTags>bitcoin cashu ecash secp256k1</PackageTags>

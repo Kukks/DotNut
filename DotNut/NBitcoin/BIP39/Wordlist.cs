@@ -1,8 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.ObjectModel;
 
-// ReSharper disable once CheckNamespace
-namespace NBitcoin
+namespace DotNut.NBitcoin.BIP39
 {
 	public class Wordlist
 	{

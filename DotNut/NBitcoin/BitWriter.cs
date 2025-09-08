@@ -1,7 +1,7 @@
 ﻿using System.Collections;
+using DotNut.NBitcoin.BIP39;
 
-// ReSharper disable once CheckNamespace
-namespace NBitcoin
+namespace DotNut.NBitcoin
 {
 
 	class BitWriter

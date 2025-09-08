@@ -1,8 +1,8 @@
 ﻿#pragma warning disable CS0618 // Type or member is obsolete
 using System.Security.Cryptography;
 using System.Text;
-// ReSharper disable once CheckNamespace
-namespace NBitcoin
+
+namespace DotNut.NBitcoin.BIP39
 {
 	/// <summary>
 	/// A .NET implementation of the Bitcoin Improvement Proposal - 39 (BIP39)

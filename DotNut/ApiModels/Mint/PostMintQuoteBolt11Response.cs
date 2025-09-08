@@ -13,8 +13,9 @@ public class PostMintQuoteBolt11Response
     [JsonPropertyName("state")] 
     public string State { get; set; }
     
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("expiry")] 
-    public int Expiry { get; set; }
+    public int? Expiry { get; set; }
     
     // 'amount' and 'unit' were recently added to the spec in PostMintQuoteBolt11Response, so they are optional for now
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

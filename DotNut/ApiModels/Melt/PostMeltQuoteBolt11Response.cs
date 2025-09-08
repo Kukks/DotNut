@@ -16,8 +16,9 @@ public class PostMeltQuoteBolt11Response
     [JsonPropertyName("state")]
     public string State {get; set;}
     
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("expiry")]
-    public int Expiry {get; set;}
+    public int? Expiry {get; set;}
     
     [JsonPropertyName("payment_preimage")]
     public string? PaymentPreimage {get; set;}

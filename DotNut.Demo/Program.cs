@@ -1,10 +1,9 @@
-using DotNut;
 using DotNut.Api;
 using DotNut.ApiModels;
-using DotNut.NUT13;
-using NBitcoin;
 using NBitcoin.Secp256k1;
 using System.Security.Cryptography;
+using DotNut.NBitcoin.BIP39;
+using DotNut.NUT13;
 
 namespace DotNut.Demo;
 
@@ -285,7 +284,7 @@ class Program
             Console.WriteLine($"   Quote ID: {mintQuote.Quote}");
             Console.WriteLine($"   Amount: {mintQuote.Amount} {mintRequest.Unit}");
             Console.WriteLine($"   Unit: {mintQuote.Unit ?? mintRequest.Unit}");
-            Console.WriteLine($"   Expiry: {DateTimeOffset.FromUnixTimeSeconds(mintQuote.Expiry)}");
+            Console.WriteLine($"   Expiry: {DateTimeOffset.FromUnixTimeSeconds(mintQuote.Expiry ?? 0).UtcDateTime}");
             Console.WriteLine($"   State: {mintQuote.State}");
             Console.WriteLine("\n📄 Lightning Invoice:");
             Console.WriteLine($"   {mintQuote.Request}");
@@ -336,7 +335,7 @@ class Program
             Console.WriteLine($"   Quote ID: {meltQuote.Quote}");
             Console.WriteLine($"   Amount: {meltQuote.Amount} {meltRequest.Unit}");
             Console.WriteLine($"   Fee reserve: {meltQuote.FeeReserve} {meltRequest.Unit}");
-            Console.WriteLine($"   Expiry: {DateTimeOffset.FromUnixTimeSeconds(meltQuote.Expiry)}");
+            Console.WriteLine($"   Expiry: {DateTimeOffset.FromUnixTimeSeconds(meltQuote.Expiry ?? 0).UtcDateTime}");
             Console.WriteLine($"   State: {meltQuote.State}");
             
             Console.WriteLine("\n💡 To complete melting:");

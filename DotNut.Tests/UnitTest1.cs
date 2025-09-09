@@ -1,8 +1,8 @@
 using System.Text.Json;
 using DotNut.ApiModels;
+using DotNut.NBitcoin.BIP39;
 using DotNut.NUT13;
 using NBip32Fast;
-using NBitcoin;
 using NBitcoin.Secp256k1;
 
 namespace DotNut.Tests;

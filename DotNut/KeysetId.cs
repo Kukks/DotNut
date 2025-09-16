@@ -51,10 +51,10 @@ public class KeysetId : IEquatable<KeysetId>,IEqualityComparer<KeysetId>
 
     public KeysetId(string Id)
     {
-        // Legacy support for old keyset format
-        if (Id.Length != 16 && Id.Length != 12)
+        // Legacy support for all keyset formats
+        if (Id.Length != 66 && Id.Length != 16 && Id.Length != 12)
         {
-            throw new ArgumentException("KeysetId must be 16 or 12 characters long");
+            throw new ArgumentException("KeysetId must be 66, 16 or 12 (legacy) characters long");
         }
         _id = Id;
     }

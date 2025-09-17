@@ -37,5 +37,17 @@ public class PubKey
     {
         return pubKey.Key;
     }
+    
+    public override bool Equals(object? obj)
+    {
+        if (ReferenceEquals(this, obj)) return true;
+        if (obj is not PubKey other) return false;
+        return this.Key == other.Key;
+    }
+    
+    public override int GetHashCode()
+    {
+        return Key.GetHashCode();
+    }
  
 }

@@ -12,14 +12,7 @@ public class SendResponse
 // see https://github.com/cashubtc/cashu-ts/pull/314
 public class ProofSelector
 {
-    private interface IProofWithFee
-    {
-        Proof Proof { get; }
-        double ExFee { get; }
-        ulong PpkFee { get; }
-    }
-
-    private class ProofWithFee : IProofWithFee
+    private class ProofWithFee
     {
         public Proof Proof { get; set; }
         public double ExFee { get; set; }
@@ -46,17 +39,15 @@ public class ProofSelector
     }
 
     private readonly Dictionary<KeysetId, ulong> _keysetFees;
-    private readonly Action<string>? _logger;
 
     /// <summary>
     /// Creates a new ProofSelector instance.
     /// </summary>
     /// <param name="keysetFees">Dictionary mapping keyset IDs to their per-proof-per-thousand fees</param>
     /// <param name="logger">Optional logger action for debug information</param>
-    public ProofSelector(Dictionary<KeysetId, ulong> keysetFees, Action<string>? logger = null)
+    public ProofSelector(Dictionary<KeysetId, ulong> keysetFees)
     {
         _keysetFees = keysetFees ?? throw new ArgumentNullException(nameof(keysetFees));
-        _logger = logger;
     }
 
     /// <summary>
@@ -288,8 +279,8 @@ public class ProofSelector
             // Calculate the "others" array (note: spendableProofs is sorted ASC)
             // Using set.Contains() for filtering gives faster lookups: O(n+m)
             // Using array.Contains() would be way slower: O(n*m)
-            var SSet = new HashSet<ProofWithFee>(S);
-            var others = spendableProofs.Where(obj => !SSet.Contains(obj)).ToList();
+            var selectedCs = S.Select(pwf => pwf.Proof.C).ToHashSet();
+            var others = spendableProofs.Where(obj => !selectedCs.Contains(obj.Proof.C)).ToList();
             
             // Generate a random order for accessing the trial subset ('S')
             var indices = ShuffleArray(Enumerable.Range(0, S.Count)).Take(MAX_P2SWAP).ToList();
@@ -338,7 +329,6 @@ public class ProofSelector
             double delta = CalculateDelta(amount, feePPK);
             if (delta < bestDelta)
             {
-                _logger?.Invoke($"selectProofsToSend: best solution found in trial #{trial} - amount: {amount}, delta: {delta}");
                 
                 bestSubset = S.OrderByDescending(a => a.ExFee).ToList(); // copy & sort
                 bestDelta = delta;
@@ -394,7 +384,6 @@ public class ProofSelector
                 }
                 else
                 {
-                    _logger?.Invoke("Proof selection took too long. Returning best selection so far.");
                     break;
                 }
             }
@@ -404,10 +393,9 @@ public class ProofSelector
         if (bestSubset != null && !double.IsPositiveInfinity(bestDelta))
         {
             var bestProofs = bestSubset.Select(obj => obj.Proof).ToList();
-            var bestSubsetSet = new HashSet<Proof>(bestProofs);
-            var keep = proofs.Where(p => !bestSubsetSet.Contains(p)).ToList();
+            var bestProofCs = bestProofs.Select(p => p.C).ToHashSet();
+            var keep = proofs.Where(p => !bestProofCs.Contains(p.C)).ToList();
             
-            _logger?.Invoke($"Proof selection took {timer.Elapsed()}ms");
             return new SendResponse { Keep = keep, Send = bestProofs };
         }
 

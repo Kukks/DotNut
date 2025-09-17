@@ -49,7 +49,7 @@ public class Keyset : Dictionary<ulong, PubKey>
 
                 var hash = sha256.ComputeHash(sortedBytes);
                 return new KeysetId(Convert.ToHexString(new[] { version }) +
-                                    Convert.ToHexString(hash).Substring(0, 14).ToLower());
+                                    Convert.ToHexString(hash).ToLower());
             }
             default:
                 throw new ArgumentException($"Unsupported keyset version: {version}");

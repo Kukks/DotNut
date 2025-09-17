@@ -14,8 +14,12 @@ public class Keyset : Dictionary<ulong, PubKey>
     {
         // 1 - sort public keys by their amount in ascending order
         // 2 - concatenate all public keys to a single byte array
-        var sortedBytes = this.OrderBy(x => x.Key).Select(pair => pair.Value.Key.ToBytes())
-            .Aggregate((a, b) => a.Concat(b).ToArray());
+        if (Count == 0) throw new InvalidOperationException("Keyset cannot be empty.");
+        var sortedBytes = this
+            .OrderBy(x => x.Key)
+            .Select(pair => pair.Value.Key.ToBytes())
+            .SelectMany(b => b)
+            .ToArray();
         
         using SHA256 sha256 = SHA256.Create();
 
@@ -36,14 +40,15 @@ public class Keyset : Dictionary<ulong, PubKey>
             // 5 - prefix it with a keyset ID version byte
             case 0x01:
             {
-                if (unit == null)
-                {
-                    throw new ArgumentNullException( unit, $"Unit parameter is required with version: {version}");
+                if (String.IsNullOrWhiteSpace(unit))
+                { 
+                    throw new ArgumentNullException( nameof(unit), $"Unit parameter is required with version: {version}");
                 }
-                sortedBytes = sortedBytes.Concat(Encoding.UTF8.GetBytes($"unit:{unit}")).ToArray();
-                if (finalExpiration != null)
+                sortedBytes = sortedBytes.Concat(Encoding.UTF8.GetBytes($"unit:{unit.Trim().ToLowerInvariant()}")).ToArray();
+                
+                if (!string.IsNullOrWhiteSpace(finalExpiration))
                 {
-                    sortedBytes = sortedBytes.Concat(Encoding.UTF8.GetBytes($"final_expiry:{finalExpiration}"))
+                    sortedBytes = sortedBytes.Concat(Encoding.UTF8.GetBytes($"final_expiry:{finalExpiration.Trim()}"))
                         .ToArray();
                 }
 

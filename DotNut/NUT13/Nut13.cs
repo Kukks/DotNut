@@ -17,12 +17,12 @@ public static class Nut13
     
     public static byte[] DeriveBlindingFactor(this byte[] seed, KeysetId keysetId, int counter)
     {
-        switch (keysetId.ToString().Substring(0, 2))
+        switch (keysetId.GetVersion())
         {
-            case "00":
+            case 0x00:
                 return BIP32.Instance.DerivePath(GetNut13DerivationPath(keysetId, counter, false), seed).PrivateKey
                     .ToArray();
-            case "01":
+            case 0x01:
             {
                 return DeriveHmac(seed, keysetId, counter, false);
             }
@@ -71,7 +71,7 @@ public static class Nut13
     public static long GetKeysetIdInt(KeysetId keysetId)
     {
         var keysetIdInt = long.Parse("0" + keysetId, System.Globalization.NumberStyles.HexNumber);
-        var mod = (long )Math.Pow(2, 31) - 1;
+        var mod = (long)Math.Pow(2, 31) - 1;
         return keysetIdInt % mod;
     }
 }

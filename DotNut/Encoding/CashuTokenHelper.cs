@@ -21,14 +21,19 @@ public static class CashuTokenHelper
         }
 
         //trim trailing slash from mint url
-        foreach (var token2 in token.Tokens.Where(token1 => token1.Mint.EndsWith("/")))
+        foreach (var token1 in token.Tokens)
         {
-            token2.Mint = token2.Mint.TrimEnd('/');
-            foreach (var proof in token2.Proofs)
+            if (token1.Mint.EndsWith("/"))
+            { 
+                token1.Mint = token1.Mint.TrimEnd('/');
+            }
+            foreach (var proof in token1.Proofs)
             {
-               proof.Id = MaybeShortId(proof.Id);
+                proof.Id = MaybeShortId(proof.Id);
             }
         }
+        
+        
         
         var encoded = encoder.Encode(token);
 
@@ -80,14 +85,16 @@ public static class CashuTokenHelper
     
     private static KeysetId MaybeShortId(KeysetId id)
     {
-        return id.GetVersion() == 0x01 ? new KeysetId(id.ToString().Substring(0, 16)) : id;
+        if (id.GetVersion() != 0x01) return id;
+        var s = id.ToString(); 
+        return s.Length <= 16 ? id : new KeysetId(s.Substring(0, 16));
     }
     private static List<Proof> MapShortKeysetIds(List<Proof> proofs, List<Keyset>? keysets = null)
     {
         if (proofs.Count == 0)
             return proofs;
 
-        if (proofs.All(p => p.Id.GetVersion() != 0x01))
+        if (proofs.All(p => p.Id.GetVersion() != 0x01 || p.Id.ToString().Length != 16))
             return proofs;
 
         if (keysets is null)
@@ -101,7 +108,7 @@ public static class CashuTokenHelper
 
             var proofShortId = proof.Id.ToString();
             var match = keysets.FirstOrDefault(ks => ks.GetKeysetId().ToString().StartsWith(proofShortId, StringComparison.OrdinalIgnoreCase));
-
+            
             if (match is null)
                 throw new Exception($"Couldn't map short keyset ID {proof.Id} to any known keysets of the current Mint");
 

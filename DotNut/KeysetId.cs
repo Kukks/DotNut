@@ -68,4 +68,10 @@ public class KeysetId : IEquatable<KeysetId>,IEqualityComparer<KeysetId>
     {
         return _id;
     }
+
+    public byte GetVersion()
+    {
+        string versionStr = _id.Substring(0, 2);
+        return Convert.ToByte(versionStr, 16);
+    }
 }

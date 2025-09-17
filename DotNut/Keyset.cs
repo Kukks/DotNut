@@ -56,4 +56,11 @@ public class Keyset : Dictionary<ulong, PubKey>
         }
         
     }
+
+    public bool VerifyKeysetId(KeysetId keysetId, string? unit = null, string? finalExpiration = null)
+    {
+        byte version = keysetId.GetVersion();
+        var derivedKeysetId = GetKeysetId(version, unit, finalExpiration);
+        return derivedKeysetId == keysetId || derivedKeysetId.ToString().Substring(0, keysetId.ToString().Length) == keysetId.ToString();
+    }
 }

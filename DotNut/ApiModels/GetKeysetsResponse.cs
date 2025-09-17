@@ -13,5 +13,7 @@ public class GetKeysetsResponse
         [JsonPropertyName("active")] public bool Active { get; set; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         [JsonPropertyName("input_fee_ppk")] public ulong? InputFee { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("final_expiry")] public ulong? FinalExpiry { get; set; }
     }
 }

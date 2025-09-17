@@ -496,6 +496,26 @@ public class UnitTest1
     }
 
     [Fact]
+    public void Nut13HMACTests()
+    {
+        KeysetId keysetId = new KeysetId("012e23479a0029432eaad0d2040c09be53bab592d5cbf1d55e0dd26c9495951b30");
+        Mnemonic mnemonic =
+            new Mnemonic("half depart obvious quality work element tank gorilla view sugar picture humble");
+        
+        Assert.Equal("ba250bf927b1df5dd0a07c543be783a4349a7f99904acd3406548402d3484118", mnemonic.DeriveSecret(keysetId, 0).Secret);
+        Assert.Equal("3a6423fe56abd5e74ec9d22a91ee110cd2ce45a7039901439d62e5534d3438c1", mnemonic.DeriveSecret(keysetId, 1).Secret);
+        Assert.Equal("843484a75b78850096fac5b513e62854f11d57491cf775a6fd2edf4e583ae8c0", mnemonic.DeriveSecret(keysetId, 2).Secret);
+        Assert.Equal("3600608d5cf8197374f060cfbcff134d2cd1fb57eea68cbcf2fa6917c58911b6", mnemonic.DeriveSecret(keysetId, 3).Secret);
+        Assert.Equal("717fce9cc6f9ea060d20dd4e0230af4d63f3894cc49dd062fd99d033ea1ac1dd", mnemonic.DeriveSecret(keysetId, 4).Secret);
+        
+        
+        Assert.Equal("4f8b32a54aed811b692a665ed296b4c1fc2f37a8be4006379e95063a76693745", Convert.ToHexString(mnemonic.DeriveBlindingFactor(keysetId, 0)).ToLowerInvariant());
+        Assert.Equal("c4b8412ee644067007423480c9e556385b71ffdff0f340bc16a95c0534fe0e01", Convert.ToHexString(mnemonic.DeriveBlindingFactor(keysetId, 1)).ToLowerInvariant());
+        Assert.Equal("ceff40983441c40acaf77d2a8ddffd5c1c84391fb9fd0dc4607c186daab1c829", Convert.ToHexString(mnemonic.DeriveBlindingFactor(keysetId, 2)).ToLowerInvariant());
+        Assert.Equal("41ad26b840fb62d29b2318a82f1d9cd40dc0f1e58183cc57562f360a32fdfad6", Convert.ToHexString(mnemonic.DeriveBlindingFactor(keysetId, 3)).ToLowerInvariant());
+        Assert.Equal("fb986a9c76758593b0e2d1a5172ade977c858d87111a220e16c292a9347abf81", Convert.ToHexString(mnemonic.DeriveBlindingFactor(keysetId, 4)).ToLowerInvariant());
+    }
+    [Fact]
     public void NullExpiryTests_PostMintQuoteBolt11Response()
     {
         // Test JSON with null expiry field

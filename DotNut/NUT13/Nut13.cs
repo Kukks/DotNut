@@ -32,12 +32,12 @@ public static class Nut13
     }
     public static StringSecret DeriveSecret(this byte[] seed, KeysetId keysetId, int counter)
     {
-        switch (keysetId.ToString().Substring(0, 2))
+        switch (keysetId.GetVersion())
         {
-            case "00":
+            case 0x00:
                 var key = BIP32.Instance.DerivePath(GetNut13DerivationPath(keysetId, counter, true), seed).PrivateKey; 
                 return new StringSecret(Convert.ToHexString(key).ToLower());
-            case "01":
+            case 0x01:
             {
                 var secretBytes = DeriveHmac(seed, keysetId, counter, true);
                 return new StringSecret(Convert.ToHexString(secretBytes).ToLower());
@@ -50,8 +50,9 @@ public static class Nut13
     
     public static byte[] DeriveHmac(byte[] seed, KeysetId keysetId, int counter, bool secretOrr)
     {
-        byte[] counterBuffer = new byte[8];
-        BinaryPrimitives.WriteInt32BigEndian(counterBuffer, counter);
+        byte[] counterBuffer = BitConverter.GetBytes((long)counter);
+        if (BitConverter.IsLittleEndian)
+            Array.Reverse(counterBuffer);
         var message =  "Cashu_KDF_HMAC_SHA256"u8.ToArray()
             .Concat(Convert.FromHexString(keysetId.ToString()))
             .Concat(counterBuffer)

@@ -62,10 +62,13 @@ public class Keyset : Dictionary<ulong, PubKey>
         
     }
 
-    public bool VerifyKeysetId(KeysetId keysetId, string? unit = null, string? finalExpiration = null)
-    {
-        byte version = keysetId.GetVersion();
-        var derivedKeysetId = GetKeysetId(version, unit, finalExpiration);
-        return derivedKeysetId == keysetId || derivedKeysetId.ToString().Substring(0, keysetId.ToString().Length) == keysetId.ToString();
-    }
+public bool VerifyKeysetId(KeysetId keysetId, string? unit = null, string? finalExpiration = null)
+{
+    byte version = keysetId.GetVersion();
+    var derived = GetKeysetId(version, unit, finalExpiration).ToString();
+    var presented = keysetId.ToString();
+    if (presented.Length > derived.Length) return false;
+    return string.Equals(derived, presented, StringComparison.Ordinal) ||
+           derived.StartsWith(presented, StringComparison.Ordinal);
+}
 }

@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace DotNut.ApiModels;
 
-public class PostMintBolt11Request
+public class PostMintRequest
 {
     [JsonPropertyName("quote")]
     public string Quote { get; set; }

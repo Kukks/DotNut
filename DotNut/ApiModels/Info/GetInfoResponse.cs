@@ -53,5 +53,5 @@ public class GetInfoResponse
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     [JsonPropertyName("nuts")]
-    public Dictionary<string, JsonDocument>? Nuts { get; set; }
+    public Dictionary<int, JsonDocument>? Nuts { get; set; }
 }

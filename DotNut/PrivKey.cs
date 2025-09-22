@@ -14,6 +14,11 @@ public class PrivKey
         Key = hex.ToPrivKey();
     }
 
+    public PrivKey(byte[] bytes)
+    {
+        Key = Convert.ToHexString(bytes).ToPrivKey();
+    }
+
     private PrivKey(ECPrivKey ecPrivKey)
     {
         Key = ecPrivKey;

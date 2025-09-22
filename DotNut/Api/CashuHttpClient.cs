@@ -9,7 +9,7 @@ namespace DotNut.Api;
 public class CashuHttpClient : ICashuApi
 {
     private readonly HttpClient _httpClient;
-
+    
     public CashuHttpClient(HttpClient httpClient)
     {
         _httpClient = httpClient;

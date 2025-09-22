@@ -1,16 +1,11 @@
 using System.Diagnostics;
+using DotNut.Abstractions;
 
 namespace DotNut;
 
-public class SendResponse
-{
-    public List<Proof> Keep { get; set; } = new();
-    public List<Proof> Send { get; set; } = new();
-}
-
 // Borrowed from cashu-ts 
 // see https://github.com/cashubtc/cashu-ts/pull/314
-public class ProofSelector
+public class ProofSelector : IProofSelector
 {
     private class ProofWithFee
     {

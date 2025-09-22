@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System.Net.Mime;
+using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json.Serialization;
 using DotNut.JsonConverters;
 using SHA256 = System.Security.Cryptography.SHA256;
@@ -51,8 +53,9 @@ public class Keyset : Dictionary<ulong, PubKey>
                 
                 // 3 - add the lowercase UTF8-encoded unit string prefixed with "|unit:" to the byte array (e.g. "|unit:sat")
                 if (String.IsNullOrWhiteSpace(unit))
-                { 
-                    throw new ArgumentNullException( nameof(unit), $"Unit parameter is required with version: {version}");
+                {
+                    throw new ArgumentNullException(nameof(unit),
+                        $"Unit parameter is required with version: {version}");
                 }
 
                 var unitBytes = Encoding.UTF8.GetBytes($"|unit:{unit.Trim().ToLowerInvariant()}");
@@ -84,7 +87,7 @@ public class Keyset : Dictionary<ulong, PubKey>
             default:
                 throw new ArgumentException($"Unsupported keyset version: {version}");
         }
-        
+
     }
 
     public bool VerifyKeysetId(KeysetId keysetId, string? unit = null, ulong? inputFeePpk = null, string? finalExpiration = null)

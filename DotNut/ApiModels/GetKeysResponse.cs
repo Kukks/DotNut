@@ -10,6 +10,8 @@ public class GetKeysResponse
     {
         [JsonPropertyName("id")] public KeysetId Id { get; set; }
         [JsonPropertyName("unit")] public string Unit { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        [JsonPropertyName("final_expiry")] public ulong? FinalExpiry { get; set; }
         [JsonPropertyName("keys")] public Keyset Keys { get; set; }
     }
 }

@@ -44,11 +44,11 @@ public class Keyset : Dictionary<ulong, PubKey>
                 { 
                     throw new ArgumentNullException( nameof(unit), $"Unit parameter is required with version: {version}");
                 }
-                sortedBytes = sortedBytes.Concat(Encoding.UTF8.GetBytes($"unit:{unit.Trim().ToLowerInvariant()}")).ToArray();
+                sortedBytes = sortedBytes.Concat(Encoding.UTF8.GetBytes($"|unit:{unit.Trim().ToLowerInvariant()}")).ToArray();
                 
                 if (!string.IsNullOrWhiteSpace(finalExpiration))
                 {
-                    sortedBytes = sortedBytes.Concat(Encoding.UTF8.GetBytes($"final_expiry:{finalExpiration.Trim()}"))
+                    sortedBytes = sortedBytes.Concat(Encoding.UTF8.GetBytes($"|final_expiry:{finalExpiration.Trim()}"))
                         .ToArray();
                 }
 

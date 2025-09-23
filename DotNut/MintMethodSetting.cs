@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace DotNut;
 
@@ -8,6 +9,6 @@ public class MintMethodSetting
     [JsonPropertyName("unit")] public string Unit { get; set; }
     [JsonPropertyName("min_amount")] public ulong? Min { get; set; }
     [JsonPropertyName("max_amount")] public ulong? Max { get; set; }
-    [JsonPropertyName("description")] public bool? Description { get; set; }
+    [JsonPropertyName("options")] public JsonDocument? Options { get; set; }
 }
 

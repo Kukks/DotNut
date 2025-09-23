@@ -4,6 +4,8 @@ public class Counter : Dictionary<KeysetId, int>
 {
     public Counter(IDictionary<KeysetId, int> dictionary) : base(dictionary) { }
 
+    public Counter() {}
+
     public int GetCounterForId(KeysetId keysetId)
     {
         if (TryGetValue(keysetId, out var counter))

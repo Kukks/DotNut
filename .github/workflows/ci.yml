@@ -2,6 +2,37 @@
 on: push
 
 jobs:
+  tests: 
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the code
+      - uses: actions/checkout@v5
+
+      # Install .NET Core SDK
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Pull and start mint
+        run: |
+          docker run -d -p 3338:3338 \
+          --name cdk-mint \
+          -e CDK_MINTD_DATABASE=sqlite \
+          -e CDK_MINTD_LN_BACKEND=fakewallet \
+          -e CDK_MINTD_INPUT_FEE_PPK=100 \
+          -e CDK_MINTD_LISTEN_HOST=0.0.0.0 \
+          -e CDK_MINTD_LISTEN_PORT=3338 \
+          -e CDK_MINTD_FAKE_WALLET_MIN_DELAY=0 \
+          -e CDK_MINTD_MNEMONIC='abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about' \
+          cashubtc/mintd:latest-amd64 \
+
+      - name: Wait for mint to be ready
+        run: |
+          timeout 60s bash -c 'until curl -f localhost:3338/v1/info; do sleep 2; done'
+
+      - name: Test
+        run: dotnet test
   build:
     runs-on: ubuntu-latest
     steps:
@@ -13,9 +44,6 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: 8.0.x
-       
-      - name: Test
-        run: dotnet test
 
       - name: Publish NuGet
         if: ${{ github.ref == 'refs/heads/master' }} # Publish only when the push is on master

@@ -9,6 +9,8 @@ public class PostMeltQuoteBolt12Response
     [JsonPropertyName("request")] public string Request { get; set; }
 
     [JsonPropertyName("amount")] public ulong Amount { get; set; }
+    
+    [JsonPropertyName("unit")] public string Unit { get; set; }
 
     [JsonPropertyName("fee_reserve")] public ulong FeeReserve { get; set; }
 
@@ -18,5 +20,8 @@ public class PostMeltQuoteBolt12Response
     
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("payment_preimage")] public string PaymentPreimage { get; set; }
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("change")] public BlindSignature[] Change { get; set; }
 
 }

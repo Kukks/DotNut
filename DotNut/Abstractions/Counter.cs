@@ -1,27 +1,25 @@
 using DotNut;
+using DotNut.Abstractions.Interfaces;
 
-public class Counter : Dictionary<KeysetId, int>
+public class Counter : ICounter
 {
-    public Counter(IDictionary<KeysetId, int> dictionary) : base(dictionary) { }
-
-    public Counter() {}
-
-    public int GetCounterForId(KeysetId keysetId)
+    private Dictionary<KeysetId, int> _counter;
+    public Counter(IDictionary<KeysetId, int> dictionary){ }
+    public async Task<int> GetCounterForId(KeysetId keysetId)
     {
-        if (TryGetValue(keysetId, out var counter))
+        if (_counter.TryGetValue(keysetId, out var counter))
             return counter;
 
-        return this[keysetId] = 0;
+        return _counter[keysetId] = 0;
     }
 
-    public int IncrementCounter(KeysetId keysetId, int bumpBy = 1)
+    public async Task<int> IncrementCounter(KeysetId keysetId, int bumpBy = 1)
     {
-        var current = GetCounterForId(keysetId);
+        var current = await GetCounterForId(keysetId);
         var next = current + bumpBy;
-        this[keysetId] = next;
+        _counter[keysetId] = next;
         return next;
     }
 
-    public void SetCounter(KeysetId keysetId, int counter) => this[keysetId] = counter;
-    public Counter Clone() => new(this);
+    public async Task SetCounter(KeysetId keysetId, int counter) => _counter[keysetId] = counter;
 }

@@ -1,3 +1,4 @@
+using DotNut.Abstractions.Interfaces;
 using DotNut.Api;
 using DotNut.ApiModels;
 using DotNut.NBitcoin.BIP39;
@@ -13,7 +14,7 @@ namespace DotNut.Abstractions;
 /// <summary>
 /// Main Cashu Wallet class implementing fluent builder pattern
 /// </summary>
-public class CashuWallet : ICashuWalletBuilder
+public class Wallet : ICashuWalletBuilder
 {
     private MintInfo? _info;
     private IProofSelector? _selector;
@@ -24,14 +25,14 @@ public class CashuWallet : ICashuWalletBuilder
     private string _unit = "sat";
 
     private Mnemonic? _mnemonic;
-    private Counter? _counter;
+    private ICounter? _counter;
     
     //flags 
     private bool _shouldSyncKeyset = true;
     private bool _shouldBumpCounter = true;
     private bool _allowInvalidKeysetIds = false;
 
-    public static ICashuWalletBuilder Create() => new CashuWallet();
+    public static ICashuWalletBuilder Create() => new Wallet();
     
     /// <summary>
     /// Mandatory. Sets a mint in a wallet object
@@ -112,16 +113,6 @@ public class CashuWallet : ICashuWalletBuilder
         this._shouldSyncKeyset = syncKeyset;
         return this;
     }
-
-    /// <summary>
-    /// Optional. Base unit of wallet instance. If not set defaults to "SAT".
-    /// </summary>
-    /// <param name="unit"></param>
-    public ICashuWalletBuilder WithUnit(string unit)
-    {
-        this._unit = unit;
-        return this;
-    }
     
     /// <summary>
     /// Optional. Proof selecting algorithm. If not set, defaults to RGLI proof selector.
@@ -157,7 +148,7 @@ public class CashuWallet : ICashuWalletBuilder
     /// Optional and mandatory if Mnemonic provided. Counter for each Keyset Id for derivation purposes.
     /// </summary>
     /// <param name="counter">Counter object</param>
-    public ICashuWalletBuilder WithCounter(Counter counter)
+    public ICashuWalletBuilder WithCounter(ICounter counter)
     {
         this._counter = counter;
         return this;
@@ -192,22 +183,22 @@ public class CashuWallet : ICashuWalletBuilder
     /// Create swap transaction builder.
     /// </summary>
     /// <returns>Swap transaction builder</returns>
-    public async Task<ICashuWalletSwapBuilder> Swap()
+    public ICashuWalletSwapBuilder Swap()
     {
         return new CashuWalletSwapBuilder(this);
     }
 
-    public async Task<ICashuWalletMeltQuoteBuilder> CreateMeltQuote()
+    public <ICashuWalletMeltQuoteBuilder CreateMeltQuote()
     {
         return new CashuWalletMeltQuoteBuilder(this);
     }
 
-    public async Task<ICashuWalletMintBuilder> CreateMintQuote()
+    public ICashuWalletMintBuilder CreateMintQuote()
     {
         return new CashuWalletMintQuoteBuilder(this);
     }
     
-    public async Task<ICashuWalletRestoreBuilder> Restore()
+    public Task<ICashuWalletRestoreBuilder> Restore()
     {
         return new CashuWalletRestoreBuilder(this);
     }
@@ -389,22 +380,52 @@ public class CashuWallet : ICashuWalletBuilder
 
         if (this._counter == null)
         {
-            throw new ArgumentNullException(nameof(Counter), "Can't derive outputs without keyset counter");
+            throw new ArgumentNullException(nameof(ICounter), "Can't derive outputs without keyset counter");
         }
 
-        var counterValue = this._counter.GetCounterForId(id);
+        var counterValue = await this._counter.GetCounterForId(id);
         if (_shouldBumpCounter)
         {
-            this._counter.IncrementCounter(id, amounts.Count);
+            await this._counter.IncrementCounter(id, amounts.Count);
         }
         return CashuUtils.CreateOutputs(amounts, id, keyset.Keys, this._mnemonic, counterValue);
+    }
+    
+    internal async Task<PostSwapResponse> _swap(PostSwapRequest request, CancellationToken cts = default)
+    {
+        if (!_ensureApiConnected())
+        {
+            throw new ArgumentNullException(nameof(this._mintApi), "Can't swap without mintApi");
+        }
+
+        return await this._mintApi!.Swap(request, cts);
+    }
+    internal async Task<IMintHandler> Mint(string quote, OutputData outputs, string method, CancellationToken cts = default)
+    {
+        if (method != "bolt11" && method != "bolt12")
+        {
+            throw new ArgumentException("Only bolt11, and bolt12 methods are supported");
+        }
+        
+        if (!_ensureApiConnected())
+        {
+            throw new ArgumentNullException(nameof(this._mintApi), "Can't mint without mintApi");
+        }
+        
+
+        var req = new PostMintRequest()
+        {
+            Quote = quote,
+            Outputs = outputs.BlindedMessages
+        };
+        this._mintApi!.Mint<PostMintRequest, PostMintResponse>(method, req, cts);
     }
     
     public IProofSelector? GetSelector() => _selector;
     public ICashuApi? GetMintApi() => _mintApi;
     public Mnemonic? GetMnemonic() => _mnemonic;
     public string GetUnit() => _unit;
-    public Counter? GetCounter() => _counter;
+    public ICounter? GetCounter() => _counter;
     private bool _ensureApiConnected() => _mintApi != null;
 }
 
@@ -415,7 +436,7 @@ public class CashuWallet : ICashuWalletBuilder
 /// </summary>
 internal class CashuWalletSwapBuilder : ICashuWalletSwapBuilder
 {
-    private readonly CashuWallet _wallet;
+    private readonly Wallet _wallet;
     
     // input 
     private readonly string? _tokenString;
@@ -425,50 +446,54 @@ internal class CashuWalletSwapBuilder : ICashuWalletSwapBuilder
     private OutputData? _outputs;
     private List<ulong>? _amounts;
     private KeysetId? _keysetId;
-    
+    private string? _unit;
     private bool _verifySignatures = true;
 
-    public CashuWalletSwapBuilder(CashuWallet wallet, string tokenString)
+    public CashuWalletSwapBuilder(Wallet wallet, string tokenString)
     {
         _wallet = wallet;
         _tokenString = tokenString;
     }
-
-    public CashuWalletSwapBuilder(CashuWallet wallet, CashuToken token)
+    public CashuWalletSwapBuilder(Wallet wallet, CashuToken token)
     {
         _wallet = wallet;
         _token = token;
     }
-
-    public CashuWalletSwapBuilder(CashuWallet wallet)
+    public CashuWalletSwapBuilder(Wallet wallet)
     {
         _wallet = wallet;
     }
-
+    
+    /// <summary>
+    /// Optional. Base unit of wallet instance. If not set defaults to "SAT".
+    /// </summary>
+    /// <param name="unit"></param>
+    public ICashuWalletSwapBuilder WithUnit(string unit)
+    {
+        this._unit = unit;
+        return this;
+    }
+    
     public ICashuWalletSwapBuilder WithSignatureVerification(bool verify = true)
     {
         _verifySignatures = verify;
         return this;
     }
-    
     public ICashuWalletSwapBuilder WithOutputs(OutputData outputs)
     {
         _outputs = outputs;
         return this;
     }
-
     public ICashuWalletSwapBuilder WithAmounts(IEnumerable<ulong> amounts)
     {
         _amounts = amounts.ToList();
         return this;
     }
-
     public ICashuWalletSwapBuilder ForKeyset(KeysetId keysetId)
     {
         _keysetId = keysetId;
         return this;
     }
-
     private async Task<List<Proof>> _getSwapProofs()
     {
         _proofsToSwap ??= new();
@@ -500,8 +525,6 @@ internal class CashuWalletSwapBuilder : ICashuWalletSwapBuilder
         
         return _proofsToSwap;
     }
-    
-    
     public async Task<List<Proof>> ProcessAsync(CancellationToken cts = default)
     {
         if (_wallet.GetMintApi() == null)
@@ -562,21 +585,16 @@ internal class CashuWalletSwapBuilder : ICashuWalletSwapBuilder
 
 internal class CashuWalletMeltQuoteBuilder : ICashuWalletMeltQuoteBuilder
 {
-    private readonly CashuWallet _wallet;
+    private readonly Wallet _wallet;
     private List<Proof>? _proofs;
     private string? _invoice;
     private OutputData? _blankOutputs;
     private ulong? _amount;
-    public CashuWalletMeltQuoteBuilder(CashuWallet wallet)
+    public CashuWalletMeltQuoteBuilder(Wallet wallet)
     {
         _wallet = wallet;
     }
-
-    public ICashuWalletMeltQuoteBuilder WithQuote(string quoteId)
-    {
-        throw new NotImplementedException();
-    }
-
+    
     public ICashuWalletMeltQuoteBuilder WithInvoice(string invoice)
     {
         this._invoice = invoice;
@@ -638,25 +656,24 @@ internal class CashuWalletMeltQuoteBuilder : ICashuWalletMeltQuoteBuilder
         return new MeltQuoteBolt11(mintResponse);
     }
 }
-internal class CashuWalletMintQuoteBuilder(CashuWallet wallet) : ICashuWalletMintBuilder
+internal class CashuWalletMintQuoteBuilder(Wallet wallet) : ICashuWalletMintBuilder
 {
-    private readonly CashuWallet _wallet = wallet;
-
-    public ICashuWalletMintBuilder WithQuote(string quoteId) => this;
+    private readonly Wallet _wallet = wallet;
     public ICashuWalletMintBuilder WithAmount(ulong amount) => this;
     public ICashuWalletMintBuilder WithOutputs(IEnumerable<BlindedMessage> outputs) => this;
     public ICashuWalletMintBuilder WithMethod(string method = "bolt11") => this;
 
-    public Task<MintResult> ProcessAsync(CancellationToken cancellationToken = default)
+    public async Task<MintResult> ProcessAsync(CancellationToken cts = default)
     {
-        throw new NotImplementedException();
+        var info = await this._wallet.GetInfo(false, cts);
+        info.IsSupportedMintMelt()
     }
 }
 internal class CashuWalletRestoreBuilder : ICashuWalletRestoreBuilder
 {
-    private readonly CashuWallet _wallet;
+    private readonly Wallet _wallet;
     private List<KeysetId> _specifiedKeysets;
-    public CashuWalletRestoreBuilder(CashuWallet wallet) => _wallet = wallet;
+    public CashuWalletRestoreBuilder(Wallet wallet) => _wallet = wallet;
 
     public ICashuWalletRestoreBuilder ForKeysets(IEnumerable<KeysetId> keysetIds) => this;
 

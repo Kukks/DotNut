@@ -1,3 +1,4 @@
+using DotNut.Abstractions.Interfaces;
 using DotNut.Api;
 using DotNut.ApiModels;
 using DotNut.NBitcoin.BIP39;
@@ -19,9 +20,11 @@ public interface ICashuWalletBuilder
     ICashuWalletBuilder WithMint(string mintUrl);
     ICashuWalletBuilder WithMnemonic(Mnemonic mnemonic); 
     ICashuWalletBuilder WithMnemonic(string mnemonic);
-    ICashuWalletBuilder WithCounter(Counter counter);
+    ICashuWalletBuilder WithCounter(ICounter counter);
     Task<MintInfo> GetInfo(bool forceReferesh = false, CancellationToken cts = default);
     Task<OutputData> CreateOutputs(List<ulong> amounts, KeysetId id, CancellationToken cts = default);
+
+    Task<IDictionary<string, KeysetId>?> GetActiveKeysetIdsWithUnits();
 
     ICashuApi? GetMintApi();
 
@@ -44,7 +47,7 @@ public interface ICashuWalletBuilder
 /// </summary>
 public interface ICashuWalletSwapBuilder
 {
-    ICashuWalletBuilder WithUnit(string unit);
+    ICashuWalletSwapBuilder WithUnit(string unit);
     ICashuWalletSwapBuilder ForKeyset(KeysetId targetKeysetId);
     ICashuWalletSwapBuilder WithOutputs(IEnumerable<BlindedMessage> outputs);
     Task<List<Proof>> ProcessAsync(CancellationToken cancellationToken = default);
@@ -55,7 +58,7 @@ public interface ICashuWalletSwapBuilder
 /// </summary>
 public interface ICashuWalletMeltQuoteBuilder
 {
-    ICashuWalletBuilder WithUnit(string unit);
+    ICashuWalletMeltQuoteBuilder WithUnit(string unit);
     ICashuWalletMeltQuoteBuilder WithInvoice(string bolt11Invoice);
     ICashuWalletMeltQuoteBuilder WithMethod(string method = "bolt11");
     Task<MeltResult> ProcessAsync(CancellationToken cancellationToken = default);
@@ -66,11 +69,12 @@ public interface ICashuWalletMeltQuoteBuilder
 /// </summary>
 public interface ICashuWalletMintBuilder
 {
-    ICashuWalletBuilder WithUnit(string unit);
+    ICashuWalletMintBuilder WithUnit(string unit);
     ICashuWalletMintBuilder WithAmount(ulong amount);
     ICashuWalletMintBuilder WithOutputs(IEnumerable<BlindedMessage> outputs);
     ICashuWalletMintBuilder WithMethod(string method = "bolt11");
-    Task<MintResult> ProcessAsync(CancellationToken cancellationToken = default);
+    // Task<MintResult> ProcessAsync(CancellationToken cancellationToken = default);
+    Task<IMintHandler> ProcessAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>

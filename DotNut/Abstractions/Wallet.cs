@@ -1,13 +1,19 @@
+using System.Diagnostics;
 using DotNut.Abstractions.Interfaces;
+using DotNut.Abstractions.Quotes;
 using DotNut.Api;
 using DotNut.ApiModels;
+using DotNut.ApiModels.Mint.bolt12;
 using DotNut.NBitcoin.BIP39;
+using DotNut.NUT13;
 
 namespace DotNut.Abstractions;
 
 // It should: 
 // Allow user to use local keys from db 
+
 // Fetch keyets on start, if user didn't provide them. Fetch additional Keys. (if necessary)
+
 // How can user save these? 
 // ARE FLUENT BUILDER \
 
@@ -22,7 +28,6 @@ public class Wallet : ICashuWalletBuilder
     private List<GetKeysetsResponse.KeysetItemResponse>? _keysets;
     private List<GetKeysResponse.KeysetItemResponse>? _keys;
     private Dictionary<KeysetId, ulong>? _keysetFees => _keysets?.ToDictionary(k=>k.Id, k=>k.InputFee??0);
-    private string _unit = "sat";
 
     private Mnemonic? _mnemonic;
     private ICounter? _counter;
@@ -144,6 +149,7 @@ public class Wallet : ICashuWalletBuilder
         return this;
     }
     
+
     /// <summary>
     /// Optional and mandatory if Mnemonic provided. Counter for each Keyset Id for derivation purposes.
     /// </summary>
@@ -188,7 +194,7 @@ public class Wallet : ICashuWalletBuilder
         return new CashuWalletSwapBuilder(this);
     }
 
-    public <ICashuWalletMeltQuoteBuilder CreateMeltQuote()
+    public ICashuWalletMeltQuoteBuilder CreateMeltQuote()
     {
         return new CashuWalletMeltQuoteBuilder(this);
     }
@@ -198,7 +204,7 @@ public class Wallet : ICashuWalletBuilder
         return new CashuWalletMintQuoteBuilder(this);
     }
     
-    public Task<ICashuWalletRestoreBuilder> Restore()
+    public ICashuWalletRestoreBuilder Restore()
     {
         return new CashuWalletRestoreBuilder(this);
     }
@@ -255,16 +261,15 @@ public class Wallet : ICashuWalletBuilder
         {
             throw new ArgumentNullException(nameof(_mintApi), "Can't fetch mint info without mintApi");
         }
-        var keysRaw = await _mintApi!.GetKeys(id, cts);
-        foreach (var keysetItemResponse in keysRaw.Keysets)
+        var keysRaw = (await _mintApi!.GetKeys(id, cts)).Keysets.Single();
+        
+        var isKeysetIdValid = keysRaw.Keys.VerifyKeysetId(keysRaw.Id, keysRaw.Unit, keysRaw.FinalExpiry);
+        if (!isKeysetIdValid)
         {
-            var isKeysetIdValid = keysetItemResponse.Keys.VerifyKeysetId(keysetItemResponse.Id, keysetItemResponse.Unit, keysetItemResponse.FinalExpiry);
-            if (!isKeysetIdValid)
-            {
-                throw new ArgumentException($"Mint provided invalid keysetId. Provided: {keysetItemResponse.Id}, derived: {keysetItemResponse.Keys.GetKeysetId()} ");
-            }
+            throw new ArgumentException($"Mint provided invalid keysetId. Provided: {keysRaw.Id}, derived: {keysRaw.Keys.GetKeysetId()} ");
         }
-        return keysRaw.Keysets.Single();
+
+        return keysRaw;
     }
     
     /// <summary>
@@ -301,7 +306,7 @@ public class Wallet : ICashuWalletBuilder
     /// </summary>
     /// <param name="cts"></param>
     /// <exception cref="ArgumentNullException"></exception>
-    private async Task _maybeSyncKeys(CancellationToken cts = default)
+    internal async Task _maybeSyncKeys(CancellationToken cts = default)
     {
         if (!_shouldSyncKeyset)
         {
@@ -334,12 +339,22 @@ public class Wallet : ICashuWalletBuilder
             this._keys.Add(keyset);
         }
     }
-    public async Task<KeysetId>? GetActiveKeysetId(CancellationToken cts = default)
+    public async Task<KeysetId?> GetActiveKeysetId(string unit, CancellationToken cts = default)
     {
         return _keysets?
             .OrderBy(k => k.InputFee)
-            .FirstOrDefault(k => k.Active == true && k.Unit == this._unit, null)
+            .FirstOrDefault(k => k.Active == true && k.Unit == unit, null)
             ?.Id;
+    }
+
+    public async Task<IDictionary<string, KeysetId>?> GetActiveKeysetIdsWithUnits()
+    {
+        return _keysets?
+            .GroupBy(k => k.Unit)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderBy(k => k.InputFee).First().Id
+            );
     }
     public async Task<List<GetKeysResponse.KeysetItemResponse>> GetKeys(bool forceRefresh = false, CancellationToken cts = default)
     {
@@ -348,6 +363,19 @@ public class Wallet : ICashuWalletBuilder
            this._keys =  await _fetchKeys(cts);
         }
         return this._keys ?? [];
+    }
+
+    public async Task<GetKeysResponse.KeysetItemResponse> GetKeys(KeysetId id, bool forceRefresh = false, CancellationToken cts = default)
+    {
+        if (forceRefresh)
+        {
+            return await _fetchKeys(id, cts);
+        }
+        if (this._keys == null)
+        {
+            throw new ArgumentNullException(nameof(this._keys), "Wallet doesn't contain keys for this keyset!");
+        }
+        return this._keys.Single(k => k.Id == id);
     }
     public async Task<List<GetKeysetsResponse.KeysetItemResponse>> GetKeysets(bool forceRefresh = false, CancellationToken cts = default)
     {
@@ -400,41 +428,182 @@ public class Wallet : ICashuWalletBuilder
 
         return await this._mintApi!.Swap(request, cts);
     }
-    internal async Task<IMintHandler> Mint(string quote, OutputData outputs, string method, CancellationToken cts = default)
-    {
-        if (method != "bolt11" && method != "bolt12")
-        {
-            throw new ArgumentException("Only bolt11, and bolt12 methods are supported");
-        }
-        
-        if (!_ensureApiConnected())
-        {
-            throw new ArgumentNullException(nameof(this._mintApi), "Can't mint without mintApi");
-        }
-        
-
-        var req = new PostMintRequest()
-        {
-            Quote = quote,
-            Outputs = outputs.BlindedMessages
-        };
-        this._mintApi!.Mint<PostMintRequest, PostMintResponse>(method, req, cts);
-    }
     
     public IProofSelector? GetSelector() => _selector;
     public ICashuApi? GetMintApi() => _mintApi;
     public Mnemonic? GetMnemonic() => _mnemonic;
-    public string GetUnit() => _unit;
     public ICounter? GetCounter() => _counter;
     private bool _ensureApiConnected() => _mintApi != null;
 }
 
+class CashuWalletMintQuoteBuilder : ICashuWalletMintBuilder
+{
+    private readonly Wallet _wallet;
+    private ulong? _amount;
+    private string _unit = "sat";
+    private string? _description;
+    private OutputData? _outputs;
+    private string? _method = "bolt11"; 
+    
+    //for bolt12
+    private string? _pubkey;
 
+    private KeysetId? _keysetId;
+    private GetKeysResponse.KeysetItemResponse keyset;
+    public CashuWalletMeltQuoteBuilder(Wallet wallet)
+    {
+        this._wallet = wallet;
+    }
+
+    /// <summary>
+    /// Mandatory.
+    /// User has to provide Mint method
+    /// </summary>
+    /// <param name="method">Either MintMeltMethod.Bolt11 or MintMeltMethod.Bolt12</param>
+    /// <returns></returns>
+    public ICashuWalletMintBuilder WithMethod(string method)
+    {
+        this._method = method;
+        return this;
+    }
+    
+    /// <summary>
+    /// Mandatory.
+    /// </summary>
+    /// <param name="amount">Amount of token in currently choosen unit to be melted</param>
+    public ICashuWalletMintBuilder WithAmount(ulong amount)
+    {
+        this._amount = amount;
+        return this;
+    }
+    
+    /// <summary>
+    /// Optional.
+    /// Sets unit of tokens being minted. Sat by default.
+    /// </summary>
+    /// <param name="unit">Unit of minted proofs</param>
+    public ICashuWalletMintBuilder WithUnit(string unit)
+    {
+        this._unit = unit;
+        return this;
+    }
+
+    /// <summary>
+    /// Optional. Necessary for bolt12
+    /// Sets pubkey for bolt12 offer 
+    /// </summary>
+    /// <param name="pubkey"></param>
+    /// <returns></returns>
+    public ICashuWalletMintBuilder WithPubkey(string pubkey)
+    {
+        this._pubkey = pubkey;
+        return this;
+    }
+    
+    /// <summary>
+    /// Optional.
+    /// Allows user to set keysetId manually. Otherwise, builder will choose active one manually, with the lowest fees.
+    /// </summary>
+    /// <param name="keysetId"></param>
+    public ICashuWalletMintBuilder WithKeyset(KeysetId keysetId)
+    {
+        this._keysetId = keysetId;
+        return this;
+    }
+    
+
+    /// <summary>
+    /// Optional.
+    /// User may provide outputs for mint to sign. Blinding factors and secrets won't be revealed to mint.
+    /// If not provided, wallet will try to derive them from seed and counter, or create random ones if mnemonic is not avaible.
+    /// </summary>
+    /// <param name="outputs">OutputData instance. Enumerables of BlindingFactors, BlindedMessages and Secrets, in right order.</param>
+    public ICashuWalletMintBuilder WithOutputs(OutputData outputs)
+    {
+        this._outputs = outputs;
+        return this;
+    }
+    
+    /// <summary>
+    /// Optional.
+    /// User may provide description for melt quote invoice. 
+    /// </summary>
+    /// <param name="description"></param>
+    /// <returns></returns>
+    public ICashuWalletMintBuilder WithDescription(string description)
+    {
+        this._description = description;
+        return this;
+    }
+    
+    
+    public async Task<IMintHandler> ProcessAsync(CancellationToken cts = default)
+    {
+        //todo implement info 
+
+        await this._wallet._maybeSyncKeys(cts);
+        if (_amount == null)
+        {
+            throw new ArgumentNullException(nameof(_amount), "can't create melt quote without amount!");
+        }
+
+        var api = this._wallet.GetMintApi();
+        if (api is null)
+        {
+            throw new ArgumentNullException(nameof(ICashuApi), "Can't request mint quote without mint API");
+        }
+
+        if (this._keysetId == null)
+        {
+            this._keysetId = await this._wallet.GetActiveKeysetId(this._unit, cts) ??
+                             throw new ArgumentException($"Can't fetch active keyset ID for unit: {_unit}");
+        }
+        
+        switch (_method)
+        {
+            case "bolt11":
+            {
+                var reqBolt11 = new PostMintQuoteBolt11Request()
+                {
+                    Amount = this._amount.Value,
+                    Unit = this._unit,
+                    Description = this._description,
+                };
+                var quoteBolt11 =
+                    await api.CreateMintQuote<PostMintQuoteBolt11Response, PostMintQuoteBolt11Request>("bolt11", reqBolt11,
+                        cts);
+                return new MintHandlerBolt11(this._wallet, quoteBolt11, this.keyset);
+            }
+            case "bolt12":
+            {
+                if (this._pubkey == null)
+                {
+                    throw new ArgumentNullException(nameof(_pubkey), "Can't request bolt12 mint quote without pubkey!");
+                }
+
+                var req = new PostMintQuoteBolt12Request()
+                {
+                    Amount = this._amount.Value,
+                    Unit = this._unit,
+                    Pubkey = this._pubkey,
+                    Description = this._description,
+                };
+                var mintQuote =
+                    await api.CreateMintQuote<PostMintQuoteBolt12Response, PostMintQuoteBolt12Request>("bolt12", req,
+                        cts);
+                return new MintHandlerBolt12(this._wallet, mintQuote, this.keyset);
+            }
+            default:
+                throw new ArgumentException($"Unknown mint method: {_method}");
+        }
+    }
+    
+}
 
 /// <summary>
 /// Receive operation builder implementation
 /// </summary>
-internal class CashuWalletSwapBuilder : ICashuWalletSwapBuilder
+class CashuWalletSwapBuilder : ICashuWalletSwapBuilder
 {
     private readonly Wallet _wallet;
     
@@ -539,7 +708,7 @@ internal class CashuWalletSwapBuilder : ICashuWalletSwapBuilder
         // if there's no keysetId specified - let's choose it. 
         if (_keysetId == null)
         {
-            _keysetId = await _wallet.GetActiveKeysetId(cts) ??
+            _keysetId = await _wallet.GetActiveKeysetId(this._unit, cts) ??
                         throw new InvalidOperationException("Could not fetch Keyset ID");
         }
         var keys = await _wallet.GetKeys(false, cts);
@@ -582,14 +751,15 @@ internal class CashuWalletSwapBuilder : ICashuWalletSwapBuilder
     }
 }
 
-
-internal class CashuWalletMeltQuoteBuilder : ICashuWalletMeltQuoteBuilder
+class CashuWalletMeltQuoteBuilder : ICashuWalletMeltQuoteBuilder
 {
     private readonly Wallet _wallet;
     private List<Proof>? _proofs;
     private string? _invoice;
     private OutputData? _blankOutputs;
     private ulong? _amount;
+    private string? _method;
+    
     public CashuWalletMeltQuoteBuilder(Wallet wallet)
     {
         _wallet = wallet;
@@ -656,36 +826,119 @@ internal class CashuWalletMeltQuoteBuilder : ICashuWalletMeltQuoteBuilder
         return new MeltQuoteBolt11(mintResponse);
     }
 }
-internal class CashuWalletMintQuoteBuilder(Wallet wallet) : ICashuWalletMintBuilder
-{
-    private readonly Wallet _wallet = wallet;
-    public ICashuWalletMintBuilder WithAmount(ulong amount) => this;
-    public ICashuWalletMintBuilder WithOutputs(IEnumerable<BlindedMessage> outputs) => this;
-    public ICashuWalletMintBuilder WithMethod(string method = "bolt11") => this;
 
-    public async Task<MintResult> ProcessAsync(CancellationToken cts = default)
-    {
-        var info = await this._wallet.GetInfo(false, cts);
-        info.IsSupportedMintMelt()
-    }
-}
-internal class CashuWalletRestoreBuilder : ICashuWalletRestoreBuilder
+class CashuWalletRestoreBuilder : ICashuWalletRestoreBuilder
 {
     private readonly Wallet _wallet;
-    private List<KeysetId> _specifiedKeysets;
-    public CashuWalletRestoreBuilder(Wallet wallet) => _wallet = wallet;
+    private List<KeysetId>? _specifiedKeysets;
 
-    public ICashuWalletRestoreBuilder ForKeysets(IEnumerable<KeysetId> keysetIds) => this;
+    private bool _shouldSwap = true;
 
-    public Task<RestoreResult> ProcessAsync(CancellationToken cancellationToken = default)
+    public CashuWalletRestoreBuilder(Wallet wallet)
+    {
+        this._wallet = wallet;
+    }
+    
+    public ICashuWalletRestoreBuilder ForKeysetIds(IEnumerable<KeysetId> keysetIds)
+    {
+        this._specifiedKeysets = keysetIds.ToList();
+        return this;
+    }
+
+    public ICashuWalletRestoreBuilder WithSwap(bool shouldSwap = true)
+    {
+        this._shouldSwap = shouldSwap;
+    }
+
+    public async Task<List<Proof>> ProcessAsync(CancellationToken cts = default)
     {
         var mnemonic = _wallet.GetMnemonic()??
                        throw new ArgumentNullException("Can't restore wallet without Mnemonic");
         if (_specifiedKeysets == null)
         {
-            _specifiedKeysets = _wallet.GetKeysets();
+            _specifiedKeysets = (await _wallet.GetKeysets()).Select(k=>k.Id).ToList();
         }
-        var counter = new Counter();
+        var api = _wallet.GetMintApi();
+        if (api == null)
+        {
+            throw new ArgumentNullException(nameof(api), "Can't restore wallet without MintApi");
+        }
         
+        var counter = _wallet.GetCounter();
+        if (counter == null)
+        {
+            _wallet.WithCounter(new Counter(new Dictionary<KeysetId, int>()));
+        }
+
+        List<Proof> recoveredProofs = new List<Proof>();
+        foreach (var keysetId in _specifiedKeysets)
+        {
+            bool isKeysetRestored = false;
+            int batchNumber = 0;
+            int emptyBatchesRemaining = 3;
+
+            var keyset = await _wallet.GetKeys(keysetId, false, cts);
+            
+            while (!isKeysetRestored && emptyBatchesRemaining > 0)
+            {
+                var outputs = await _createBatch(mnemonic, keysetId, batchNumber, cts);
+                await counter!.IncrementCounter(keysetId, batchNumber * 100);
+                var req = new PostRestoreRequest
+                {
+                    Outputs = outputs.BlindedMessages
+                };
+                var res = await api.Restore(req, cts);
+
+                if (!res.Signatures.Any())
+                {
+                    emptyBatchesRemaining--;
+                }
+
+                var proofs = CashuUtils.ConstructProofsFromPromises(res.Signatures.ToList(), outputs, keyset.Keys);
+                recoveredProofs.AddRange(proofs);
+            }
+            
+        }
+        
+        if (!this._shouldSwap || !recoveredProofs.Any())
+        {
+            return recoveredProofs;
+        }
+        
+        var freshProofs = new List<Proof>();
+        var activeUnits = await this._wallet.GetActiveKeysetIdsWithUnits();
+        if (activeUnits != null && !activeUnits.Any())
+        {
+            throw new InvalidOperationException("Could not restore wallet without active keysets");
+        }
+
+        foreach (var unitKeyset in activeUnits)
+        {
+            var correspondingKeys = await _wallet.GetKeys(unitKeyset.Value, false, cts);
+            var totalAmount = recoveredProofs.Select(p=>p.Amount).Aggregate((a,c) => a + c);
+            var amounts = CashuUtils.SplitToProofsAmounts(totalAmount, correspondingKeys.Keys);
+            var ctr = await counter!.GetCounterForId(unitKeyset.Value, cts);
+            var newOutputs = CashuUtils.CreateOutputs(amounts, unitKeyset.Value, correspondingKeys.Keys, mnemonic, ctr);
+            await counter.IncrementCounter(unitKeyset.Value, newOutputs.BlindedMessages.Length, cts);
+            
+            var swapRequest = new PostSwapRequest
+            {
+                Inputs = recoveredProofs.ToArray(),
+                Outputs = newOutputs.BlindedMessages,
+            };
+        
+            var swapResult = await _wallet._swap(swapRequest, cts);
+            
+            var constructedProofs = CashuUtils.ConstructProofsFromPromises(swapResult.Signatures.ToList(), newOutputs, correspondingKeys.Keys);
+            
+            freshProofs.AddRange(constructedProofs);
+        }
+        return freshProofs;
+    }
+
+    private async Task<OutputData> _createBatch(Mnemonic mnemonic, KeysetId keysetId, int batchNubmber, CancellationToken cts)
+    {
+        var amounts = Enumerable.Repeat((ulong)1, 100).ToList();
+        return mnemonic.DeriveOutputs(amounts, keysetId, batchNubmber*100);
     }
 }

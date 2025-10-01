@@ -47,16 +47,16 @@ public class MeltResult
     public string QuoteId { get; set; } = string.Empty;
 }
 
-/// <summary>
-/// Result of a mint operation (receiving from invoice)
-/// </summary>
-public class MintResult
-{
-    public List<Proof> MintedProofs { get; set; } = new();
-    public ulong AmountMinted { get; set; }
-    public string QuoteId { get; set; } = string.Empty;
-    public bool QuotePaid { get; set; }
-}
+// /// <summary>
+// /// Result of a mint operation (receiving from invoice)
+// /// </summary>
+// public class MintResult
+// {
+//     public List<Proof> MintedProofs { get; set; } = new();
+//     public ulong AmountMinted { get; set; }
+//     public string QuoteId { get; set; } = string.Empty;
+//     public bool QuotePaid { get; set; }
+// }
 
 /// <summary>
 /// Result of checking proof states
@@ -66,7 +66,7 @@ public class StateResult
     public Dictionary<string, ProofState> States { get; set; } = new();
 }
 
-/// <summary>
+/// <summary> 
 /// Proof state information
 /// </summary>
 public class ProofState
@@ -74,14 +74,4 @@ public class ProofState
     public bool Spent { get; set; }
     public bool Pending { get; set; }
     public string? Witness { get; set; }
-}
-
-/// <summary>
-/// Result of a restore operation
-/// </summary>
-public class RestoreResult
-{
-    public List<Proof> RestoredProofs { get; set; } = new();
-    public Dictionary<string, ProofState> States { get; set; } = new();
-    public ulong TotalAmountRestored { get; set; }
 }

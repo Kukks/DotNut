@@ -1,10 +1,11 @@
+using System.Runtime.InteropServices.ComTypes;
 using System.Security.Cryptography;
 using DotNut.NUT13;
 using NBitcoin.Secp256k1;
 
 namespace DotNut.Abstractions;
 
-public class CashuUtils
+public static class CashuUtils
 {
     /// <summary>
     /// Function mapping payment amount to keyset supported amounts in order to create swap payload. Always tries to fit the biggest proof.
@@ -59,8 +60,7 @@ public class CashuUtils
     /// </summary>
     /// <param name="amountToCover">Amount of tokens that has to be covered by mint.</param>
     /// <returns>Integer amount of blank outputs needed</returns>
-    /// <exception cref="Exception">If amount is 0 - idk why someone would do that</exception>
-    private static int CalculateNumberOfBlankOutputs(ulong amountToCover)
+    public static int CalculateNumberOfBlankOutputs(ulong amountToCover)
     {
         if (amountToCover == 0)
         {
@@ -74,6 +74,7 @@ public class CashuUtils
                 )
             ), 1);
     }
+    
     
     /// <summary>
     /// Creates outputs for swap/melt fee return. Outputs should have valid amounts. 
@@ -97,41 +98,34 @@ public class CashuUtils
         var secrets = new List<DotNut.ISecret>(amounts.Count);
         var blindingFactors = new List<PrivKey>(amounts.Count);
 
-        Func<DotNut.ISecret> secretFactory;
-        Func<PrivKey> blindingFactorFactory;
 
         if (mnemonic is not null && counter is { } c)
         {
-            secretFactory = () => mnemonic.DeriveSecret(keysetId, c);
-            blindingFactorFactory = () => new PrivKey(
-                Convert.ToHexString(mnemonic.DeriveBlindingFactor(keysetId, c))
-            );
+            for (var i = 0; i < amounts.Count; i++)
+            {
+                var secret = mnemonic.DeriveSecret(keysetId, c + i);
+                secrets.Add(secret);
+
+                var r = new PrivKey(mnemonic.DeriveBlindingFactor(keysetId, c + i));
+                blindingFactors.Add(r);
+
+                var B_ = Cashu.ComputeB_(secret.ToCurve(), r);
+                blindedMessages.Add(new BlindedMessage {Amount = amounts[i], B_ = B_, Id = keysetId });
+            }
         }
         else
         {
-            secretFactory = () =>
+            foreach (var amount in amounts)
             {
-                var bytes = RandomNumberGenerator.GetBytes(32);
-                return new StringSecret(Convert.ToHexString(bytes));
-            };
+                var secret = RandomSecret();
+                secrets.Add(secret);
 
-            blindingFactorFactory = () =>
-            {
-                var bytes = RandomNumberGenerator.GetBytes(32);
-                return new PrivKey(Convert.ToHexString(bytes));
-            };
-        }
+                var r = RandomPrivkey();
+                blindingFactors.Add(r);
 
-        foreach (var amount in amounts)
-        {
-            var secret = secretFactory();
-            secrets.Add(secret);
-
-            var r = blindingFactorFactory();
-            blindingFactors.Add(r);
-
-            var B_ = DotNut.Cashu.ComputeB_(secret.ToCurve(), r);
-            blindedMessages.Add(new BlindedMessage() { Amount = amount, B_ = B_, Id = keysetId });
+                var B_ = DotNut.Cashu.ComputeB_(secret.ToCurve(), r);
+                blindedMessages.Add(new BlindedMessage() { Amount = amount, B_ = B_, Id = keysetId });
+            }
         }
 
         return new OutputData()
@@ -203,8 +197,22 @@ public class CashuUtils
         }
         return proofs;
     }
-    
 
-      
+    public static ulong SumProofs(List<Proof> proofs)
+    {
+        return proofs.Aggregate(0UL, (current, proof) => current + proof.Amount);
+    }
+
     
+    public static ISecret RandomSecret()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(32);
+        return new StringSecret(Convert.ToHexString(bytes));
+    }
+
+    public static PrivKey RandomPrivkey()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(32);
+        return new PrivKey(Convert.ToHexString(bytes));
+    }
 }

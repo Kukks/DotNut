@@ -1,0 +1,275 @@
+using DotNut.Abstractions.Interfaces;
+using DotNut.ApiModels;
+
+namespace DotNut.Abstractions;
+/// <summary>
+/// Receive operation builder implementation
+/// </summary>
+class SwapBuilder : ISwapBuilder
+{
+    private readonly Wallet _wallet;
+    
+    // input 
+    private readonly string? _tokenString;
+    private readonly CashuToken? _token;
+    private List<Proof>? _proofsToSwap;
+    
+    private OutputData? _outputs;
+    private List<ulong>? _amounts;
+    private KeysetId? _keysetId;
+    private string _unit = "sat";
+    private bool _verifySignatures = true;
+
+    private bool _includeFees = true;
+
+    
+    public SwapBuilder(Wallet wallet, string tokenString)
+    {
+        _wallet = wallet;
+        _tokenString = tokenString;
+    }
+    public SwapBuilder(Wallet wallet, CashuToken token)
+    {
+        _wallet = wallet;
+        _token = token;
+    }
+    public SwapBuilder(Wallet wallet)
+    {
+        _wallet = wallet;
+    }
+    
+    /// <summary>
+    /// Optional. Base unit of wallet instance. If not set defaults to "SAT".
+    /// </summary>
+    /// <param name="unit"></param>
+    public ISwapBuilder WithUnit(string unit)
+    {
+        this._unit = unit;
+        return this;
+    }
+
+    /// <summary>
+    /// Provide inputs for a swap. 
+    /// </summary>
+    /// <param name="proofs"></param>
+    /// <returns></returns>
+    public ISwapBuilder FromInputs(IEnumerable<Proof> proofs)
+    {
+        this._proofsToSwap = proofs.ToList();
+        return this;
+    }
+
+    public ISwapBuilder ForOutputs(OutputData outputs)
+    {
+        this._outputs = outputs;
+        return this;
+    }
+
+    /// <summary>
+    /// Optional.
+    /// True by default, allows user to turn off signature verification (not advised)
+    /// </summary>
+    /// <param name="verify"></param>
+    /// <returns></returns>
+    public ISwapBuilder WithSignatureVerification(bool verify = true)
+    {
+        _verifySignatures = verify;
+        return this;
+    }
+    
+    /// <summary>
+    /// Optional.
+    /// Provide outputs for a swap.
+    /// </summary>
+    /// <param name="outputs"></param>
+    /// <returns></returns>
+    public ISwapBuilder WithOutputs(OutputData outputs)
+    {
+        _outputs = outputs;
+        return this;
+    }
+
+    /// <summary>
+    /// Optional.
+    /// Allows user to turn off fee calculation. By default, it will calculate and generate smaller set of outputs.
+    /// </summary>
+    /// <param name="includeFees"></param>
+    /// <returns></returns>
+    public ISwapBuilder WithFeeCalculation(bool includeFees = true)
+    {
+        this._includeFees = includeFees;
+        return this;
+    }
+
+    /// <summary>
+    /// Optional. Allows user to choose amounts he wants to get.
+    /// If sum of amounts smaller than input size, all proofs will be swapped, but rest of proofs will get
+    /// standard outputs amounts (biggest proof size possible)
+    /// </summary>
+    /// <param name="amounts"></param>
+    /// <returns></returns>
+    public ISwapBuilder WithAmounts(IEnumerable<ulong> amounts)
+    {
+        _amounts = amounts.ToList();
+        return this;
+    }
+    
+    /// <summary>
+    /// Optional. Allows user to choose destination keysetId
+    /// </summary>
+    /// <param name="keysetId"></param>
+    /// <returns></returns>
+    public ISwapBuilder ForKeyset(KeysetId keysetId)
+    {
+        _keysetId = keysetId;
+        return this;
+    }
+
+    // when proofs were p2pk
+    public ISwapBuilder FromP2PK()
+    {
+        throw new NotImplementedException();
+    }
+
+    // to make p2pk proofs
+    public ISwapBuilder ToP2PK()
+    {
+        throw new NotImplementedException();
+    }
+
+    public ISwapBuilder FromHTLC()
+    {
+        throw new NotImplementedException();
+    }
+
+    public ISwapBuilder ToHTLC()
+    {
+        throw new NotImplementedException();
+    }
+    
+    public async Task<List<Proof>> ProcessAsync(CancellationToken cts = default)
+    {
+        var mintApi = await _wallet.GetMintApi(cts);
+        
+        var swapInputs = await _getSwapProofs(cts);
+        if (swapInputs == null || swapInputs.Count == 0)
+        {
+            throw new ArgumentException("Nothing to swap!");
+        }
+        
+        // if there's no keysetId specified - let's choose it. 
+        if (_keysetId == null)
+        {
+            _keysetId = await _wallet.GetActiveKeysetId(this._unit, cts) ??
+                        throw new InvalidOperationException("Could not fetch Keyset ID");
+        }
+        var keys = await _wallet.GetKeys(false, cts);
+        var keysForCurrentId = keys.Single(k=>k.Id == _keysetId);
+        
+        if (_verifySignatures)
+        {
+            foreach (var proof in swapInputs!)
+            {
+               var keyset = keys.Single(k => k.Id == proof.Id);
+               if (!keyset.Keys.TryGetValue(proof.Amount, out var key))
+               {
+                   throw new InvalidOperationException($"Can't find key for amount {proof.Amount} in keyset {keyset.Id}");
+               }
+               var isValid = proof.Verify(key);
+            if (!isValid)
+                throw new InvalidOperationException($"Invalid proof signature for amount {proof.Amount}");
+            }
+        }
+
+        var fee = 0UL;
+        if (_includeFees)
+        {
+            var keysetsFees = (await _wallet.GetKeysets(false, cts)).ToDictionary(k=>k.Id, k=>k.InputFee??0);
+            fee = swapInputs.ComputeFee(keysetsFees);
+        }
+
+        
+        var total = CashuUtils.SumProofs(swapInputs);
+        // Swap received proofs to our keyset
+        var amounts = await _getAmounts(total, fee, keysForCurrentId.Keys);
+
+        if (amounts.Sum() > total - fee)
+        {
+            throw new ArgumentException($"Invalid output amounts! Total output amount requested: ${amounts.Sum()}, total input amount: {total}, fee: ${fee}");
+        }
+
+        this._outputs ??= await this._wallet.CreateOutputs(amounts, _keysetId, cts);
+
+        var request = new PostSwapRequest()
+        {
+            Inputs = swapInputs.ToArray(),
+            Outputs = this._outputs.BlindedMessages,
+        };
+        
+        var swapResponse = await mintApi.Swap(request, cts);
+
+        var swappedProofs =
+            CashuUtils.ConstructProofsFromPromises(swapResponse.Signatures.ToList(), this._outputs, keysForCurrentId.Keys);
+
+        return swappedProofs;
+    }
+
+    private async Task<List<Proof>> _getSwapProofs(CancellationToken cts = default)
+    {
+        _proofsToSwap ??= new();
+        if (_tokenString != null)
+        {
+            var token = CashuTokenHelper.Decode(this._tokenString, out var v);
+            if (v == "A") // todo ensure 
+            {
+                //if token is v1, ensure everything is from the same mint 
+                var mints = token.Tokens.Select(t => t.Mint).ToList();
+                if (mints.Count > 1)
+                {
+                    throw new ArgumentException("Only swap from single mint is allowed");
+                }
+                
+            }
+            this._proofsToSwap.AddRange(token.Tokens.SelectMany(t=>t.Proofs));
+        }
+
+        if (_token == null)
+        {
+            return _proofsToSwap;
+        }
+        
+        //if token is v1, ensure everything is from the same mint 
+        var tokenMints = _token.Tokens.Select(t => t.Mint).ToList();
+        if (tokenMints.Count > 1)
+        {
+            throw new ArgumentException("Only swap from single mint is allowed");
+        }
+        this._proofsToSwap.AddRange(_token.Tokens.SelectMany(t=>t.Proofs));
+        
+        return _proofsToSwap;
+    }
+
+    private async Task<List<ulong>> _getAmounts(ulong total, ulong fee, Keyset keys)
+    {
+        if (_amounts != null)
+        {
+            var sum = _amounts.Sum();
+            var underpay = total - fee - sum;
+        
+            if (underpay == 0)
+            {
+                return _amounts;
+            }
+            if (underpay > 0)
+            {
+                this._amounts.AddRange(CashuUtils.SplitToProofsAmounts(underpay, keys));
+                return this._amounts;
+            }
+            throw new ArgumentException($"Invalid amounts requested. Sum of amounts: {sum}, total input: {total}, fee:{fee}.");
+        }
+
+        this._amounts = CashuUtils.SplitToProofsAmounts(total - fee, keys);
+        return this._amounts;
+    }
+
+}

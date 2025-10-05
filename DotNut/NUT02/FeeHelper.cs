@@ -18,4 +18,9 @@ public static class FeeHelper
 
         return (sum + 999) / 1000;
     }
+
+    public static ulong Sum(this IEnumerable<ulong> ul)
+    {
+        return ul.Aggregate((x, y) => x + y);
+    }
 }

@@ -55,6 +55,12 @@ public class BIP32 : IHdKeyAlgo
             }
 
             var keyBytes = res.ToByteArray(true, true);
+            if (keyBytes.Length < 32)
+            {
+                var paddedKey = new byte[32];
+                keyBytes.CopyTo(paddedKey, 32 - keyBytes.Length);
+                keyBytes = paddedKey;
+            }
             return new HdKey(keyBytes, cc);
         }
     }

@@ -1,13 +1,8 @@
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using DotNut.Abstractions.Interfaces;
-using DotNut.Abstractions.Quotes;
 using DotNut.Api;
 using DotNut.ApiModels;
-using DotNut.ApiModels.Melt.bolt12;
-using DotNut.ApiModels.Mint.bolt12;
+using DotNut.ApiModels.Info;
 using DotNut.NBitcoin.BIP39;
-using DotNut.NUT13;
 using NBitcoin.Secp256k1;
 
 namespace DotNut.Abstractions;
@@ -34,6 +29,8 @@ public class Wallet : IWalletBuilder
     private bool _shouldBumpCounter = true;
     private bool _allowInvalidKeysetIds = false;
 
+    
+    
     /*
      * Fluent Builder Methods 
      */
@@ -197,6 +194,7 @@ public class Wallet : IWalletBuilder
         this._shouldBumpCounter = shouldBumpCounter;
         return this;
     }
+
     /// <summary>
     /// Optional.
     /// Allows user to build stateful wallet, by providing a proof manager - a class allowing wallet to fetch, save and use proofs from desired kind of storage.
@@ -427,7 +425,7 @@ public class Wallet : IWalletBuilder
         }
         return await this.CreateOutputs(amounts, keysetId, cts);
     }
-
+    
     public async Task<SendResponse> SelectProofsToSend(List<Proof> proofs, ulong amount, bool includeFees, CancellationToken cts = default)
     {
         if (this._selector == null)
@@ -457,6 +455,7 @@ public class Wallet : IWalletBuilder
     }
     public Mnemonic? GetMnemonic() => _mnemonic;
     public ICounter? GetCounter() => _counter;
+    
 
     internal void _ensureApiConnected(string? msg = null)
     {

@@ -29,7 +29,7 @@ public class MeltHandlerBolt11 : IMeltHandler<PostMeltQuoteBolt11Response, List<
         {
             Quote = _quote.Quote,
             Inputs = inputs.ToArray(),
-            Outputs = _blankOutputs.BlindedMessages
+            Outputs = _blankOutputs.BlindedMessages.ToArray(),
         };
         
        var res = await  client.Melt<PostMeltQuoteBolt11Response, PostMeltRequest>("bolt11", req, cts);

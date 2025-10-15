@@ -66,7 +66,7 @@ public class RestoreBuilder : IRestoreBuilder
                 await counter!.IncrementCounter(keysetId, batchNumber * 100);
                 var req = new PostRestoreRequest
                 {
-                    Outputs = outputs.BlindedMessages
+                    Outputs = outputs.BlindedMessages.ToArray()
                 };
                 var res = await api.Restore(req, cts);
 
@@ -102,12 +102,12 @@ public class RestoreBuilder : IRestoreBuilder
             var amounts = CashuUtils.SplitToProofsAmounts(totalAmount, correspondingKeys.Keys);
             var ctr = await counter!.GetCounterForId(unitKeyset.Value, cts);
             var newOutputs = CashuUtils.CreateOutputs(amounts, unitKeyset.Value, correspondingKeys.Keys, mnemonic, ctr);
-            await counter.IncrementCounter(unitKeyset.Value, newOutputs.BlindedMessages.Length, cts);
+            await counter.IncrementCounter(unitKeyset.Value, newOutputs.BlindedMessages.Count, cts);
             
             var swapRequest = new PostSwapRequest
             {
                 Inputs = recoveredProofs.ToArray(),
-                Outputs = newOutputs.BlindedMessages,
+                Outputs = newOutputs.BlindedMessages.ToArray(),
             };
         
             var swapResult = await api.Swap(swapRequest, cts);

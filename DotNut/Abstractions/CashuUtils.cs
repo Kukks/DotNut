@@ -130,9 +130,29 @@ public static class CashuUtils
 
         return new OutputData()
         {
-            BlindingFactors = blindingFactors.ToArray(),
-            BlindedMessages = blindedMessages.ToArray(),
-            Secrets = secrets.ToArray()
+            BlindingFactors = blindingFactors,
+            BlindedMessages = blindedMessages,
+            Secrets = secrets
+        };
+    }
+
+    public static OutputData CreateP2PkOutput(
+        ulong amount,
+        KeysetId keysetId,
+        Keyset keys,
+        P2PkBuilder builder
+    )
+    {
+        var proofSecret = builder.Build();
+        var secret = new Nut10Secret("P2PK", proofSecret);
+
+        var r = RandomPrivkey();
+        var B_ = DotNut.Cashu.ComputeB_(secret.ToCurve(), r);
+        return new OutputData()
+        {
+            BlindedMessages = [new BlindedMessage() { Amount = amount, B_ = B_, Id = keysetId }],
+            BlindingFactors = [r],
+            Secrets = [secret]
         };
     }
     

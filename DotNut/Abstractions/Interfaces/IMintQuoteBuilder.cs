@@ -11,7 +11,8 @@ public interface IMintQuoteBuilder
     IMintQuoteBuilder WithUnit(string unit);
     IMintQuoteBuilder WithAmount(ulong amount);
     IMintQuoteBuilder WithOutputs(OutputData outputs);
-    // Task<MintResult> ProcessAsync(CancellationToken cancellationToken = default);
+
+    IMintQuoteBuilder WithP2PkLock(P2PkBuilder p2pkBuilder);
     Task<IMintHandler<PostMintQuoteBolt11Response, List<Proof>>> ProcessAsyncBolt11(CancellationToken cancellationToken = default);
     Task<IMintHandler<PostMintQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(CancellationToken cancellationToken = default);
     

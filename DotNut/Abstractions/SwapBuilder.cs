@@ -1,3 +1,4 @@
+using System.Text.Json;
 using DotNut.Abstractions.Interfaces;
 using DotNut.ApiModels;
 
@@ -22,6 +23,9 @@ class SwapBuilder : ISwapBuilder
 
     private bool _includeFees = true;
 
+    //p2pk stuff
+    private List<PrivKey>? _privKeys;
+    private P2PkBuilder? _p2pkBuilder;
     
     public SwapBuilder(Wallet wallet, string tokenString)
     {
@@ -126,15 +130,23 @@ class SwapBuilder : ISwapBuilder
     }
 
     // when proofs were p2pk
-    public ISwapBuilder FromP2PK()
+    public ISwapBuilder WithPrivkeys(IEnumerable<PrivKey> privKeys)
     {
-        throw new NotImplementedException();
+        this._privKeys = privKeys.ToList();
+        return this;
     }
 
-    // to make p2pk proofs
-    public ISwapBuilder ToP2PK()
+    /// <summary>
+    /// Optional.
+    /// If provided, every proof will be generated with random nonce. 
+    /// </summary>
+    /// <param name="inputData"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public ISwapBuilder ToP2PK(P2PkBuilder p2pkBuilder)
     {
-        throw new NotImplementedException();
+        this._p2pkBuilder = p2pkBuilder;
+        return this;
     }
 
     public ISwapBuilder FromHTLC()
@@ -187,7 +199,7 @@ class SwapBuilder : ISwapBuilder
             var keysetsFees = (await _wallet.GetKeysets(false, cts)).ToDictionary(k=>k.Id, k=>k.InputFee??0);
             fee = swapInputs.ComputeFee(keysetsFees);
         }
-
+        
         
         var total = CashuUtils.SumProofs(swapInputs);
         // Swap received proofs to our keyset
@@ -199,12 +211,14 @@ class SwapBuilder : ISwapBuilder
         }
 
         this._outputs ??= await this._wallet.CreateOutputs(amounts, _keysetId, cts);
-
+        
         var request = new PostSwapRequest()
         {
             Inputs = swapInputs.ToArray(),
             Outputs = this._outputs.BlindedMessages,
         };
+
+        await _maybeProcessP2Pk();
         
         var swapResponse = await mintApi.Swap(request, cts);
 
@@ -213,7 +227,7 @@ class SwapBuilder : ISwapBuilder
 
         return swappedProofs;
     }
-
+    
     private async Task<List<Proof>> _getSwapProofs(CancellationToken cts = default)
     {
         _proofsToSwap ??= new();
@@ -247,6 +261,41 @@ class SwapBuilder : ISwapBuilder
         this._proofsToSwap.AddRange(_token.Tokens.SelectMany(t=>t.Proofs));
         
         return _proofsToSwap;
+    }
+
+    private async Task _maybeProcessP2Pk()
+    {
+        if (_privKeys == null || _privKeys.Count == 0)
+        {
+            return;
+        }
+        
+        if (_proofsToSwap == null)
+        {
+            throw new ArgumentNullException(nameof(_proofsToSwap), "No proofs to swap!");
+        }
+        
+        var sigAllHandler = new SigAllHandler
+        {
+            Proofs = this._proofsToSwap.ToArray(),
+            BlindedMessages = this._outputs?.BlindedMessages ?? [],
+        };
+
+        if (sigAllHandler.TrySign(out P2PKWitness? witness))
+        {
+            if (witness == null)
+            {
+                throw new ArgumentNullException(nameof(witness), "sig_all input was correct, but couldn't create a witness signature!");
+            }
+            this._proofsToSwap[0].Witness = JsonSerializer.Serialize(witness);
+        }
+
+        foreach (var proof in _proofsToSwap)
+        {
+            if (proof.Secret is not Nut10Secret { ProofSecret: P2PKProofSecret p2pk }) continue;
+            var proofWitness = p2pk.GenerateWitness(proof, _privKeys.Select(p => p.Key).ToArray());
+            proof.Witness = JsonSerializer.Serialize(proofWitness);
+        }
     }
 
     private async Task<List<ulong>> _getAmounts(ulong total, ulong fee, Keyset keys)

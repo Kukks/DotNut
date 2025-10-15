@@ -1,3 +1,4 @@
+using System.Text.Json;
 using DotNut.Abstractions.Handlers;
 using DotNut.Abstractions.Interfaces;
 using DotNut.ApiModels;
@@ -14,6 +15,7 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
     private ulong? _amount;
     private string _unit = "sat";
     
+    private List<PrivKey>? _privKeys; 
     public MeltQuoteBuilder(Wallet wallet)
     {
         _wallet = wallet;
@@ -65,6 +67,14 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         this._amount = amount;
         return this;
     }
+
+    // when proofs were p2pk
+    public IMeltQuoteBuilder WithPrivkeys(IEnumerable<PrivKey> privKeys)
+    {
+        this._privKeys = privKeys.ToList();
+        return this;
+    }
+
     
     public async Task<IMeltHandler<PostMeltQuoteBolt11Response, List<Proof>>> ProcessAsyncBolt11(CancellationToken cts = default)
     {
@@ -91,9 +101,46 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
             this._blankOutputs = await this._wallet.CreateOutputs(amounts, this._unit, cts);
         }
 
+        await _maybeProcessP2Pk(quote.Quote);
+
         return new MeltHandlerBolt11(_wallet, quote, _blankOutputs);
     }
 
+    private async Task _maybeProcessP2Pk(string quoteId)
+    {
+        if (_privKeys == null || _privKeys.Count == 0)
+        {
+            return;
+        }
+        
+        if (_proofs == null)
+        {
+            throw new ArgumentNullException(nameof(_proofs), "No proofs to melt!");
+        }
+        
+        var sigAllHandler = new SigAllHandler
+        {
+            Proofs = this._proofs,
+            BlindedMessages = this._blankOutputs?.BlindedMessages ?? [],
+            MeltQuoteId = quoteId
+        };
+
+        if (sigAllHandler.TrySign(out P2PKWitness? witness))
+        {
+            if (witness == null)
+            {
+                throw new ArgumentNullException(nameof(witness), "sig_all input was correct, but couldn't create a witness signature!");
+            }
+            this._proofs[0].Witness = JsonSerializer.Serialize(witness);
+        }
+
+        foreach (var proof in _proofs)
+        {
+            if (proof.Secret is not Nut10Secret { ProofSecret: P2PKProofSecret p2pk }) continue;
+            var proofWitness = p2pk.GenerateWitness(proof, _privKeys.Select(p => p.Key).ToArray());
+            proof.Witness = JsonSerializer.Serialize(proofWitness);
+        }
+    }
 
     public async Task<IMeltHandler<PostMeltQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(
         CancellationToken cts = default)

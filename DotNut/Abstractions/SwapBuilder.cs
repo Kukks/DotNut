@@ -18,6 +18,8 @@ class SwapBuilder : ISwapBuilder
     private OutputData? _outputs;
     private List<ulong>? _amounts;
     private KeysetId? _keysetId;
+    
+    
     private string _unit = "sat";
     private bool _verifySignatures = true;
 
@@ -138,7 +140,8 @@ class SwapBuilder : ISwapBuilder
 
     /// <summary>
     /// Optional.
-    /// If provided, every proof will be generated with random nonce. 
+    /// If provided, every proof will be generated with random nonce.
+    /// P2Pk tokens aren't deterministic. if lost - ¯\_(ツ)_/¯
     /// </summary>
     /// <param name="inputData"></param>
     /// <returns></returns>
@@ -205,17 +208,12 @@ class SwapBuilder : ISwapBuilder
         // Swap received proofs to our keyset
         var amounts = await _getAmounts(total, fee, keysForCurrentId.Keys);
 
-        if (amounts.Sum() > total - fee)
-        {
-            throw new ArgumentException($"Invalid output amounts! Total output amount requested: ${amounts.Sum()}, total input amount: {total}, fee: ${fee}");
-        }
-
-        this._outputs ??= await this._wallet.CreateOutputs(amounts, _keysetId, cts);
+        var outputs = await this._getOutputs(keysForCurrentId.Keys, cts);
         
         var request = new PostSwapRequest()
         {
             Inputs = swapInputs.ToArray(),
-            Outputs = this._outputs.BlindedMessages,
+            Outputs = outputs.BlindedMessages.ToArray(),
         };
 
         await _maybeProcessP2Pk();
@@ -263,6 +261,42 @@ class SwapBuilder : ISwapBuilder
         return _proofsToSwap;
     }
 
+    async Task<OutputData> _getOutputs(Keyset keys, CancellationToken cts = default)
+    {
+        var outputs = new OutputData();
+
+        if (this._outputs != null)
+        {
+            if (this._p2pkBuilder is not null)
+            {
+                throw new ArgumentException("Can't create p2pk outputs if outputs provided. Remove either p2pk builder parameter or outputs.");
+            }
+            return this._outputs;
+        }
+        
+        if (this._amounts is null)
+        {
+            throw new ArgumentNullException(nameof(_amounts), "Amounts can't be null.");
+        }
+        
+        var createdOutputs = new List<OutputData>();
+        if (this._p2pkBuilder is not null)
+        {
+            // skipped checks for keysetid and keys, since its validated before. make sure to remember about it.
+            foreach (var amount in _amounts)
+            {
+                var p2pkOutput = CashuUtils.CreateP2PkOutput(amount, this._keysetId!, keys, _p2pkBuilder);
+                outputs.BlindingFactors.Add(p2pkOutput.BlindingFactors[0]);
+                outputs.BlindedMessages.Add(p2pkOutput.BlindedMessages[0]);
+                outputs.Secrets.Add(p2pkOutput.Secrets[0]);
+            }
+            return outputs;
+        }
+        
+        return await _wallet.CreateOutputs(_amounts, this._keysetId!, cts);
+    }
+
+
     private async Task _maybeProcessP2Pk()
     {
         if (_privKeys == null || _privKeys.Count == 0)
@@ -277,7 +311,7 @@ class SwapBuilder : ISwapBuilder
         
         var sigAllHandler = new SigAllHandler
         {
-            Proofs = this._proofsToSwap.ToArray(),
+            Proofs = this._proofsToSwap,
             BlindedMessages = this._outputs?.BlindedMessages ?? [],
         };
 
@@ -303,17 +337,18 @@ class SwapBuilder : ISwapBuilder
         if (_amounts != null)
         {
             var sum = _amounts.Sum();
-            var underpay = total - fee - sum;
-        
-            if (underpay == 0)
+            
+            if (sum + fee == total)
             {
                 return _amounts;
             }
-            if (underpay > 0)
+            if (sum + fee < total)
             {
+                var underpay = total - fee - sum;
                 this._amounts.AddRange(CashuUtils.SplitToProofsAmounts(underpay, keys));
                 return this._amounts;
             }
+
             throw new ArgumentException($"Invalid amounts requested. Sum of amounts: {sum}, total input: {total}, fee:{fee}.");
         }
 

@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using DotNut;
@@ -8,9 +9,9 @@ namespace DotNut;
 
 public class SigAllHandler
 {
-    public Proof[] Proofs { get; set; }
-    public PrivKey[] PrivKeys { get; set; }
-    public BlindedMessage[] BlindedMessages { get; set; }
+    public List<Proof> Proofs { get; set; }
+    public List<PrivKey> PrivKeys { get; set; }
+    public List<BlindedMessage> BlindedMessages { get; set; }
     
     public string? MeltQuoteId { get; set; }
     
@@ -20,7 +21,7 @@ public class SigAllHandler
     {
         p2pkwitness = null;
 
-        if (BlindedMessages.Length == 0)
+        if (BlindedMessages.Count == 0)
         {
             return false;
         }
@@ -29,12 +30,11 @@ public class SigAllHandler
         {
             return false;
         }
-
-        string message = "";
+        var msg = new StringBuilder();
         
-        if (Proofs.Length > 0)
+        if (Proofs.Count > 0)
         {
-            for (var i = 1; i < Proofs.Length; i++)
+            for (var i = 1; i < Proofs.Count; i++)
             {
                 var p = Proofs[i];
 
@@ -47,20 +47,20 @@ public class SigAllHandler
                 {
                     throw new ArgumentException($"When signing sig_all, every proof must have identical tags and data.");
                 }
-                message += JsonSerializer.Serialize(p.Secret);
+                msg.Append(JsonSerializer.Serialize(p.Secret));
             }
         }
 
         foreach (var b in BlindedMessages)
         {
-            message += b.B_.ToString();
+            msg.Append(b.B_);
         }
 
         if (MeltQuoteId is not null)
         {
-            message += MeltQuoteId;
+            msg.Append(MeltQuoteId);
         }
-        var bytesMsg = System.Text.Encoding.UTF8.GetBytes(message);
+        var bytesMsg = Encoding.UTF8.GetBytes(msg.ToString());
         
         p2pkwitness = _firstProofSecret!.GenerateWitness(bytesMsg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray());
         return true;

@@ -47,9 +47,9 @@ public static class Nut13
 
         return new OutputData()
         {
-            BlindedMessages = blindedMessages.ToArray(),
-            BlindingFactors = blindingFactors.ToArray(),
-            Secrets = secrets.ToArray()
+            BlindedMessages = blindedMessages,
+            BlindingFactors = blindingFactors,
+            Secrets = secrets
         };
     }
     public static byte[] DeriveBlindingFactor(this byte[] seed, KeysetId keysetId, int counter)

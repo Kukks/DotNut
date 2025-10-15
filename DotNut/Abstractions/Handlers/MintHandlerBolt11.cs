@@ -11,11 +11,7 @@ public class MintHandlerBolt11: IMintHandler<PostMintQuoteBolt11Response, List<P
     private readonly PostMintQuoteBolt11Response _quote;
     private readonly IWalletBuilder _wallet;
     private readonly GetKeysResponse.KeysetItemResponse _keyset;
-
-    private ulong? _amount;
-    
-    private List<ulong>? _amounts;
-    private OutputData? _outputs;
+    private readonly OutputData _outputs;
     
     private string? SubscriptionId;
     private WebsocketService? _websocketService;
@@ -23,34 +19,15 @@ public class MintHandlerBolt11: IMintHandler<PostMintQuoteBolt11Response, List<P
     public MintHandlerBolt11(
         IWalletBuilder wallet,
         PostMintQuoteBolt11Response postMintQuoteBolt11Response, 
-        GetKeysResponse.KeysetItemResponse? verifiedKeyset
+        GetKeysResponse.KeysetItemResponse? verifiedKeyset,
+        OutputData outputs
         )
     {
         this._wallet = wallet;
         this._quote = postMintQuoteBolt11Response;
         this._keyset = verifiedKeyset;
+        this._outputs = outputs;
     }
-    
-    public MintHandlerBolt11(
-        IWalletBuilder wallet,
-        PostMintQuoteBolt11Response postMintQuoteBolt11Response, 
-        GetKeysResponse.KeysetItemResponse? verifiedKeyset,
-        ulong amount
-    )
-    {
-        this._quote = postMintQuoteBolt11Response;
-        this._keyset = verifiedKeyset;
-        this._amount = amount;
-    }
-    
-    public MintHandlerBolt11(PostMintQuoteBolt11Response postMintQuoteBolt11Response, GetKeysResponse.KeysetItemResponse? verifiedKeyset, List<ulong>? amounts, ulong? amount)
-    {
-        this._quote = postMintQuoteBolt11Response;
-        this._keyset = verifiedKeyset;
-        this._amounts = amounts;
-        this._amount = amount;
-    }
-    
     
     public async Task<PostMintQuoteBolt11Response> GetQuote(CancellationToken cts = default) => _quote;
 
@@ -58,15 +35,9 @@ public class MintHandlerBolt11: IMintHandler<PostMintQuoteBolt11Response, List<P
     {
         var client = await this._wallet.GetMintApi();
 
-        _amount ??= _quote.Amount ?? throw new ArgumentNullException(nameof(_quote.Amount), "Can't determine amount of quote!");
-        
-        _amounts??= CashuUtils.SplitToProofsAmounts(_amount.Value, _keyset.Keys);
-        
-        this._outputs ??= await _wallet.CreateOutputs(_amounts!, _keyset.Id, cts);
-
         var req = new PostMintRequest
         {
-            Outputs = this._outputs.BlindedMessages,
+            Outputs = this._outputs.BlindedMessages.ToArray(),
             Quote = _quote.Quote
         };
         

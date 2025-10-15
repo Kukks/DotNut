@@ -9,7 +9,9 @@ namespace DotNut.Abstractions;
 class MintQuoteBuilder : IMintQuoteBuilder
 {
     private readonly Wallet _wallet;
+    
     private ulong? _amount;
+    private List<ulong>? _amounts;
     private string _unit = "sat";
     private string? _description;
     private OutputData? _outputs;
@@ -20,6 +22,9 @@ class MintQuoteBuilder : IMintQuoteBuilder
 
     private KeysetId? _keysetId;
     private GetKeysResponse.KeysetItemResponse? _keyset;
+    
+    //for p2pk
+    private P2PkBuilder? _builder;
 
     public MintQuoteBuilder(Wallet wallet)
     {
@@ -97,6 +102,20 @@ class MintQuoteBuilder : IMintQuoteBuilder
 
     /// <summary>
     /// Optional.
+    /// User may provide p2pkbuilder specifying p2pk lock parameters. Nonce from builder will be added _only_ to first proof,
+    /// since it has to be unique for each proof.
+    /// P2Pk proofs aren't derived deterministicly, since they can't get restored from seed and they would make restore process longer. 
+    /// </summary>
+    /// <param name="p2pkBuilder"></param>
+    /// <returns></returns>
+    public IMintQuoteBuilder WithP2PkLock(P2PkBuilder p2pkBuilder)
+    {
+        this._builder = p2pkBuilder;
+        return this;
+    }
+
+    /// <summary>
+    /// Optional.
     /// User may provide description for melt quote invoice. 
     /// </summary>
     /// <param name="description"></param>
@@ -106,12 +125,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
         this._description = description;
         return this;
     }
-
-    public IMintQuoteBuilder WithP2PK()
-    {
-        throw new NotImplementedException();
-    }
-
+    
     public IMintQuoteBuilder WithHTLC()
     {
         throw new NotImplementedException();
@@ -146,6 +160,9 @@ class MintQuoteBuilder : IMintQuoteBuilder
                            throw new ArgumentException($"Cant get keys for keysetId: {_keysetId}");
         }
 
+        var outputs = await this._createOutputs();
+        
+
         var reqBolt11 = new PostMintQuoteBolt11Request()
         {
             Amount = this._amount.Value,
@@ -156,13 +173,13 @@ class MintQuoteBuilder : IMintQuoteBuilder
             await (await this._wallet.GetMintApi())
                 .CreateMintQuote<PostMintQuoteBolt11Response, PostMintQuoteBolt11Request>("bolt11", reqBolt11,
                     cts);
-        return new MintHandlerBolt11(this._wallet, quoteBolt11, this._keyset);
+        return new MintHandlerBolt11(this._wallet, quoteBolt11, this._keyset, outputs);
     }
 
     public async Task<IMintHandler<PostMintQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(
         CancellationToken cts = default)
     {
-        await this._wallet._maybeSyncKeys(cts);
+            await this._wallet._maybeSyncKeys(cts);
             if (this._pubkey == null)
             {
                 throw new ArgumentNullException(nameof(_pubkey), "Can't request bolt12 mint quote without pubkey!");
@@ -173,6 +190,9 @@ class MintQuoteBuilder : IMintQuoteBuilder
                 this._keyset = await this._wallet.GetKeys(this._keysetId, false, cts) ??
                                throw new ArgumentException($"Cant fetch keys for keysetId: {_keysetId}");
             }
+            
+            var outputs = await this._createOutputs();
+
 
             var req = new PostMintQuoteBolt12Request()
             {
@@ -185,7 +205,47 @@ class MintQuoteBuilder : IMintQuoteBuilder
                 await (await _wallet.GetMintApi())
                     .CreateMintQuote<PostMintQuoteBolt12Response, PostMintQuoteBolt12Request>("bolt12", req,
                         cts);
-            return new MintHandlerBolt12(this._wallet, mintQuote, this._keyset);
+            return new MintHandlerBolt12(this._wallet, mintQuote, this._keyset, outputs);
 
+    }
+
+
+    async Task<OutputData> _createOutputs()
+    {
+        var outputs = new OutputData();
+        
+        if (this._outputs != null)
+        {
+            if (this._builder is not null)
+            {
+                throw new ArgumentException("Can't create p2pk outputs if outputs provided. Remove either p2pk builder parameter or outputs.");
+            }
+            return this._outputs;
+        }
+        
+        if (this._amount is null && this._amounts is null)
+        {
+            throw new ArgumentNullException(nameof(_amount), "Amount can't be determined. Make sure to include amount, or amounts parameter!");
+        }
+        _amounts ??=  CashuUtils.SplitToProofsAmounts(_amount.Value, _keyset!.Keys);
+        
+        var createdOutputs = new List<OutputData>();
+        if (this._builder is not null)
+        {
+            // skipped checks for keysetid and keys, since its validated before. make sure to remember about it.
+            foreach (var amount in _amounts)
+            {
+                var p2pkOutput = CashuUtils.CreateP2PkOutput(amount, this._keysetId!, this._keyset.Keys, _builder);
+                outputs.BlindingFactors.Add(p2pkOutput.BlindingFactors[0]);
+                outputs.BlindedMessages.Add(p2pkOutput.BlindedMessages[0]);
+                outputs.Secrets.Add(p2pkOutput.Secrets[0]);
+            }
+            return outputs;
+        }
+        
+        return await _wallet.CreateOutputs(_amounts, this._keysetId!);
+        
+        
+        
     }
 }

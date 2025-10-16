@@ -41,7 +41,6 @@ public class HTLCBuilder : P2PKBuilder
             SigFlag = innerbuilder.SigFlag,
             Nonce = innerbuilder.Nonce
         };
-        
     }
     
     public new HTLCProofSecret Build()

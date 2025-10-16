@@ -104,13 +104,19 @@ class MintQuoteBuilder : IMintQuoteBuilder
     /// Optional.
     /// User may provide p2pkbuilder specifying p2pk lock parameters. Nonce from builder will be added _only_ to first proof,
     /// since it has to be unique for each proof.
-    /// P2Pk proofs aren't derived deterministicly, since they can't get restored from seed and they would make restore process longer. 
+    /// P2Pk proofs aren't derived deterministicly, since they can't get restored from seed and they would make restore process longer.
     /// </summary>
     /// <param name="p2pkBuilder"></param>
     /// <returns></returns>
     public IMintQuoteBuilder WithP2PkLock(P2PkBuilder p2pkBuilder)
     {
         this._builder = p2pkBuilder;
+        return this;
+    }
+
+    public IMintQuoteBuilder WithHTLCLock(HTLCBuilder htlcBuilder)
+    {
+        this._builder = htlcBuilder;
         return this;
     }
 
@@ -126,11 +132,6 @@ class MintQuoteBuilder : IMintQuoteBuilder
         return this;
     }
     
-    public IMintQuoteBuilder WithHTLC()
-    {
-        throw new NotImplementedException();
-    }
-
     public async Task<IMintHandler<PostMintQuoteBolt11Response, List<Proof>>> ProcessAsyncBolt11(
         CancellationToken cts = default)
     {
@@ -142,23 +143,17 @@ class MintQuoteBuilder : IMintQuoteBuilder
             throw new ArgumentNullException(nameof(_amount), "can't create melt quote without amount!");
         }
 
-        var api = this._wallet.GetMintApi();
+        var api = await this._wallet.GetMintApi();
         if (api is null)
         {
             throw new ArgumentNullException(nameof(ICashuApi), "Can't request mint quote without mint API");
         }
 
-        if (this._keysetId == null)
-        {
-            this._keysetId = await this._wallet.GetActiveKeysetId(this._unit, cts) ??
-                             throw new ArgumentException($"Can't get active keyset ID for unit: {_unit}");
-        }
+        this._keysetId ??= await this._wallet.GetActiveKeysetId(this._unit, cts) ??
+                           throw new ArgumentException($"Can't get active keyset ID for unit: {_unit}");
 
-        if (this._keyset == null)
-        {
-            this._keyset = await this._wallet.GetKeys(this._keysetId, false, cts) ??
-                           throw new ArgumentException($"Cant get keys for keysetId: {_keysetId}");
-        }
+        this._keyset ??= await this._wallet.GetKeys(this._keysetId, false, cts) ??
+                         throw new ArgumentException($"Cant get keys for keysetId: {_keysetId}");
 
         var outputs = await this._createOutputs();
         
@@ -170,8 +165,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
             Description = this._description,
         };
         var quoteBolt11 =
-            await (await this._wallet.GetMintApi())
-                .CreateMintQuote<PostMintQuoteBolt11Response, PostMintQuoteBolt11Request>("bolt11", reqBolt11,
+            await api.CreateMintQuote<PostMintQuoteBolt11Response, PostMintQuoteBolt11Request>("bolt11", reqBolt11,
                     cts);
         return new MintHandlerBolt11(this._wallet, quoteBolt11, this._keyset, outputs);
     }
@@ -229,23 +223,20 @@ class MintQuoteBuilder : IMintQuoteBuilder
         }
         _amounts ??=  CashuUtils.SplitToProofsAmounts(_amount.Value, _keyset!.Keys);
         
-        var createdOutputs = new List<OutputData>();
-        if (this._builder is not null)
+        if (this._builder is null)
         {
-            // skipped checks for keysetid and keys, since its validated before. make sure to remember about it.
-            foreach (var amount in _amounts)
-            {
-                var p2pkOutput = CashuUtils.CreateP2PkOutput(amount, this._keysetId!, this._keyset.Keys, _builder);
-                outputs.BlindingFactors.Add(p2pkOutput.BlindingFactors[0]);
-                outputs.BlindedMessages.Add(p2pkOutput.BlindedMessages[0]);
-                outputs.Secrets.Add(p2pkOutput.Secrets[0]);
-            }
-            return outputs;
+            return await _wallet.CreateOutputs(_amounts, this._keysetId!);
         }
         
-        return await _wallet.CreateOutputs(_amounts, this._keysetId!);
-        
-        
-        
+        // skipped checks for keysetid and keys, since its validated before. make sure to remember about it.
+        foreach (var amount in _amounts)
+        {
+            var p2pkOutput = CashuUtils.CreateP2PkOutput(amount, this._keysetId!, this._keyset.Keys, _builder);
+            outputs.BlindingFactors.Add(p2pkOutput.BlindingFactors[0]);
+            outputs.BlindedMessages.Add(p2pkOutput.BlindedMessages[0]);
+            outputs.Secrets.Add(p2pkOutput.Secrets[0]);
+        }
+        return outputs;
+
     }
 }

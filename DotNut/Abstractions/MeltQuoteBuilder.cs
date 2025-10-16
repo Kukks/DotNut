@@ -12,10 +12,11 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
     private List<Proof>? _proofs;
     private string? _invoice;
     private OutputData? _blankOutputs;
-    private ulong? _amount;
     private string _unit = "sat";
     
-    private List<PrivKey>? _privKeys; 
+    private List<PrivKey>? _privKeys;
+    private string? _htlcPreimage;
+    
     public MeltQuoteBuilder(Wallet wallet)
     {
         _wallet = wallet;
@@ -56,17 +57,6 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         return this;
     }
     
-    /// <summary>
-    /// Mandatory.
-    /// User needs to specify the amount to be received. It MUST correspond to invoice amount.
-    /// </summary>
-    /// <param name="amount"></param>
-    /// <returns></returns>
-    public IMeltQuoteBuilder WithAmount(ulong amount)
-    {
-        this._amount = amount;
-        return this;
-    }
 
     // when proofs were p2pk
     public IMeltQuoteBuilder WithPrivkeys(IEnumerable<PrivKey> privKeys)
@@ -75,15 +65,19 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         return this;
     }
 
+    public IMeltQuoteBuilder WithHTLCPreimage(string preimage)
+    {
+        this._htlcPreimage = preimage;
+        return this;
+    }
+
     
     public async Task<IMeltHandler<PostMeltQuoteBolt11Response, List<Proof>>> ProcessAsyncBolt11(CancellationToken cts = default)
     {
         var mintApi = await _wallet.GetMintApi();
         await _wallet._maybeSyncKeys(cts);
-        // ArgumentNullException.ThrowIfNull(this._amount);
         ArgumentNullException.ThrowIfNull(this._invoice);
         
-
         var req = new PostMeltQuoteBolt11Request
         {
             Request = this._invoice,
@@ -101,12 +95,18 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
             this._blankOutputs = await this._wallet.CreateOutputs(amounts, this._unit, cts);
         }
 
-        await _maybeProcessP2Pk(quote.Quote);
+        await _maybeProcessP2PkHTLC(quote.Quote);
 
         return new MeltHandlerBolt11(_wallet, quote, _blankOutputs);
     }
-
-    private async Task _maybeProcessP2Pk(string quoteId)
+    
+    public async Task<IMeltHandler<PostMeltQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(
+        CancellationToken cts = default)
+    {
+        throw new NotImplementedException();
+    }
+    
+    private async Task _maybeProcessP2PkHTLC(string quoteId)
     {
         if (_privKeys == null || _privKeys.Count == 0)
         {
@@ -122,7 +122,8 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         {
             Proofs = this._proofs,
             BlindedMessages = this._blankOutputs?.BlindedMessages ?? [],
-            MeltQuoteId = quoteId
+            MeltQuoteId = quoteId,
+            HTLCPreimage = this._htlcPreimage,
         };
 
         if (sigAllHandler.TrySign(out P2PKWitness? witness))
@@ -136,16 +137,18 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
 
         foreach (var proof in _proofs)
         {
-            if (proof.Secret is not Nut10Secret { ProofSecret: P2PKProofSecret p2pk }) continue;
+            
+            if (proof.Secret is not Nut10Secret { ProofSecret: P2PKProofSecret p2pk, Key: { } key }) continue;
+            if (proof.Secret is Nut10Secret { ProofSecret: HTLCProofSecret htlc } && _htlcPreimage is {} preimage)
+            {
+                var w = htlc.GenerateWitness(proof, _privKeys.Select(p=>p.Key).ToArray(), preimage);
+                proof.Witness = JsonSerializer.Serialize(w);
+                continue;
+            }
             var proofWitness = p2pk.GenerateWitness(proof, _privKeys.Select(p => p.Key).ToArray());
             proof.Witness = JsonSerializer.Serialize(proofWitness);
         }
     }
-
-    public async Task<IMeltHandler<PostMeltQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(
-        CancellationToken cts = default)
-    {
-        throw new NotImplementedException();
-    }
+    
 }
 

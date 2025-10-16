@@ -7,11 +7,14 @@ using NBitcoin.Secp256k1;
 
 namespace DotNut;
 
+//Handles both P2PK and HTLC (if preimage added)
 public class SigAllHandler
 {
     public List<Proof> Proofs { get; set; }
     public List<PrivKey> PrivKeys { get; set; }
     public List<BlindedMessage> BlindedMessages { get; set; }
+    
+    public string? HTLCPreimage { get; set; }
     
     public string? MeltQuoteId { get; set; }
     
@@ -61,7 +64,15 @@ public class SigAllHandler
             msg.Append(MeltQuoteId);
         }
         var bytesMsg = Encoding.UTF8.GetBytes(msg.ToString());
-        
+
+        if (_firstProofSecret is HTLCProofSecret s && HTLCPreimage is {} preimage)
+        {
+            p2pkwitness = 
+                s.GenerateWitness(bytesMsg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray(), 
+                    Encoding.UTF8.GetBytes(preimage)
+                    );
+            return true;
+        }
         p2pkwitness = _firstProofSecret!.GenerateWitness(bytesMsg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray());
         return true;
     }

@@ -27,7 +27,9 @@ class SwapBuilder : ISwapBuilder
 
     //p2pk stuff
     private List<PrivKey>? _privKeys;
-    private P2PkBuilder? _p2pkBuilder;
+    private P2PkBuilder? _builder;
+
+    private string? _htlcPreimage;
     
     public SwapBuilder(Wallet wallet, string tokenString)
     {
@@ -148,18 +150,20 @@ class SwapBuilder : ISwapBuilder
     /// <exception cref="NotImplementedException"></exception>
     public ISwapBuilder ToP2PK(P2PkBuilder p2pkBuilder)
     {
-        this._p2pkBuilder = p2pkBuilder;
+        this._builder = p2pkBuilder;
         return this;
     }
 
-    public ISwapBuilder FromHTLC()
+    public ISwapBuilder WithHtlcPreimage(string preimage)
     {
-        throw new NotImplementedException();
+        this._htlcPreimage = preimage;
+        return this;
     }
 
-    public ISwapBuilder ToHTLC()
+    public ISwapBuilder ToHTLC(HTLCBuilder htlcBuilder)
     {
-        throw new NotImplementedException();
+        this._builder = htlcBuilder;
+        return this;
     }
     
     public async Task<List<Proof>> ProcessAsync(CancellationToken cts = default)
@@ -267,7 +271,7 @@ class SwapBuilder : ISwapBuilder
 
         if (this._outputs != null)
         {
-            if (this._p2pkBuilder is not null)
+            if (this._builder is not null)
             {
                 throw new ArgumentException("Can't create p2pk outputs if outputs provided. Remove either p2pk builder parameter or outputs.");
             }
@@ -280,12 +284,12 @@ class SwapBuilder : ISwapBuilder
         }
         
         var createdOutputs = new List<OutputData>();
-        if (this._p2pkBuilder is not null)
+        if (this._builder is not null)
         {
             // skipped checks for keysetid and keys, since its validated before. make sure to remember about it.
             foreach (var amount in _amounts)
             {
-                var p2pkOutput = CashuUtils.CreateP2PkOutput(amount, this._keysetId!, keys, _p2pkBuilder);
+                var p2pkOutput = CashuUtils.CreateP2PkOutput(amount, this._keysetId!, keys, _builder);
                 outputs.BlindingFactors.Add(p2pkOutput.BlindingFactors[0]);
                 outputs.BlindedMessages.Add(p2pkOutput.BlindedMessages[0]);
                 outputs.Secrets.Add(p2pkOutput.Secrets[0]);
@@ -313,6 +317,7 @@ class SwapBuilder : ISwapBuilder
         {
             Proofs = this._proofsToSwap,
             BlindedMessages = this._outputs?.BlindedMessages ?? [],
+            HTLCPreimage = this._htlcPreimage,
         };
 
         if (sigAllHandler.TrySign(out P2PKWitness? witness))
@@ -326,7 +331,14 @@ class SwapBuilder : ISwapBuilder
 
         foreach (var proof in _proofsToSwap)
         {
-            if (proof.Secret is not Nut10Secret { ProofSecret: P2PKProofSecret p2pk }) continue;
+            
+            if (proof.Secret is not Nut10Secret { ProofSecret: P2PKProofSecret p2pk, Key: { } key }) continue;
+            if (proof.Secret is Nut10Secret { ProofSecret: HTLCProofSecret htlc } && _htlcPreimage is {} preimage)
+            {
+                var w = htlc.GenerateWitness(proof, _privKeys.Select(p=>p.Key).ToArray(), preimage);
+                proof.Witness = JsonSerializer.Serialize(w);
+                continue;
+            }
             var proofWitness = p2pk.GenerateWitness(proof, _privKeys.Select(p => p.Key).ToArray());
             proof.Witness = JsonSerializer.Serialize(proofWitness);
         }

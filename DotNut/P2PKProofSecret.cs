@@ -29,8 +29,8 @@ public class P2PKProofSecret : Nut10ProofSecret
     {
         if (proof.P2PkR is not null)
         {
-            var rs = proof.P2PkR.Select(r=>new PrivKey(r).Key).ToList();
-            return GenerateWitness(proof.Secret.GetBytes(), keys);
+            var rs = proof.P2PkR.Select(r=>new PrivKey(r).Key).ToArray();
+            return GenerateWitness(proof.Secret.GetBytes(), keys, rs);
         }
         return GenerateWitness(proof.Secret.GetBytes(), keys);
     }  

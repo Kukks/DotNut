@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DotNut.ApiModels;
 
 namespace DotNut.Abstractions.Websockets;
 
@@ -13,9 +14,9 @@ public static class NotificationParser
 
         return subscriptionKind switch
         {
-            SubscriptionKind.bolt11_mint_quote => jsonElement.Deserialize<MintQuoteNotificationPayload>(),
-            SubscriptionKind.bolt11_melt_quote => jsonElement.Deserialize<MeltQuoteNotificationPayload>(),
-            SubscriptionKind.proof_state => jsonElement.Deserialize<ProofStateNotificationPayload>(),
+            SubscriptionKind.bolt11_mint_quote => jsonElement.Deserialize<PostMintQuoteBolt11Response>(),
+            SubscriptionKind.bolt11_melt_quote => jsonElement.Deserialize<PostMeltQuoteBolt11Response>(),
+            SubscriptionKind.proof_state => jsonElement.Deserialize<PostCheckStateResponse>(),
             _ => notification.Params.Payload
         };
     }

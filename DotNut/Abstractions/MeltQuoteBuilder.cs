@@ -13,9 +13,12 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
     private string? _invoice;
     private OutputData? _blankOutputs;
     private string _unit = "sat";
+    private bool _verifyDLEQ = true;
     
     private List<PrivKey>? _privKeys;
     private string? _htlcPreimage;
+
+    private Action<PostMintQuoteBolt11Response>? _callback;
     
     public MeltQuoteBuilder(Wallet wallet)
     {
@@ -71,11 +74,22 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         return this;
     }
 
+    public IMeltQuoteBuilder OnQuoteStateChanged(Action<PostMintQuoteBolt11Response> callback)
+    {
+        this._callback = callback;
+        return this;
+    }
+
+    public IMeltQuoteBuilder WithDLEQVerification(bool verifyDLEQ = true)
+    {
+        this._verifyDLEQ = verifyDLEQ;
+        return this;
+    }
     
-    public async Task<IMeltHandler<PostMeltQuoteBolt11Response, List<Proof>>> ProcessAsyncBolt11(CancellationToken cts = default)
+    public async Task<IMeltHandler<PostMeltQuoteBolt11Response, List<Proof>>> ProcessAsyncBolt11(CancellationToken ct = default)
     {
         var mintApi = await _wallet.GetMintApi();
-        await _wallet._maybeSyncKeys(cts);
+        await _wallet._maybeSyncKeys(ct);
         ArgumentNullException.ThrowIfNull(this._invoice);
         
         var req = new PostMeltQuoteBolt11Request
@@ -85,14 +99,14 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         };
 
         var quote =
-            await mintApi.CreateMeltQuote<PostMeltQuoteBolt11Response, PostMeltQuoteBolt11Request>("bolt11", req, cts);
+            await mintApi.CreateMeltQuote<PostMeltQuoteBolt11Response, PostMeltQuoteBolt11Request>("bolt11", req, ct);
         
         
         if (_blankOutputs == null)
         {
             var outputsAmount = CashuUtils.CalculateNumberOfBlankOutputs((ulong)quote.FeeReserve);
             var amounts = Enumerable.Repeat(1UL, outputsAmount).ToList();
-            this._blankOutputs = await this._wallet.CreateOutputs(amounts, this._unit, cts);
+            this._blankOutputs = await this._wallet.CreateOutputs(amounts, this._unit, ct);
         }
 
         await _maybeProcessP2PkHTLC(quote.Quote);
@@ -101,7 +115,7 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
     }
     
     public async Task<IMeltHandler<PostMeltQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(
-        CancellationToken cts = default)
+        CancellationToken ct = default)
     {
         throw new NotImplementedException();
     }
@@ -149,6 +163,5 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
             proof.Witness = JsonSerializer.Serialize(proofWitness);
         }
     }
-    
 }
 

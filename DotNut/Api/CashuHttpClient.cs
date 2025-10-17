@@ -12,9 +12,15 @@ public class CashuHttpClient : ICashuApi
     
     public CashuHttpClient(HttpClient httpClient)
     {
+        ArgumentNullException.ThrowIfNull(httpClient.BaseAddress);
         _httpClient = httpClient;
     }
 
+    public string GetBaseUrl()
+    {
+        ArgumentNullException.ThrowIfNull(_httpClient.BaseAddress);
+        return _httpClient.BaseAddress.AbsoluteUri;
+    }
     public async Task<GetKeysResponse> GetKeys(CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.GetAsync("v1/keys", cancellationToken);

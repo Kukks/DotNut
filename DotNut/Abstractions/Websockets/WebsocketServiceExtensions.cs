@@ -2,58 +2,58 @@ namespace DotNut.Abstractions.Websockets;
 
 public static class WebsocketServiceExtensions
 {
-    public static async Task<string> SubscribeToMintQuoteAsync(
+    public static async Task<Subscription> SubscribeToMintQuoteAsync(
         this IWebsocketService service,
-        string connectionId,
+        string mintUrl,
         string[] quoteIds,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
-        return await service.SubscribeAsync(connectionId, SubscriptionKind.bolt11_mint_quote, quoteIds, cancellationToken);
+        return await service.SubscribeAsync(mintUrl, SubscriptionKind.bolt11_mint_quote, quoteIds, ct);
     }
 
-    public static async Task<string> SubscribeToMeltQuoteAsync(
+    public static async Task<Subscription> SubscribeToMeltQuoteAsync(
         this IWebsocketService service,
-        string connectionId,
+        string mintUrl,
         string[] quoteIds,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
-        return await service.SubscribeAsync(connectionId, SubscriptionKind.bolt11_melt_quote, quoteIds, cancellationToken);
+        return await service.SubscribeAsync(mintUrl, SubscriptionKind.bolt11_melt_quote, quoteIds, ct);
     }
 
-    public static async Task<string> SubscribeToProofStateAsync(
+    public static async Task<Subscription> SubscribeToProofStateAsync(
         this IWebsocketService service,
-        string connectionId,
+        string mintUrl,
         string[] proofYs,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
-        return await service.SubscribeAsync(connectionId, SubscriptionKind.proof_state, proofYs, cancellationToken);
+        return await service.SubscribeAsync(mintUrl, SubscriptionKind.proof_state, proofYs, ct);
     }
 
-    public static async Task<string> SubscribeToSingleProofStateAsync(
+    public static async Task<Subscription> SubscribeToSingleProofStateAsync(
         this IWebsocketService service,
-        string connectionId,
+        string mintUrl,
         string proofY,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
-        return await service.SubscribeToProofStateAsync(connectionId, new[] { proofY }, cancellationToken);
+        return await service.SubscribeToProofStateAsync(mintUrl, new[] { proofY }, ct);
     }
 
-    public static async Task<string> SubscribeToSingleMintQuoteAsync(
+    public static async Task<Subscription> SubscribeToSingleMintQuoteAsync(
         this IWebsocketService service,
-        string connectionId,
+        string mintUrl,
         string quoteId,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
-        return await service.SubscribeToMintQuoteAsync(connectionId, new[] { quoteId }, cancellationToken);
+        return await service.SubscribeToMintQuoteAsync(mintUrl, new[] { quoteId }, ct);
     }
 
-    public static async Task<string> SubscribeToSingleMeltQuoteAsync(
+    public static async Task<Subscription> SubscribeToSingleMeltQuoteAsync(
         this IWebsocketService service,
-        string connectionId,
+        string mintUrl,
         string quoteId,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
-        return await service.SubscribeToMeltQuoteAsync(connectionId, new[] { quoteId }, cancellationToken);
+        return await service.SubscribeToMeltQuoteAsync(mintUrl, new[] { quoteId }, ct);
     }
 
     public static bool IsConnectionActive(this IWebsocketService service, string connectionId)
@@ -73,12 +73,12 @@ public static class WebsocketServiceExtensions
     public static async Task UnsubscribeAllAsync(
         this IWebsocketService service,
         string connectionId,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         var subscriptions = service.GetSubscriptions(connectionId).ToList();
         foreach (var subscription in subscriptions)
         {
-            await service.UnsubscribeAsync(connectionId, subscription.Id, cancellationToken);
+            await service.UnsubscribeAsync(subscription.Id, ct);
         }
     }
 
@@ -86,12 +86,12 @@ public static class WebsocketServiceExtensions
         this IWebsocketService service,
         string connectionId,
         SubscriptionKind kind,
-        CancellationToken cancellationToken = default)
+        CancellationToken ct = default)
     {
         var subscriptions = service.GetSubscriptionsByKind(connectionId, kind).ToList();
         foreach (var subscription in subscriptions)
         {
-            await service.UnsubscribeAsync(connectionId, subscription.Id, cancellationToken);
+            await service.UnsubscribeAsync(subscription.Id, ct);
         }
     }
 }

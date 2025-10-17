@@ -25,8 +25,8 @@ public class MintHandlerBolt12: IMintHandler<PostMintQuoteBolt12Response, List<P
         this._outputs = outputs;
     }
 
-    public async Task<PostMintQuoteBolt12Response> GetQuote(CancellationToken cts = default) => this._quote;
-    public async Task<List<Proof>> Mint(CancellationToken cts = default)
+    public async Task<PostMintQuoteBolt12Response> GetQuote(CancellationToken ct = default) => this._quote;
+    public async Task<List<Proof>> Mint(CancellationToken ct = default)
     {
         var client = await this._wallet.GetMintApi();
         
@@ -36,7 +36,7 @@ public class MintHandlerBolt12: IMintHandler<PostMintQuoteBolt12Response, List<P
             Quote = _quote.Quote
         };
         
-        var promises=  await client.Mint<PostMintRequest, PostMintResponse>("bolt12", req, cts);
+        var promises=  await client.Mint<PostMintRequest, PostMintResponse>("bolt12", req, ct);
         return CashuUtils.ConstructProofsFromPromises(promises.Signatures.ToList(), _outputs, _keyset.Keys);
     }
     
@@ -47,9 +47,4 @@ public class MintHandlerBolt12: IMintHandler<PostMintQuoteBolt12Response, List<P
         return await client.Mint<PostMintRequest, PostMintResponse>("bolt12", req, cts);
     }
     
-    public Task<Subscription> Subscribe(CancellationToken cts = default)
-    {
-        throw new NotImplementedException();
-    }
-
 }

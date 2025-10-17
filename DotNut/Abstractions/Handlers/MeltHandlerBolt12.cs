@@ -6,18 +6,14 @@ namespace DotNut.Abstractions.Handlers;
 
 public class MeltHandlerBolt12: IMeltHandler<PostMeltQuoteBolt12Response, List<Proof>>
 {
-    public Task<PostMeltQuoteBolt12Response> GetQuote(CancellationToken cts = default)
+    public Task<PostMeltQuoteBolt12Response> GetQuote(CancellationToken ct = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<List<Proof>> Melt(List<Proof> inputs, CancellationToken cts = default)
+    public Task<List<Proof>> Melt(List<Proof> inputs, CancellationToken ct = default)
     {
         throw new NotImplementedException();
     }
 
-    public Task<Subscription> Subscribe(CancellationToken cts = default)
-    {
-        throw new NotImplementedException();
-    }
 }

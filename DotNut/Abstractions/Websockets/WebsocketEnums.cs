@@ -16,11 +16,3 @@ public enum WsRequestMethod
     subscribe,
     unsubscribe
 }
-
-[JsonConverter(typeof(JsonStringEnumConverter))]
-public enum ProofState
-{
-    UNSPENT,
-    PENDING,
-    SPENT
-}

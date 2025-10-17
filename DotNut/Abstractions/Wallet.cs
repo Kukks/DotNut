@@ -1,4 +1,5 @@
 using DotNut.Abstractions.Interfaces;
+using DotNut.Abstractions.Websockets;
 using DotNut.Api;
 using DotNut.ApiModels;
 using DotNut.ApiModels.Info;
@@ -21,6 +22,8 @@ public class Wallet : IWalletBuilder
     private Mnemonic? _mnemonic;
     private ICounter? _counter;
     
+    private IWebsocketService? _wsService;
+    
     //flags 
     private bool _shouldSyncKeyset = true;
     private DateTime? _lastSync = DateTime.MinValue;
@@ -29,7 +32,6 @@ public class Wallet : IWalletBuilder
     private bool _shouldBumpCounter = true;
     private bool _allowInvalidKeysetIds = false;
 
-    
     
     /*
      * Fluent Builder Methods 
@@ -194,6 +196,20 @@ public class Wallet : IWalletBuilder
         this._shouldBumpCounter = shouldBumpCounter;
         return this;
     }
+    
+    /// <summary>
+    /// Optional.
+    /// Adds websocket service. You should use single websocket service (singleton at best) for multiple wallets, in order to handle everything in nice manner.
+    /// If not set, but requested it'll be created automatically (which won't be so optimal).
+    /// </summary>
+    /// <param name="websocketService"></param>
+    /// <returns></returns>
+    public IWalletBuilder WithWebsocketService(IWebsocketService websocketService)
+    {
+        this._wsService = websocketService;
+        return this;
+    }
+
 
     /// <summary>
     /// Optional.
@@ -206,7 +222,8 @@ public class Wallet : IWalletBuilder
     {
         return new StatefulWallet(this, proofManager);
     }
-    
+
+   
     /*
      * Main api methods
      */
@@ -277,11 +294,11 @@ public class Wallet : IWalletBuilder
     /// Get active keyset id for chosen unit.
     /// </summary>
     /// <param name="unit">keyset unit, e.g. sat</param>
-    /// <param name="cts"></param>
+    /// <param name="ct"></param>
     /// <returns>Active keysetId</returns>
-    public async Task<KeysetId?> GetActiveKeysetId(string unit, CancellationToken cts = default)
+    public async Task<KeysetId?> GetActiveKeysetId(string unit, CancellationToken ct = default)
     {
-        await _maybeSyncKeys(cts);
+        await _maybeSyncKeys(ct);
         return _keysets?
             .OrderBy(k => k.InputFee)
             .FirstOrDefault(k => k is { Active: true } && k.Unit == unit, null)
@@ -292,9 +309,9 @@ public class Wallet : IWalletBuilder
     /// Get active keyset ids for each unit
     /// </summary>
     /// <returns>Dictionary of (unit, KeysetId) </returns>
-    public async Task<IDictionary<string, KeysetId>?> GetActiveKeysetIdsWithUnits(CancellationToken cts = default)
+    public async Task<IDictionary<string, KeysetId>?> GetActiveKeysetIdsWithUnits(CancellationToken ct = default)
     {
-        await _maybeSyncKeys(cts);
+        await _maybeSyncKeys(ct);
         return _keysets?
             .GroupBy(k => k.Unit)
             .ToDictionary(
@@ -307,16 +324,16 @@ public class Wallet : IWalletBuilder
     /// Get keys of current mint stored in wallet.
     /// </summary>
     /// <param name="forceRefresh">Refetch flag</param>
-    /// <param name="cts"></param>
+    /// <param name="ct"></param>
     /// <returns>Mints keys</returns>
-    public async Task<List<GetKeysResponse.KeysetItemResponse>> GetKeys(bool forceRefresh = false, CancellationToken cts = default)
+    public async Task<List<GetKeysResponse.KeysetItemResponse>> GetKeys(bool forceRefresh = false, CancellationToken ct = default)
     {
         if (forceRefresh)
         {
-           this._keys = await _fetchKeys(cts);
+           this._keys = await _fetchKeys(ct);
            return this._keys ?? [];
         }
-        await _maybeSyncKeys(cts);
+        await _maybeSyncKeys(ct);
         return this._keys ?? [];
     }
 
@@ -325,14 +342,14 @@ public class Wallet : IWalletBuilder
    /// </summary>
    /// <param name="id">KeysetId</param>
    /// <param name="forceRefresh">Refetch flag</param>
-   /// <param name="cts"></param>
+   /// <param name="ct"></param>
    /// <returns>Keys for given keyset</returns>
    /// <exception cref="ArgumentNullException">If wallet doesn't contain keysets for given keysetId</exception>
-    public async Task<GetKeysResponse.KeysetItemResponse> GetKeys(KeysetId id, bool forceRefresh = false, CancellationToken cts = default)
+    public async Task<GetKeysResponse.KeysetItemResponse> GetKeys(KeysetId id, bool forceRefresh = false, CancellationToken ct = default)
     {
         if (forceRefresh)
         {
-            return await _fetchKeys(id, cts);
+            return await _fetchKeys(id, ct);
         }
         if (this._keys == null)
         {
@@ -345,16 +362,16 @@ public class Wallet : IWalletBuilder
    /// Get Keysets stored in wallet
    /// </summary>
    /// <param name="forceRefresh">Refetch flag</param>
-   /// <param name="cts"></param>
+   /// <param name="ct"></param>
    /// <returns>List of Keysets</returns>
-    public async Task<List<GetKeysetsResponse.KeysetItemResponse>> GetKeysets(bool forceRefresh = false, CancellationToken cts = default)
+    public async Task<List<GetKeysetsResponse.KeysetItemResponse>> GetKeysets(bool forceRefresh = false, CancellationToken ct = default)
     {
         if (forceRefresh)
         {
-           this._keysets = await _fetchKeysets(cts);
+           this._keysets = await _fetchKeysets(ct);
            return _keysets ?? [];
         }
-        await _maybeSyncKeys(cts);
+        await _maybeSyncKeys(ct);
         return _keysets ?? [];
     }
    
@@ -362,15 +379,15 @@ public class Wallet : IWalletBuilder
    /// Get Mints info, supported methods etc. 
    /// </summary>
    /// <param name="forceReferesh">Refetch flag</param>
-   /// <param name="cts"></param>
+   /// <param name="ct"></param>
    /// <returns>MintInfo object</returns>
-    public async Task<MintInfo> GetInfo(bool forceReferesh = false, CancellationToken cts = default)
+    public async Task<MintInfo> GetInfo(bool forceReferesh = false, CancellationToken ct = default)
     {
         if (forceReferesh)
         {
-            return await _fetchMintInfo(cts);
+            return await _fetchMintInfo(ct);
         }
-        return await _lazyFetchMintInfo(cts);
+        return await _lazyFetchMintInfo(ct);
     }
    
    /// <summary>
@@ -379,12 +396,12 @@ public class Wallet : IWalletBuilder
    /// </summary>
    /// <param name="amounts">List of amounts in Outputs.</param>
    /// <param name="id">Keyset ID</param>
-   /// <param name="cts"></param>
+   /// <param name="ct"></param>
    /// <returns>Outputs</returns>
    /// <exception cref="ArgumentNullException">If keys not set. If Mnemonic set, but no Counter.</exception>
-    public async Task<OutputData> CreateOutputs(List<ulong> amounts, KeysetId id, CancellationToken cts = default)
+    public async Task<OutputData> CreateOutputs(List<ulong> amounts, KeysetId id, CancellationToken ct = default)
     {
-        await _maybeSyncKeys(cts);
+        await _maybeSyncKeys(ct);
         if (this._keys == null)
         {
             throw new ArgumentNullException(nameof(this._keys), "No Keys found. Make sure to fetch them!");
@@ -400,10 +417,10 @@ public class Wallet : IWalletBuilder
             throw new ArgumentNullException(nameof(ICounter), "Can't derive outputs without keyset counter");
         }
 
-        var counterValue = await this._counter.GetCounterForId(id, cts);
+        var counterValue = await this._counter.GetCounterForId(id, ct);
         if (_shouldBumpCounter)
         {
-            await this._counter.IncrementCounter(id, amounts.Count, cts);
+            await this._counter.IncrementCounter(id, amounts.Count, ct);
         }
         return CashuUtils.CreateOutputs(amounts, id, keyset.Keys, this._mnemonic, counterValue);
     }
@@ -413,45 +430,50 @@ public class Wallet : IWalletBuilder
     /// </summary>
     /// <param name="amounts">List of amounts.</param>
     /// <param name="unit"></param>
-    /// <param name="cts"></param>
+    /// <param name="ct"></param>
     /// <returns>Outputs</returns>
     /// <exception cref="ArgumentNullException">If no keysetID stored in wallet.</exception>
-    public async Task<OutputData> CreateOutputs(List<ulong> amounts, string unit, CancellationToken cts = default)
+    public async Task<OutputData> CreateOutputs(List<ulong> amounts, string unit, CancellationToken ct = default)
     {
-        var keysetId = await this.GetActiveKeysetId(unit, cts);
+        var keysetId = await this.GetActiveKeysetId(unit, ct);
         if (keysetId == null)
         {
             throw new ArgumentNullException(nameof(keysetId));
         }
-        return await this.CreateOutputs(amounts, keysetId, cts);
+        return await this.CreateOutputs(amounts, keysetId, ct);
     }
     
-    public async Task<SendResponse> SelectProofsToSend(List<Proof> proofs, ulong amount, bool includeFees, CancellationToken cts = default)
+    public async Task<SendResponse> SelectProofsToSend(List<Proof> proofs, ulong amount, bool includeFees, CancellationToken ct = default)
     {
         if (this._selector == null)
         {
-            await _maybeSyncKeys(cts);
+            await _maybeSyncKeys(ct);
             ArgumentNullException.ThrowIfNull(this._keysetFees);
             this._selector = new ProofSelector(this._keysetFees);
         }
 
-        return await _selector.SelectProofsToSend(proofs, amount, includeFees, cts);
+        return await _selector.SelectProofsToSend(proofs, amount, includeFees, ct);
     }
     
-    public async Task<ICashuApi> GetMintApi(CancellationToken cts = default)
+    public async Task<ICashuApi> GetMintApi(CancellationToken ct = default)
     {
         _ensureApiConnected();
         return _mintApi;
     }
-    public async Task<IProofSelector>? GetSelector(CancellationToken cts = default)
+    public async Task<IProofSelector>? GetSelector(CancellationToken ct = default)
     {
         if (this._selector == null)
         {
-            await _maybeSyncKeys(cts);
+            await _maybeSyncKeys(ct);
             ArgumentNullException.ThrowIfNull(this._keysetFees);
             this._selector = new ProofSelector(this._keysetFees);
         }
         return this._selector;
+    }
+
+    public async Task<IWebsocketService> GetWebsocketService(CancellationToken ct = default)
+    {
+        return this._wsService ??= new WebsocketService();
     }
     public Mnemonic? GetMnemonic() => _mnemonic;
     public ICounter? GetCounter() => _counter;
@@ -483,10 +505,10 @@ public class Wallet : IWalletBuilder
     /// </summary>
     /// <returns>List of Keysets</returns>
     /// <exception cref="ArgumentNullException">May be thrown if mint is not set.</exception>
-    private async Task<List<GetKeysetsResponse.KeysetItemResponse>> _fetchKeysets(CancellationToken cts = default)
+    private async Task<List<GetKeysetsResponse.KeysetItemResponse>> _fetchKeysets(CancellationToken ct = default)
     {
         _ensureApiConnected("Can't fetch keysets without mint api!");
-        var keysetsRaw = await _mintApi!.GetKeysets(cts);
+        var keysetsRaw = await _mintApi!.GetKeysets(ct);
         return keysetsRaw.Keysets.ToList();
     }
     
@@ -496,10 +518,10 @@ public class Wallet : IWalletBuilder
     /// <returns>List of Keys (lists :))</returns>
     /// <exception cref="ArgumentNullException">May be thrown if mint is not set.</exception>
     /// <exception cref="ArgumentException">May be thrown if mint returns invalid keysetId for at least one Keyset</exception>
-    private async Task<List<GetKeysResponse.KeysetItemResponse>> _fetchKeys(CancellationToken cts = default)
+    private async Task<List<GetKeysResponse.KeysetItemResponse>> _fetchKeys(CancellationToken ct = default)
     {
         _ensureApiConnected("Can't fetch keys without mint api!");
-        var keysRaw = await _mintApi!.GetKeys(cts);
+        var keysRaw = await _mintApi!.GetKeys(ct);
         foreach (var keysetItemResponse in keysRaw.Keysets)
         {
             var isKeysetIdValid = keysetItemResponse.Keys.VerifyKeysetId(keysetItemResponse.Id, keysetItemResponse.Unit, keysetItemResponse.FinalExpiry);
@@ -599,5 +621,7 @@ public class Wallet : IWalletBuilder
         
         _lastSync = DateTime.Now;
     }
+    
+
 }
 

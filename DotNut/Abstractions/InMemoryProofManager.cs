@@ -4,7 +4,7 @@ public class InMemoryProofManager: IProofManager
 {
     private Dictionary<KeysetId, List<Proof>> _proofsDictionary = new();
     
-    public async Task AddProofAsync(Proof proof, CancellationToken cts = default)
+    public async Task AddProofAsync(Proof proof, CancellationToken ct = default)
     {
         if (_proofsDictionary.TryGetValue(proof.Id, out var proofs))
         {
@@ -14,16 +14,16 @@ public class InMemoryProofManager: IProofManager
         _proofsDictionary.Add(proof.Id, new List<Proof> { proof });
     }
 
-    public async Task<List<Proof>> GetProofsForKeysetId(KeysetId ids, CancellationToken cts = default)
+    public async Task<List<Proof>> GetProofsForKeysetId(KeysetId ids, CancellationToken ct = default)
     {
         return _proofsDictionary.TryGetValue(ids, out var proofs) ? proofs : new List<Proof>();
     }
 
-    public Task<List<Proof>> GetProofsForMint(List<KeysetId> ids, CancellationToken cts = default)
+    public Task<List<Proof>> GetProofsForMint(List<KeysetId> ids, CancellationToken ct = default)
     {
         throw new NotImplementedException();
     }
-    public Task MarkProofAsSpent(Proof proof, CancellationToken cts = default)
+    public Task MarkProofAsSpent(Proof proof, CancellationToken ct = default)
     {
         throw new NotImplementedException();
     }

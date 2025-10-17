@@ -147,7 +147,7 @@ public static class CashuUtils
         var secret = new Nut10Secret("P2PK", proofSecret);
 
         var r = RandomPrivkey();
-        var B_ = DotNut.Cashu.ComputeB_(secret.ToCurve(), r);
+        var B_ = Cashu.ComputeB_(secret.ToCurve(), r);
         return new OutputData()
         {
             BlindedMessages = [new BlindedMessage() { Amount = amount, B_ = B_, Id = keysetId }],
@@ -172,7 +172,7 @@ public static class CashuUtils
     {
 
         //unblind signature
-        var C = DotNut.Cashu.ComputeC(promise.C_, r, amountPubkey);
+        var C = Cashu.ComputeC(promise.C_, r, amountPubkey);
 
         if (promise.DLEQ is not null)
         {

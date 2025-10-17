@@ -133,11 +133,11 @@ class MintQuoteBuilder : IMintQuoteBuilder
     }
     
     public async Task<IMintHandler<PostMintQuoteBolt11Response, List<Proof>>> ProcessAsyncBolt11(
-        CancellationToken cts = default)
+        CancellationToken ct = default)
     {
         //todo implement info 
 
-        await this._wallet._maybeSyncKeys(cts);
+        await this._wallet._maybeSyncKeys(ct);
         if (_amount == null)
         {
             throw new ArgumentNullException(nameof(_amount), "can't create melt quote without amount!");
@@ -149,10 +149,10 @@ class MintQuoteBuilder : IMintQuoteBuilder
             throw new ArgumentNullException(nameof(ICashuApi), "Can't request mint quote without mint API");
         }
 
-        this._keysetId ??= await this._wallet.GetActiveKeysetId(this._unit, cts) ??
+        this._keysetId ??= await this._wallet.GetActiveKeysetId(this._unit, ct) ??
                            throw new ArgumentException($"Can't get active keyset ID for unit: {_unit}");
 
-        this._keyset ??= await this._wallet.GetKeys(this._keysetId, false, cts) ??
+        this._keyset ??= await this._wallet.GetKeys(this._keysetId, false, ct) ??
                          throw new ArgumentException($"Cant get keys for keysetId: {_keysetId}");
 
         var outputs = await this._createOutputs();
@@ -166,14 +166,14 @@ class MintQuoteBuilder : IMintQuoteBuilder
         };
         var quoteBolt11 =
             await api.CreateMintQuote<PostMintQuoteBolt11Response, PostMintQuoteBolt11Request>("bolt11", reqBolt11,
-                    cts);
+                    ct);
         return new MintHandlerBolt11(this._wallet, quoteBolt11, this._keyset, outputs);
     }
 
     public async Task<IMintHandler<PostMintQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(
-        CancellationToken cts = default)
+        CancellationToken ct = default)
     {
-            await this._wallet._maybeSyncKeys(cts);
+            await this._wallet._maybeSyncKeys(ct);
             if (this._pubkey == null)
             {
                 throw new ArgumentNullException(nameof(_pubkey), "Can't request bolt12 mint quote without pubkey!");
@@ -181,7 +181,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
             
             if (this._keyset == null)
             {
-                this._keyset = await this._wallet.GetKeys(this._keysetId, false, cts) ??
+                this._keyset = await this._wallet.GetKeys(this._keysetId, false, ct) ??
                                throw new ArgumentException($"Cant fetch keys for keysetId: {_keysetId}");
             }
             
@@ -198,7 +198,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
             var mintQuote =
                 await (await _wallet.GetMintApi())
                     .CreateMintQuote<PostMintQuoteBolt12Response, PostMintQuoteBolt12Request>("bolt12", req,
-                        cts);
+                        ct);
             return new MintHandlerBolt12(this._wallet, mintQuote, this._keyset, outputs);
 
     }

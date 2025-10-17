@@ -5,7 +5,7 @@ namespace DotNut.Abstractions.Websockets;
 public class WsRequest
 {
     [JsonPropertyName("jsonrpc")]
-    public string JsonRpc { get; set; } = "2.0";
+    public string JsonRpc = "2.0";
 
     [JsonPropertyName("method")]
     public WsRequestMethod Method { get; set; }

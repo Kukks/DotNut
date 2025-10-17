@@ -4,6 +4,7 @@ namespace DotNut.Api;
 
 public interface ICashuApi
 {
+    string GetBaseUrl();
     Task<GetKeysResponse> GetKeys(CancellationToken cancellationToken = default);
     Task<GetKeysResponse> GetKeys(KeysetId keysetId, CancellationToken cancellationToken = default);
     Task<GetKeysetsResponse> GetKeysets(CancellationToken cancellationToken = default);

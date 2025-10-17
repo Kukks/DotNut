@@ -10,7 +10,10 @@ public interface IMeltQuoteBuilder
 {
     IMeltQuoteBuilder WithUnit(string unit);
     IMeltQuoteBuilder WithInvoice(string bolt11Invoice);
-    Task<IMeltHandler<PostMeltQuoteBolt11Response, List<Proof>>> ProcessAsyncBolt11(CancellationToken cancellationToken = default);
-    Task<IMeltHandler<PostMeltQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(CancellationToken cancellationToken = default);
+    IMeltQuoteBuilder WithBlankOutputs(OutputData blankOutputs);
+    IMeltQuoteBuilder WithPrivkeys(IEnumerable<PrivKey> privKeys);
+    IMeltQuoteBuilder WithHTLCPreimage(string preimage);
+    Task<IMeltHandler<PostMeltQuoteBolt11Response, List<Proof>>> ProcessAsyncBolt11(CancellationToken ct = default);
+    Task<IMeltHandler<PostMeltQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(CancellationToken ct = default);
 
 }

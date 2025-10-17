@@ -21,7 +21,7 @@ class SwapBuilder : ISwapBuilder
     
     
     private string _unit = "sat";
-    private bool _verifySignatures = true;
+    private bool _verifyDLEQ = true;
 
     private bool _includeFees = true;
 
@@ -75,25 +75,13 @@ class SwapBuilder : ISwapBuilder
 
     /// <summary>
     /// Optional.
-    /// True by default, allows user to turn off signature verification (not advised)
+    /// True by default, allows user to turn off DLEQ verification (not advised)
     /// </summary>
     /// <param name="verify"></param>
     /// <returns></returns>
-    public ISwapBuilder WithSignatureVerification(bool verify = true)
+    public ISwapBuilder WithDLEQVerification(bool verify = true)
     {
-        _verifySignatures = verify;
-        return this;
-    }
-    
-    /// <summary>
-    /// Optional.
-    /// Provide outputs for a swap.
-    /// </summary>
-    /// <param name="outputs"></param>
-    /// <returns></returns>
-    public ISwapBuilder WithOutputs(OutputData outputs)
-    {
-        _outputs = outputs;
+        _verifyDLEQ = verify;
         return this;
     }
 
@@ -166,11 +154,11 @@ class SwapBuilder : ISwapBuilder
         return this;
     }
     
-    public async Task<List<Proof>> ProcessAsync(CancellationToken cts = default)
+    public async Task<List<Proof>> ProcessAsync(CancellationToken ct = default)
     {
-        var mintApi = await _wallet.GetMintApi(cts);
+        var mintApi = await _wallet.GetMintApi(ct);
         
-        var swapInputs = await _getSwapProofs(cts);
+        var swapInputs = await _getSwapProofs(ct);
         if (swapInputs == null || swapInputs.Count == 0)
         {
             throw new ArgumentException("Nothing to swap!");
@@ -179,13 +167,13 @@ class SwapBuilder : ISwapBuilder
         // if there's no keysetId specified - let's choose it. 
         if (_keysetId == null)
         {
-            _keysetId = await _wallet.GetActiveKeysetId(this._unit, cts) ??
+            _keysetId = await _wallet.GetActiveKeysetId(this._unit, ct) ??
                         throw new InvalidOperationException("Could not fetch Keyset ID");
         }
-        var keys = await _wallet.GetKeys(false, cts);
+        var keys = await _wallet.GetKeys(false, ct);
         var keysForCurrentId = keys.Single(k=>k.Id == _keysetId);
         
-        if (_verifySignatures)
+        if (_verifyDLEQ)
         {
             foreach (var proof in swapInputs!)
             {
@@ -195,24 +183,25 @@ class SwapBuilder : ISwapBuilder
                    throw new InvalidOperationException($"Can't find key for amount {proof.Amount} in keyset {keyset.Id}");
                }
                var isValid = proof.Verify(key);
-            if (!isValid)
-                throw new InvalidOperationException($"Invalid proof signature for amount {proof.Amount}");
+                if (!isValid)
+                {
+                    throw new InvalidOperationException($"Invalid proof signature for amount {proof.Amount}");
+                }
             }
         }
 
         var fee = 0UL;
         if (_includeFees)
         {
-            var keysetsFees = (await _wallet.GetKeysets(false, cts)).ToDictionary(k=>k.Id, k=>k.InputFee??0);
+            var keysetsFees = (await _wallet.GetKeysets(false, ct)).ToDictionary(k=>k.Id, k=>k.InputFee??0);
             fee = swapInputs.ComputeFee(keysetsFees);
         }
         
         
         var total = CashuUtils.SumProofs(swapInputs);
+        
         // Swap received proofs to our keyset
-        var amounts = await _getAmounts(total, fee, keysForCurrentId.Keys);
-
-        var outputs = await this._getOutputs(keysForCurrentId.Keys, cts);
+        var outputs = await this._getOutputs(keysForCurrentId.Keys, ct);
         
         var request = new PostSwapRequest()
         {
@@ -222,7 +211,7 @@ class SwapBuilder : ISwapBuilder
 
         await _maybeProcessP2Pk();
         
-        var swapResponse = await mintApi.Swap(request, cts);
+        var swapResponse = await mintApi.Swap(request, ct);
 
         var swappedProofs =
             CashuUtils.ConstructProofsFromPromises(swapResponse.Signatures.ToList(), this._outputs, keysForCurrentId.Keys);
@@ -230,7 +219,7 @@ class SwapBuilder : ISwapBuilder
         return swappedProofs;
     }
     
-    private async Task<List<Proof>> _getSwapProofs(CancellationToken cts = default)
+    private async Task<List<Proof>> _getSwapProofs(CancellationToken ct = default)
     {
         _proofsToSwap ??= new();
         if (_tokenString != null)
@@ -265,7 +254,7 @@ class SwapBuilder : ISwapBuilder
         return _proofsToSwap;
     }
 
-    async Task<OutputData> _getOutputs(Keyset keys, CancellationToken cts = default)
+    async Task<OutputData> _getOutputs(Keyset keys, CancellationToken ct = default)
     {
         var outputs = new OutputData();
 
@@ -287,20 +276,19 @@ class SwapBuilder : ISwapBuilder
         if (this._builder is not null)
         {
             // skipped checks for keysetid and keys, since its validated before. make sure to remember about it.
-            foreach (var amount in _amounts)
+            foreach (var p2pkOutput in _amounts.Select(amount => CashuUtils.CreateP2PkOutput(amount, this._keysetId!, keys, _builder)))
             {
-                var p2pkOutput = CashuUtils.CreateP2PkOutput(amount, this._keysetId!, keys, _builder);
                 outputs.BlindingFactors.Add(p2pkOutput.BlindingFactors[0]);
                 outputs.BlindedMessages.Add(p2pkOutput.BlindedMessages[0]);
                 outputs.Secrets.Add(p2pkOutput.Secrets[0]);
             }
+
             return outputs;
         }
         
-        return await _wallet.CreateOutputs(_amounts, this._keysetId!, cts);
+        return await _wallet.CreateOutputs(_amounts, this._keysetId!, ct);
     }
-
-
+    
     private async Task _maybeProcessP2Pk()
     {
         if (_privKeys == null || _privKeys.Count == 0)

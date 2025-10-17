@@ -16,7 +16,7 @@ public class InMemoryCounter : ICounter
         this._counter = new Dictionary<KeysetId, int>();
     }
 
-    public async Task<int> GetCounterForId(KeysetId keysetId, CancellationToken cts = default)
+    public async Task<int> GetCounterForId(KeysetId keysetId, CancellationToken ct = default)
     {
         if (_counter.TryGetValue(keysetId, out var counter))
             return counter;
@@ -24,14 +24,14 @@ public class InMemoryCounter : ICounter
         return _counter[keysetId] = 0;
     }
 
-    public async Task<int> IncrementCounter(KeysetId keysetId, int bumpBy = 1, CancellationToken cts = default)
+    public async Task<int> IncrementCounter(KeysetId keysetId, int bumpBy = 1, CancellationToken ct = default)
     {
-        var current = await GetCounterForId(keysetId, cts);
+        var current = await GetCounterForId(keysetId, ct);
         var next = current + bumpBy;
         _counter[keysetId] = next;
         return next;
     }
 
-    public async Task SetCounter(KeysetId keysetId, int counter, CancellationToken cts = default) => _counter[keysetId] = counter;
+    public async Task SetCounter(KeysetId keysetId, int counter, CancellationToken ct = default) => _counter[keysetId] = counter;
 
 }

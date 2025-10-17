@@ -55,7 +55,7 @@ public class ProofSelector : IProofSelector
         return _keysetFees.TryGetValue(proof.Id, out var fee) ? fee : 0;
     }
 
-    public async Task<SendResponse> SelectProofsToSend(List<Proof> proofs, ulong amountToSend, bool includeFees = false, CancellationToken cts = default)
+    public async Task<SendResponse> SelectProofsToSend(List<Proof> proofs, ulong amountToSend, bool includeFees = false, CancellationToken ct = default)
     {
         // Init vars
         const int MAX_TRIALS = 60; // 40-80 is optimal (per RGLI paper)

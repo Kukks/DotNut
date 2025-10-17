@@ -1,4 +1,5 @@
 using DotNut.Abstractions.Interfaces;
+using DotNut.Abstractions.Websockets;
 using DotNut.Api;
 using DotNut.ApiModels;
 using DotNut.ApiModels.Mint.bolt12;
@@ -26,28 +27,30 @@ public interface IWalletBuilder
     IWalletBuilder WithCounter(ICounter counter);
     IWalletBuilder WithCounter(IDictionary<KeysetId, int> counter);
     IWalletBuilder ShouldBumpCounter(bool shouldBumpCounter = true);
+    IWalletBuilder WithWebsocketService(IWebsocketService websocketService);
 
+    Task<MintInfo> GetInfo(bool forceReferesh = false, CancellationToken ct = default);
+    Task<OutputData> CreateOutputs(List<ulong> amounts, KeysetId id, CancellationToken ct = default);
 
-    Task<MintInfo> GetInfo(bool forceReferesh = false, CancellationToken cts = default);
-    Task<OutputData> CreateOutputs(List<ulong> amounts, KeysetId id, CancellationToken cts = default);
+    Task<IDictionary<string, KeysetId>?> GetActiveKeysetIdsWithUnits(CancellationToken ct = default);
 
-    Task<IDictionary<string, KeysetId>?> GetActiveKeysetIdsWithUnits(CancellationToken cts = default);
+    Task<ICashuApi> GetMintApi(CancellationToken ct = default);
 
-    Task<ICashuApi> GetMintApi(CancellationToken cts = default);
-
-    Task<KeysetId?> GetActiveKeysetId(string unit, CancellationToken cts = default);
-    Task<List<GetKeysResponse.KeysetItemResponse>> GetKeys(bool forceRefresh = false, CancellationToken cts = default);
+    Task<KeysetId?> GetActiveKeysetId(string unit, CancellationToken ct = default);
+    Task<List<GetKeysResponse.KeysetItemResponse>> GetKeys(bool forceRefresh = false, CancellationToken ct = default);
 
     Task<GetKeysResponse.KeysetItemResponse> GetKeys(KeysetId id, bool forceRefresh = false,
-        CancellationToken cts = default);
+        CancellationToken ct = default);
 
     Task<List<GetKeysetsResponse.KeysetItemResponse>> GetKeysets(bool forceRefresh = false,
-        CancellationToken cts = default);
+        CancellationToken ct = default);
 
-    Task<OutputData> CreateOutputs(List<ulong> amounts, string unit, CancellationToken cts = default);
+    Task<OutputData> CreateOutputs(List<ulong> amounts, string unit, CancellationToken ct = default);
 
     Task<SendResponse> SelectProofsToSend(List<Proof> proofs, ulong amount, bool includeFees,
-        CancellationToken cts = default);
+        CancellationToken ct = default);
+    
+    Task<IWebsocketService> GetWebsocketService(CancellationToken ct = default);
     
     // Swap operations
     ISwapBuilder Swap();

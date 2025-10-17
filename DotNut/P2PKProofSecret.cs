@@ -27,17 +27,43 @@ public class P2PKProofSecret : Nut10ProofSecret
 
     public virtual P2PKWitness GenerateWitness(Proof proof, ECPrivKey[] keys)
     {
+        if (proof.P2PkR is not null)
+        {
+            var rs = proof.P2PkR.Select(r=>new PrivKey(r).Key).ToList();
+            return GenerateWitness(proof.Secret.GetBytes(), keys);
+        }
         return GenerateWitness(proof.Secret.GetBytes(), keys);
     }  
+    
     public virtual P2PKWitness GenerateWitness(BlindedMessage message, ECPrivKey[] keys)
     {
         return GenerateWitness(message.B_.Key.ToBytes(), keys);
+    }
+
+    public virtual P2PKWitness GenerateWitness(byte[] msg, ECPrivKey[] keys, ECPrivKey[] p2pkBs)
+    {
+        var hash = SHA256.HashData(msg);
+        return GenerateWitness(ECPrivKey.Create(hash), keys, p2pkBs);
     }
 
     public virtual P2PKWitness GenerateWitness(byte[] msg, ECPrivKey[] keys)
     {
         var hash = SHA256.HashData(msg);
         return GenerateWitness(ECPrivKey.Create(hash), keys);
+    }
+
+    public virtual P2PKWitness GenerateWitness(ECPrivKey hash, ECPrivKey[] keys, ECPrivKey[] p2pkBs)
+    {
+        if (p2pkBs.Length != keys.Length)
+        {
+            throw new ArgumentException("Every P2Pk Blidning factor must have corresponding privkey!");
+        }
+
+        for (var i = 0; i < keys.Length; i++)
+        {
+            keys[i] = keys[i].sec.Add(p2pkBs[i].sec).ToPrivateKey();
+        }
+        return GenerateWitness(hash, keys);
     }
 
     public virtual P2PKWitness GenerateWitness(ECPrivKey hash, ECPrivKey[] keys)

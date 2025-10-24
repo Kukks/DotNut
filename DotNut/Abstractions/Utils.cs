@@ -5,7 +5,7 @@ using NBitcoin.Secp256k1;
 
 namespace DotNut.Abstractions;
 
-public static class CashuUtils
+public static class Utils
 {
     /// <summary>
     /// Function mapping payment amount to keyset supported amounts in order to create swap payload. Always tries to fit the biggest proof.

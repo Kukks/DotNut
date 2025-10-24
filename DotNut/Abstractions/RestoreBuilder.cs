@@ -75,7 +75,7 @@ public class RestoreBuilder : IRestoreBuilder
                     emptyBatchesRemaining--;
                 }
 
-                var proofs = CashuUtils.ConstructProofsFromPromises(res.Signatures.ToList(), outputs, keyset.Keys);
+                var proofs = Utils.ConstructProofsFromPromises(res.Signatures.ToList(), outputs, keyset.Keys);
                 recoveredProofs.AddRange(proofs);
                 batchNumber++;
             }
@@ -99,9 +99,9 @@ public class RestoreBuilder : IRestoreBuilder
         {
             var correspondingKeys = await _wallet.GetKeys(unitKeyset.Value, false, ct);
             var totalAmount = recoveredProofs.Select(p=>p.Amount).Aggregate((a,c) => a + c);
-            var amounts = CashuUtils.SplitToProofsAmounts(totalAmount, correspondingKeys.Keys);
+            var amounts = Utils.SplitToProofsAmounts(totalAmount, correspondingKeys.Keys);
             var ctr = await counter!.GetCounterForId(unitKeyset.Value, ct);
-            var newOutputs = CashuUtils.CreateOutputs(amounts, unitKeyset.Value, correspondingKeys.Keys, mnemonic, ctr);
+            var newOutputs = Utils.CreateOutputs(amounts, unitKeyset.Value, correspondingKeys.Keys, mnemonic, ctr);
             await counter.IncrementCounter(unitKeyset.Value, newOutputs.BlindedMessages.Count, ct);
             
             var swapRequest = new PostSwapRequest
@@ -111,7 +111,7 @@ public class RestoreBuilder : IRestoreBuilder
             };
         
             var swapResult = await api.Swap(swapRequest, ct);
-            var constructedProofs = CashuUtils.ConstructProofsFromPromises(swapResult.Signatures.ToList(), newOutputs, correspondingKeys.Keys);
+            var constructedProofs = Utils.ConstructProofsFromPromises(swapResult.Signatures.ToList(), newOutputs, correspondingKeys.Keys);
             
             freshProofs.AddRange(constructedProofs);
         }

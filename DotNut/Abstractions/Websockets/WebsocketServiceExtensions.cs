@@ -8,6 +8,7 @@ public static class WebsocketServiceExtensions
         string[] quoteIds,
         CancellationToken ct = default)
     {
+        await service.LazyConnectAsync(mintUrl, ct);
         return await service.SubscribeAsync(mintUrl, SubscriptionKind.bolt11_mint_quote, quoteIds, ct);
     }
 
@@ -17,6 +18,7 @@ public static class WebsocketServiceExtensions
         string[] quoteIds,
         CancellationToken ct = default)
     {
+        await service.LazyConnectAsync(mintUrl, ct);
         return await service.SubscribeAsync(mintUrl, SubscriptionKind.bolt11_melt_quote, quoteIds, ct);
     }
 
@@ -26,6 +28,7 @@ public static class WebsocketServiceExtensions
         string[] proofYs,
         CancellationToken ct = default)
     {
+        await service.LazyConnectAsync(mintUrl, ct);
         return await service.SubscribeAsync(mintUrl, SubscriptionKind.proof_state, proofYs, ct);
     }
 
@@ -35,6 +38,7 @@ public static class WebsocketServiceExtensions
         string proofY,
         CancellationToken ct = default)
     {
+        await service.LazyConnectAsync(mintUrl, ct);
         return await service.SubscribeToProofStateAsync(mintUrl, new[] { proofY }, ct);
     }
 
@@ -44,6 +48,7 @@ public static class WebsocketServiceExtensions
         string quoteId,
         CancellationToken ct = default)
     {
+        await service.LazyConnectAsync(mintUrl, ct);
         return await service.SubscribeToMintQuoteAsync(mintUrl, new[] { quoteId }, ct);
     }
 
@@ -53,6 +58,7 @@ public static class WebsocketServiceExtensions
         string quoteId,
         CancellationToken ct = default)
     {
+        await service.LazyConnectAsync(mintUrl, ct);
         return await service.SubscribeToMeltQuoteAsync(mintUrl, new[] { quoteId }, ct);
     }
 

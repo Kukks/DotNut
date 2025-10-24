@@ -221,7 +221,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
         {
             throw new ArgumentNullException(nameof(_amount), "Amount can't be determined. Make sure to include amount, or amounts parameter!");
         }
-        _amounts ??=  CashuUtils.SplitToProofsAmounts(_amount.Value, _keyset!.Keys);
+        _amounts ??=  Utils.SplitToProofsAmounts(_amount.Value, _keyset!.Keys);
         
         if (this._builder is null)
         {
@@ -231,7 +231,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
         // skipped checks for keysetid and keys, since its validated before. make sure to remember about it.
         foreach (var amount in _amounts)
         {
-            var p2pkOutput = CashuUtils.CreateP2PkOutput(amount, this._keysetId!, this._keyset.Keys, _builder);
+            var p2pkOutput = Utils.CreateP2PkOutput(amount, this._keysetId!, this._keyset.Keys, _builder);
             outputs.BlindingFactors.Add(p2pkOutput.BlindingFactors[0]);
             outputs.BlindedMessages.Add(p2pkOutput.BlindedMessages[0]);
             outputs.Secrets.Add(p2pkOutput.Secrets[0]);

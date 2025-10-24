@@ -5,7 +5,6 @@ using DotNut.NUT13;
 using NBip32Fast;
 using NBitcoin.Secp256k1;
 using Xunit.Abstractions;
-
 namespace DotNut.Tests;
 
 public class UnitTest1
@@ -365,17 +364,17 @@ public class UnitTest1
     [Fact]
     public void Nut11_New_P2PkRules()
     {
-        // since https://github.com/cashubtc/nuts/pull/315 p2pk and htlc behavior will be changed. After locktime, the 
+        // since https://github.com/cashubtc/nuts/pull/315 p2pk and htlc behavior will be changed. After locktime, the
         // proof will be spendable on both (refund and normal) paths.
-        
-        var spendableProof = 
+
+        var spendableProof =
             "{\n  \"amount\": 64,\n  \"C\": \"02d7cd858d866fca404b5cb1ffd813946e6d19efa1af00d654080fd20266bdc0b1\",\n  \"id\": \"001b6c716bf42c7e\",\n  \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"395162bf2d0add3c66aea9f22c45251dbee6e04bd9282addbb366a94cd4fb482\\\",\\\"data\\\":\\\"03ab50a667926fac858bac540766254c14b2b0334d10e8ec766455310224bbecf4\\\",\\\"tags\\\":[[\\\"locktime\\\",\\\"21\\\"],[\\\"pubkeys\\\",\\\"0229a91adec8dd9badb228c628a07fc1bf707a9b7d95dd505c490b1766fa7dc541\\\",\\\"033281c37677ea273eb7183b783067f5244933ef78d8c3f15b1a77cb246099c26e\\\"],[\\\"n_sigs\\\",\\\"2\\\"],[\\\"refund\\\",\\\"03ab50a667926fac858bac540766254c14b2b0334d10e8ec766455310224bbecf4\\\",\\\"033281c37677ea273eb7183b783067f5244933ef78d8c3f15b1a77cb246099c26e\\\"]]}]\"\n}";
         var spendableProofParsed = JsonSerializer.Deserialize<Proof>(spendableProof);
         Assert.NotNull(spendableProofParsed);
         var spendableProofSecret = Assert.IsType<Nut10Secret>(spendableProofParsed.Secret);
         Assert.Equal(P2PKProofSecret.Key, spendableProofSecret.Key);
         var secretValue = Assert.IsType<P2PKProofSecret>(spendableProofSecret.ProofSecret);
-        
+
         // "standard path" witness, n_sigs = 2.
         // since locktime is expired, it would fail under old conditions. now the proof should remain spendable
         var validWitness1 =
@@ -428,6 +427,14 @@ public class UnitTest1
         var witness3 = JsonSerializer.Deserialize<P2PKWitness>(validSwapRequestMultisigParsed.Inputs[0].Witness);
         Assert.True(SigAllHandler.VerifySigAllWitness(validSwapRequestMultisigParsed.Inputs, validSwapRequestMultisigParsed.Outputs, witness3));
         Assert.True(SigAllHandler.VerifySigAllWitness(validSwapRequestMultisigParsed.Inputs, validSwapRequestMultisigParsed.Outputs));
+
+        var validSwapRequestMultisigRefund =
+            "{\n  \"inputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"3e9253419a11f0a541dd6baeddecf8356fc864b5d061f12f05632bc3aee6b5c4\\\",\\\"data\\\":\\\"0343cca0e48ce9e3fdcddba4637ff8cdbf6f5ed9cfdf1873e63827e760f0ed4db5\\\",\\\"tags\\\":[[\\\"pubkeys\\\",\\\"0235e0a719f8b046cee90f55a59b1cdd6ca75ce23e49cbcd82c9e5b7310e21ebcd\\\",\\\"020443f98b356e021bae82bdfc05ff433cab21e27fca9ab7b0995aedb2e7aabc43\\\"],[\\\"locktime\\\",\\\"100\\\"],[\\\"n_sigs\\\",\\\"2\\\"],[\\\"refund\\\",\\\"026b432e62b041bf9cdae534203739c73fa506c9a2d6aa58a52bc601a1dec421e1\\\",\\\"02e3494a2e07e7f6e7d4567e0da7a563592bff1e121df2383667f15b83e9168a9e\\\"],[\\\"n_sigs_refund\\\",\\\"2\\\"],[\\\"sigflag\\\",\\\"SIG_ALL\\\"]]}]\",\n      \"C\": \"026c12ee3bffa5c617debcf823bf1af6a9b47145b699f2737bba3394f0893eb869\",\n      \"witness\": \"{\\\"signatures\\\":[\\\"bfe884145ce6512331324321c3946dfd812428a53656b108b59d26559a186ba2ab45e5be9ce94e2dff0d09078e25ccb82d06a8b3a63cd3dc67065b8f77292776\\\",\\\"236e5cc9c30f85a893a29a4302e41e6f2015caef4229f28fa65e2f5c9d55515cc9a1852093a81a5095055d85fd55bf4da124e55354b56e0a39e83b58b0afc197\\\"]}\"\n    }\n  ],\n  \"outputs\": [\n    {\n      \"amount\": 1,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39\"\n    },\n    {\n      \"amount\": 1,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"03afe7c87e32d436f0957f1d70a2bca025822a84a8623e3a33aed0a167016e0ca5\"\n    }\n  ]\n}";
+        var validSwapRequestMultisigRefundParsed =
+            JsonSerializer.Deserialize<PostSwapRequest>(validSwapRequestMultisigRefund);
+        var witness4 = JsonSerializer.Deserialize<P2PKWitness>(validSwapRequestMultisigRefundParsed.Inputs[0].Witness);
+        Assert.True(SigAllHandler.VerifySigAllWitness(validSwapRequestMultisigRefundParsed.Inputs, validSwapRequestMultisigRefundParsed.Outputs, witness4));
+        Assert.True(SigAllHandler.VerifySigAllWitness(validSwapRequestMultisigRefundParsed.Inputs, validSwapRequestMultisigRefundParsed.Outputs));
         
         var validSwapRequestMultisigRefundLocktime = 
             "{\n  \"inputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"9ea35553beb18d553d0a53120d0175a0991ca6109370338406eed007b26eacd1\\\",\\\"data\\\":\\\"02af21e09300af92e7b48c48afdb12e22933738cfb9bba67b27c00c679aae3ec25\\\",\\\"tags\\\":[[\\\"locktime\\\",\\\"1\\\"],[\\\"refund\\\",\\\"02637c19143c58b2c58bd378400a7b82bdc91d6dedaeb803b28640ef7d28a887ac\\\",\\\"0345c7fdf7ec7c8e746cca264bf27509eb4edb9ac421f8fbfab1dec64945a4d797\\\"],[\\\"n_sigs_refund\\\",\\\"2\\\"],[\\\"sigflag\\\",\\\"SIG_ALL\\\"]]}]\",\n      \"C\": \"03dd83536fbbcbb74ccb3c87147df26753fd499cc2c095f74367fff0fb459c312e\",\n      \"witness\": \"{\\\"signatures\\\":[\\\"23b58ef28cd22f3dff421121240ddd621deee83a3bc229fd67019c2e338d91e2c61577e081e1375dbab369307bba265e887857110ca3b4bd949211a0a298805f\\\",\\\"7e75948ef1513564fdcecfcbd389deac67c730f7004f8631ba90c0844d3e8c0cf470b656306877df5141f65fd3b7e85445a8452c3323ab273e6d0d44843817ed\\\"]}\"\n    }\n  ],\n  \"outputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39\"\n    }\n  ]\n}";
@@ -482,7 +489,7 @@ public class UnitTest1
         var witness10 = JsonSerializer.Deserialize<P2PKWitness>(meltRequestMultisigParsed.Inputs[0].Witness);
         Assert.True(SigAllHandler.VerifySigAllWitness(meltRequestMultisigParsed.Inputs, meltRequestMultisigParsed.Outputs, witness10, meltRequestMultisigParsed.Quote));
     }
-        
+
     [Fact]
     public void Nut12Tests_Hash_e()
     {
@@ -643,6 +650,7 @@ public class UnitTest1
         Assert.Equal("099ed70fc2f7ac769bc20b2a75cb662e80779827b7cc358981318643030577d0", Convert.ToHexString(mnemonic.DeriveBlindingFactor(keysetId, 3)).ToLowerInvariant());
         Assert.Equal("5550337312d223ba62e3f75cfe2ab70477b046d98e3e71804eade3956c7b98cf", Convert.ToHexString(mnemonic.DeriveBlindingFactor(keysetId, 4)).ToLowerInvariant());
     }
+    
     [Fact]
     public void NullExpiryTests_PostMintQuoteBolt11Response()
     {

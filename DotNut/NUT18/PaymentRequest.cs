@@ -11,6 +11,7 @@ public class PaymentRequest
     public string[]? Mints { get; set; }
     public string? Memo { get; set; }
     public PaymentRequestTransport[] Transports { get; set; }
+    public Nut10LockingCondition? Nut10 { get; set; }
 
     public override string ToString()
     {

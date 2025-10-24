@@ -13,9 +13,7 @@ public class SigAllHandler
     public List<Proof> Proofs { get; set; }
     public List<PrivKey> PrivKeys { get; set; }
     public List<BlindedMessage> BlindedMessages { get; set; }
-    
     public string? HTLCPreimage { get; set; }
-    
     public string? MeltQuoteId { get; set; }
     
     private P2PKProofSecret? _firstProofSecret; 
@@ -77,8 +75,6 @@ public class SigAllHandler
         return true;
     }
 
-    
-
     private bool _validateFirstProof()
     {
         if (Proofs[0].Secret is not Nut10Secret { ProofSecret: P2PKProofSecret p2pks })
@@ -94,6 +90,7 @@ public class SigAllHandler
         
         return true;
     }
+    
     private bool _checkIfEqualToFirst(P2PKProofSecret other) =>
         _firstProofSecret is { } a && other is { } b &&
         a.Data == b.Data &&

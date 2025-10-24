@@ -9,12 +9,24 @@ public class Subscription
     public SubscriptionKind Kind { get; set; }
     public string[] Filters { get; set; } = Array.Empty<string>();
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public Channel<WsNotificationParams> NotificationChannel { get; set; }
+    public Channel<WsMessage> NotificationChannel { get; set; }
     
     public EventHandler<WsError> OnError { get; set; }
     
-    public void Close()
+    private readonly WeakReference<IWebsocketService>? _serviceRef;
+    
+    public Subscription(IWebsocketService? websocketService = null)
+    {
+        _serviceRef = websocketService != null ? 
+            new WeakReference<IWebsocketService>(websocketService) : null;
+    }
+
+    public async Task CloseAsync()
     {
         NotificationChannel.Writer.TryComplete();
+        if (_serviceRef != null && _serviceRef.TryGetTarget(out var service))
+        {
+            await service.UnsubscribeAsync(Id);
+        }
     }
 }

@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
+using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using DotNut.Abstractions.Websockets;
 
@@ -11,26 +13,29 @@ public class WebsocketService : IWebsocketService
 {
     private readonly ConcurrentDictionary<string, WebsocketConnection> _connections = new();
     private readonly ConcurrentDictionary<string, Subscription> _subscriptions = new();
-    private readonly object _lockObject = new();
+    private readonly ConcurrentDictionary<int, PendingRequest> _pendingRequests = new();
     private int _nextRequestId = 0;
-
-    public event EventHandler<ConnectionStateChangedEventArgs>? ConnectionStateChanged;
-    public event EventHandler<WsError>? OnWsError;
     
+    public event EventHandler<ConnectionStateChangedEventArgs>? ConnectionStateChanged;
+    
+
     public async Task<WebsocketConnection> ConnectAsync(string mintUrl, CancellationToken ct = default)
     {
-        var normalized = _normalizeMintUrl(mintUrl);
-        
-        if (_connections.TryGetValue(normalized, out var existing))
-        {
-            return existing;
-        }
-        
+        var normalized = NormalizeMintUrl(mintUrl);
+
         var connectionId = Guid.NewGuid().ToString();
         var wsUrl = GetWebSocketUrl(mintUrl);
              
         var clientWebSocket = new ClientWebSocket();
-        await clientWebSocket.ConnectAsync(new Uri(wsUrl), ct); 
+        try
+        {
+            await clientWebSocket.ConnectAsync(new Uri(wsUrl), ct);
+        }
+        catch (Exception ex)
+        {
+            clientWebSocket.Dispose();
+            throw;
+        }
         
         var connection = new WebsocketConnection
         {
@@ -41,17 +46,31 @@ public class WebsocketService : IWebsocketService
         };
              
         _connections[normalized] = connection;
-             
-        _ = Task.Run(async () => await ListenForMessages(connection, ct), ct);
-             
         OnConnectionStateChanged(connectionId, WebSocketState.Open);
+        
+        _ = Task.Run(async () => await ListenForMessages(connection, ct), ct);
              
         return connection;
     }
     
+    public async Task<WebsocketConnection> LazyConnectAsync(string mintUrl, CancellationToken ct = default)
+    {
+        var normalized = NormalizeMintUrl(mintUrl);
+        
+        if (_connections.TryGetValue(normalized, out var existing))
+        {
+            if (existing.State == WebSocketState.Open)
+            {
+                return existing;
+            }
+        }
+        _connections.TryRemove(normalized, out _);
+        return await ConnectAsync(mintUrl, ct);
+    }
+
     public async Task DisconnectAsync(string mintUrl, CancellationToken ct = default)
     {
-        var normalized = _normalizeMintUrl(mintUrl);
+        var normalized = NormalizeMintUrl(mintUrl);
         
         if (!_connections.TryGetValue(normalized, out var connection))
         {
@@ -62,18 +81,21 @@ public class WebsocketService : IWebsocketService
         {
             if (connection.State == WebSocketState.Open)
             {
-                await connection.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client disconnecting", ct);
+                await connection.WebSocket.CloseAsync(
+                    WebSocketCloseStatus.NormalClosure, 
+                    "Client disconnecting", 
+                    ct);
             }
         }
-        catch (Exception)
+        catch (Exception _)
         {
-            // Ignore close exceptions
+            // ignored
         }
         finally
         {
             connection.WebSocket.Dispose();
             _connections.TryRemove(normalized, out _);
-                 
+            
             var subscriptionsToRemove = _subscriptions
                 .Where(s => s.Value.ConnectionId == connection.Id)
                 .Select(s => s.Key)
@@ -81,16 +103,19 @@ public class WebsocketService : IWebsocketService
                  
             foreach (var subId in subscriptionsToRemove)
             {
-                _subscriptions.TryRemove(subId, out _);
+                if (_subscriptions.TryRemove(subId, out var removedSub))
+                {
+                    await removedSub.CloseAsync();
+                }
             }
                  
             OnConnectionStateChanged(connection.Id, WebSocketState.Closed);
         }
     }
-
+    
     public async Task<Subscription> SubscribeAsync(string mintUrl, SubscriptionKind kind, string[] filters, CancellationToken ct = default)
     {
-        var normalized = _normalizeMintUrl(mintUrl);
+        var normalized = NormalizeMintUrl(mintUrl);
         
         if (!_connections.TryGetValue(normalized, out var connection))
         {
@@ -103,9 +128,9 @@ public class WebsocketService : IWebsocketService
         }
      
         var subId = Guid.NewGuid().ToString();
-        var requestId = GetNextRequestId();
+        var requestId = _getNextRequestId();
         
-        var channel = Channel.CreateUnbounded<WsNotificationParams>(new UnboundedChannelOptions { SingleReader = false });
+        var channel = Channel.CreateUnbounded<WsMessage>(new UnboundedChannelOptions { SingleReader = false });
              
         var request = new WsRequest
         {
@@ -120,7 +145,7 @@ public class WebsocketService : IWebsocketService
             Id = requestId
         };
      
-        var subscription = new Subscription
+        var subscription = new Subscription(this)
         {
             Id = subId,
             ConnectionId = connection.Id,
@@ -132,9 +157,37 @@ public class WebsocketService : IWebsocketService
              
         _subscriptions[subId] = subscription;
              
-        await SendMessageAsync<WsRequest>(connection, request, ct);
-             
-        return subscription;
+        var tcs = new TaskCompletionSource<RequestResult>();
+        
+        _pendingRequests[requestId] = new PendingRequest
+        {
+            Tcs = tcs,
+            SubscriptionId = subId
+        };
+        
+        try
+        {
+            await SendMessageAsync(connection, request, ct);
+            
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(30));
+            
+            var result = await tcs.Task.ConfigureAwait(false);
+            
+            if (result is RequestResult.Failure failure)
+            {
+                _subscriptions.TryRemove(subId, out _);
+                await subscription.CloseAsync();
+                throw new InvalidOperationException(
+                    $"Subscription failed: {failure.Message}");
+            }
+            
+            return subscription;
+        }
+        finally
+        {
+            _pendingRequests.TryRemove(requestId, out _);
+        }
     }
     
     public async Task UnsubscribeAsync(string subId, CancellationToken ct = default)
@@ -142,38 +195,59 @@ public class WebsocketService : IWebsocketService
         if (!_subscriptions.TryGetValue(subId, out var subscription))
             throw new InvalidOperationException($"Subscription {subId} not found");
 
-        if (_connections.Values.FirstOrDefault(c => c.Id == subscription.ConnectionId) is not { } connection)
+        var connection = _connections.Values.FirstOrDefault(c => c.Id == subscription.ConnectionId);
+        if (connection is null)
             throw new InvalidOperationException($"Connection for subscription {subId} not found");
 
-             
         if (connection.State != WebSocketState.Open)
         {
             throw new InvalidOperationException($"Connection is not open");
         }
      
-        var requestId = GetNextRequestId();
-             
-        var request = new WsRequest
+        var requestId = _getNextRequestId();
+        var tcs = new TaskCompletionSource<RequestResult>();
+        _pendingRequests[requestId] = new PendingRequest
         {
-            JsonRpc = "2.0",
-            Method = WsRequestMethod.unsubscribe,
-            Params = new WsRequestParams
-            {
-                SubId = subId
-            },
-            Id = requestId
+            Tcs = tcs,
+            SubscriptionId = subId
         };
+        
+        try
+        {
+            var request = new WsRequest
+            {
+                JsonRpc = "2.0",
+                Method = WsRequestMethod.unsubscribe,
+                Params = new WsRequestParams
+                {
+                    SubId = subId
+                },
+                Id = requestId
+            };
              
-        await SendMessageAsync(connection, request, ct);
-             
-        _subscriptions.TryRemove(subId, out _);
+            await SendMessageAsync(connection, request, ct);
+            
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(30));
+            
+            await tcs.Task.ConfigureAwait(false);
+        }
+        finally
+        {
+            _pendingRequests.TryRemove(requestId, out _);
+            _subscriptions.TryRemove(subId, out _);
+        }
     }
     
     public async ValueTask DisposeAsync()
     {
+        
         foreach (var sub in _subscriptions.Values)
         {
-            sub.Close();
+            try
+            {
+                await sub.CloseAsync();
+            } catch { }
         }
         var mintUrls = _connections.Keys.ToList();
         foreach (var mintUrl in mintUrls)
@@ -182,11 +256,12 @@ public class WebsocketService : IWebsocketService
         }
         _subscriptions.Clear();
         _connections.Clear();
+        _pendingRequests.Clear();
     }
          
     public WebSocketState GetConnectionState(string mintUrl)
     {
-        var normalized = _normalizeMintUrl(mintUrl);
+        var normalized = NormalizeMintUrl(mintUrl);
         return _connections.TryGetValue(normalized, out var connection) 
             ? connection.State 
             : WebSocketState.None;
@@ -194,7 +269,7 @@ public class WebsocketService : IWebsocketService
     
     public IEnumerable<Subscription> GetSubscriptions(string mintUrl)
     {
-        var normalized = _normalizeMintUrl(mintUrl);
+        var normalized = NormalizeMintUrl(mintUrl);
         if (!_connections.TryGetValue(normalized, out var connection))
         {
             throw new Exception($"Connection for mint {mintUrl} not found");
@@ -206,7 +281,7 @@ public class WebsocketService : IWebsocketService
     {
         return _connections.Values;
     }
-     
+    
     private async Task ListenForMessages(WebsocketConnection connection, CancellationToken ct)
     {
         var buffer = new byte[4096];
@@ -216,7 +291,7 @@ public class WebsocketService : IWebsocketService
             while (connection.State == WebSocketState.Open && !ct.IsCancellationRequested)
             {
                 var result = await connection.WebSocket.ReceiveAsync(new ArraySegment<byte>(buffer), ct);
-                     
+
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     connection.State = WebSocketState.Closed;
@@ -226,79 +301,105 @@ public class WebsocketService : IWebsocketService
                      
                 if (result.MessageType == WebSocketMessageType.Text)
                 {
-                    var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                    await ProcessMessage(connection, message);
+                    var message = Encoding.UTF8.GetString(buffer, 0, result.Count); 
+                    _processMessage(connection, message);
                 }
             }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected
         }
         catch (Exception ex)
         {
             connection.State = WebSocketState.Aborted;
             OnConnectionStateChanged(connection.Id, WebSocketState.Aborted);
         }
+        finally
+        {
+            // Close all subscriptions for this connection
+            var subscriptionsToClose = _subscriptions.Values
+                .Where(s => s.ConnectionId == connection.Id)
+                .ToList();
+                
+            foreach (var sub in subscriptionsToClose)
+            {
+                sub.CloseAsync();
+            }
+        }
     }
      
-    private async Task ProcessMessage(WebsocketConnection connection, string message)
+    private void _processMessage(WebsocketConnection connection, string message)
     {
         try 
         {
             var jsonElement = JsonSerializer.Deserialize<JsonElement>(message);
-                 
+             
             if (jsonElement.TryGetProperty("method", out var methodProp) && 
                 methodProp.GetString() == "subscribe")
             {
                 var notification = JsonSerializer.Deserialize<WsNotification>(message);
                 if (notification != null)
                 {
-                    _onNotificationReceived(notification.Params);
+                    _onNotificationReceived(notification);
                 }
             }
             else if (jsonElement.TryGetProperty("result", out _))
             {
                 var response = JsonSerializer.Deserialize<WsResponse>(message);
-                // TODO: Handle response
+                if (response != null) 
+                {
+                    HandleResponse(response);
+                }
             }
             else if (jsonElement.TryGetProperty("error", out _))
             {
                 var error = JsonSerializer.Deserialize<WsError>(message);
-                // TODO: Handle error
+                if (error != null)
+                {
+                    HandleError(error);
+                }
             }
         }
         catch (Exception ex)
         {
-            // TODO: Log exception
+            // Could be logged if logging is added later
         }
     }
      
     private async Task SendMessageAsync<T>(WebsocketConnection connection, T message, CancellationToken ct)
     {
-        var json = JsonSerializer.Serialize(message);
+        var json = JsonSerializer.Serialize(message, new JsonSerializerOptions
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        });
         var bytes = Encoding.UTF8.GetBytes(json);
-             
+         
         await connection.WebSocket.SendAsync(
             new ArraySegment<byte>(bytes), 
             WebSocketMessageType.Text, 
             true, 
             ct);
     }
-     
+    public bool IsConnected(string mintUrl) 
+         {
+             var normalized = NormalizeMintUrl(mintUrl);
+             return _connections.TryGetValue(normalized, out var conn) && 
+                    conn.State == WebSocketState.Open;
+         }
     private string GetWebSocketUrl(string mintUrl)
     {
-        var uri = new Uri(_normalizeMintUrl(mintUrl));
+        var uri = new Uri(NormalizeMintUrl(mintUrl));
         var scheme = uri.Scheme == "https" ? "wss" : "ws";
         var hostPort = (uri.IsDefaultPort) ? uri.Host : $"{uri.Host}:{uri.Port}";
         var path = uri.AbsolutePath.TrimEnd('/');
         return $"{scheme}://{hostPort}{path}/v1/ws";
     }
-
-    private int GetNextRequestId()
-    {
-        lock (_lockObject)
-        {
-            return ++_nextRequestId;
-        }
-    }
     
+    private int _getNextRequestId()
+    {
+        return Interlocked.Increment(ref _nextRequestId);
+    }
     
     private void OnConnectionStateChanged(string connectionId, WebSocketState state)
     {
@@ -309,10 +410,7 @@ public class WebsocketService : IWebsocketService
         });
     }
     
-    public bool IsConnected(string mintUrl) 
-        => _connections.ContainsKey(_normalizeMintUrl(mintUrl));
-    
-    private string _normalizeMintUrl(string mintUrl)
+    private static string NormalizeMintUrl(string mintUrl)
     {
         if (!Uri.TryCreate(mintUrl.TrimEnd('/'), UriKind.Absolute, out var uri))
         {
@@ -323,18 +421,46 @@ public class WebsocketService : IWebsocketService
         return builder.Uri.ToString().TrimEnd('/');
     }
 
-    private void _onNotificationReceived(WsNotificationParams notificationParams)
+    private void HandleResponse(WsResponse response)
     {
-        if (!_subscriptions.TryGetValue(notificationParams.SubId, out var sub))
+        if (!_pendingRequests.TryGetValue(response.Id, out var pr))
         {
-            //it should never happen
             return;
         }
-        sub.NotificationChannel.Writer.WriteAsync(notificationParams);
-    }
+        var result = new RequestResult.Success(
+            SubId: response.Result.SubId,
+            Status: response.Result.Status);
+        pr.Tcs.TrySetResult(result);
 
-    private WebsocketConnection? _getConnectionById(string connectionId)
+        if (!_subscriptions.TryGetValue(pr.SubscriptionId, out var sub))
+        {
+            return;
+        }
+        sub.NotificationChannel.Writer.TryWrite(new WsMessage.Response(response));
+    }
+    
+    private void HandleError(WsError error)
     {
-        return this._connections.Values.SingleOrDefault(c=>c.Id == connectionId, null);
+        if (!_pendingRequests.TryGetValue(error.Id, out var pr)){ return;}
+        var result = new RequestResult.Failure(
+            Code: error.Error.Code,
+            Message: error.Error.Message,
+            RequestId: error.Id);
+        pr.Tcs.TrySetResult(result);
+        
+        if (!_subscriptions.TryGetValue(pr.SubscriptionId, out var sub))
+        {
+            return;
+        }
+
+        sub.NotificationChannel.Writer.TryWrite(new WsMessage.Error(error));
+    }
+    private void _onNotificationReceived(WsNotification notification)
+    {
+        if (!_subscriptions.TryGetValue(notification.Params.SubId, out var sub))
+        {
+            return;
+        }
+        sub.NotificationChannel.Writer.TryWrite(new WsMessage.Notification(notification));
     }
 }

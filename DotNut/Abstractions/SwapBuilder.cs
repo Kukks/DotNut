@@ -158,7 +158,7 @@ class SwapBuilder : ISwapBuilder
     {
         var mintApi = await _wallet.GetMintApi(ct);
         
-        var swapInputs = await _getSwapProofs(ct);
+        var swapInputs = _getSwapProofs(ct);
         if (swapInputs == null || swapInputs.Count == 0)
         {
             throw new ArgumentException("Nothing to swap!");
@@ -197,8 +197,9 @@ class SwapBuilder : ISwapBuilder
             fee = swapInputs.ComputeFee(keysetsFees);
         }
         
-        
-        var total = CashuUtils.SumProofs(swapInputs);
+        var total = Utils.SumProofs(swapInputs);
+
+        this._amounts ??= this._getAmounts(total, fee, keysForCurrentId.Keys);
         
         // Swap received proofs to our keyset
         var outputs = await this._getOutputs(keysForCurrentId.Keys, ct);
@@ -214,20 +215,19 @@ class SwapBuilder : ISwapBuilder
         var swapResponse = await mintApi.Swap(request, ct);
 
         var swappedProofs =
-            CashuUtils.ConstructProofsFromPromises(swapResponse.Signatures.ToList(), this._outputs, keysForCurrentId.Keys);
+            Utils.ConstructProofsFromPromises(swapResponse.Signatures.ToList(), outputs, keysForCurrentId.Keys);
 
         return swappedProofs;
     }
     
-    private async Task<List<Proof>> _getSwapProofs(CancellationToken ct = default)
+    private List<Proof> _getSwapProofs(CancellationToken ct = default)
     {
         _proofsToSwap ??= new();
         if (_tokenString != null)
         {
             var token = CashuTokenHelper.Decode(this._tokenString, out var v);
-            if (v == "A") // todo ensure 
+            if (v == "A")
             {
-                //if token is v1, ensure everything is from the same mint 
                 var mints = token.Tokens.Select(t => t.Mint).ToList();
                 if (mints.Count > 1)
                 {
@@ -256,8 +256,6 @@ class SwapBuilder : ISwapBuilder
 
     async Task<OutputData> _getOutputs(Keyset keys, CancellationToken ct = default)
     {
-        var outputs = new OutputData();
-
         if (this._outputs != null)
         {
             if (this._builder is not null)
@@ -272,17 +270,16 @@ class SwapBuilder : ISwapBuilder
             throw new ArgumentNullException(nameof(_amounts), "Amounts can't be null.");
         }
         
-        var createdOutputs = new List<OutputData>();
+        var outputs = new OutputData();
         if (this._builder is not null)
         {
             // skipped checks for keysetid and keys, since its validated before. make sure to remember about it.
-            foreach (var p2pkOutput in _amounts.Select(amount => CashuUtils.CreateP2PkOutput(amount, this._keysetId!, keys, _builder)))
+            foreach (var p2pkOutput in _amounts.Select(amount => Utils.CreateP2PkOutput(amount, this._keysetId!, keys, _builder)))
             {
                 outputs.BlindingFactors.Add(p2pkOutput.BlindingFactors[0]);
                 outputs.BlindedMessages.Add(p2pkOutput.BlindedMessages[0]);
                 outputs.Secrets.Add(p2pkOutput.Secrets[0]);
             }
-
             return outputs;
         }
         
@@ -332,7 +329,7 @@ class SwapBuilder : ISwapBuilder
         }
     }
 
-    private async Task<List<ulong>> _getAmounts(ulong total, ulong fee, Keyset keys)
+    private List<ulong> _getAmounts(ulong total, ulong fee, Keyset keys)
     {
         if (_amounts != null)
         {
@@ -345,14 +342,14 @@ class SwapBuilder : ISwapBuilder
             if (sum + fee < total)
             {
                 var underpay = total - fee - sum;
-                this._amounts.AddRange(CashuUtils.SplitToProofsAmounts(underpay, keys));
+                this._amounts.AddRange(Utils.SplitToProofsAmounts(underpay, keys));
                 return this._amounts;
             }
 
             throw new ArgumentException($"Invalid amounts requested. Sum of amounts: {sum}, total input: {total}, fee:{fee}.");
         }
 
-        this._amounts = CashuUtils.SplitToProofsAmounts(total - fee, keys);
+        this._amounts = Utils.SplitToProofsAmounts(total - fee, keys);
         return this._amounts;
     }
 

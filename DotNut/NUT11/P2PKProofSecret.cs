@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using NBitcoin.Secp256k1;
 using SHA256 = System.Security.Cryptography.SHA256;
@@ -73,6 +74,15 @@ public class P2PKProofSecret : Nut10ProofSecret
         return result;
     }
 
+    public virtual bool VerifyWitness(Proof proof)
+    {
+        if (proof.Witness is null)
+        {
+            return false;
+        }
+        var witness = JsonSerializer.Deserialize<P2PKWitness>(proof.Witness) ?? new P2PKWitness();
+        return VerifyWitness(proof.Secret, witness);
+    }
     /*
      * =========================
      * NUT-XX Pay to blinded key

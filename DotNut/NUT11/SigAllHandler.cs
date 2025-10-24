@@ -21,78 +21,166 @@ public class SigAllHandler
     public bool TrySign(out P2PKWitness? p2pkwitness)
     {
         p2pkwitness = null;
-
+        
         if (BlindedMessages.Count == 0)
         {
             return false;
         }
-        
-        if (_validateFirstProof() == false)
+
+        byte[] msg;
+        try
+        {
+            var msgStr = GetMessageToSign(Proofs.ToArray(), BlindedMessages.ToArray(), MeltQuoteId);
+            msg = Encoding.UTF8.GetBytes(msgStr);
+        }
+        catch (Exception _)
         {
             return false;
         }
-        var msg = new StringBuilder();
         
-        if (Proofs.Count > 0)
-        {
-            for (var i = 1; i < Proofs.Count; i++)
-            {
-                var p = Proofs[i];
-
-                if (p.Secret is not Nut10Secret { ProofSecret: P2PKProofSecret p2pk })
-                {
-                    throw new ArgumentException($"When signing sig_all, every proof must be sig_all.");
-                }
-
-                if (!_checkIfEqualToFirst(p2pk))
-                {
-                    throw new ArgumentException($"When signing sig_all, every proof must have identical tags and data.");
-                }
-                msg.Append(JsonSerializer.Serialize(p.Secret));
-            }
-        }
-
-        foreach (var b in BlindedMessages)
-        {
-            msg.Append(b.B_);
-        }
-
-        if (MeltQuoteId is not null)
-        {
-            msg.Append(MeltQuoteId);
-        }
-        var bytesMsg = Encoding.UTF8.GetBytes(msg.ToString());
-
         if (_firstProofSecret is HTLCProofSecret s && HTLCPreimage is {} preimage)
         {
             p2pkwitness = 
-                s.GenerateWitness(bytesMsg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray(), 
+                s.GenerateWitness(msg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray(), 
                     Encoding.UTF8.GetBytes(preimage)
                     );
             return true;
         }
-        p2pkwitness = _firstProofSecret!.GenerateWitness(bytesMsg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray());
+        p2pkwitness = _firstProofSecret!.GenerateWitness(msg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray());
         return true;
     }
 
-    private bool _validateFirstProof()
+    public static string GetMessageToSign(Proof[] inputs, BlindedMessage[] outputs, string? meltQuoteId = null)
     {
-        if (Proofs[0].Secret is not Nut10Secret { ProofSecret: P2PKProofSecret p2pks })
+        if (!ValidateFirstProof(inputs[0], out var firstSecret))
         {
-            return false;
+            throw new ArgumentException("Provided first proof is invalid");
         }
-        var b = P2PkBuilder.Load(p2pks);
-        if (b.SigFlag != "SIG_ALL")
-        {
-            return false;
-        }
-        this._firstProofSecret = p2pks;
+        var msg = new StringBuilder();
         
+        if (inputs.Length > 0)
+        {
+            for (var i = 0; i < inputs.Length; i++)
+            {
+                var p = inputs[i];
+
+                if (p.Secret is not Nut10Secret nut10)
+                {
+                    throw new ArgumentException($"When signing sig_all, every proof must be sig_all.");
+                }
+                
+                if (!CheckIfEqualToFirst(firstSecret, nut10.ProofSecret))
+                {
+                    throw new ArgumentException($"When signing sig_all, every proof must have identical tags and data.");
+                }
+                // serialize as raw object
+                var secret = JsonSerializer.Serialize((object)p.Secret);
+                msg.Append(secret);
+                msg.Append(p.C);
+            }
+        }
+
+        foreach (var b in outputs)
+        {
+            msg.Append(b.Amount);
+            msg.Append(b.B_);
+        }
+
+        if (meltQuoteId is not null)
+        {
+            msg.Append(meltQuoteId);
+        }
+        return msg.ToString();
+    }
+
+    public static bool VerifySigAllWitness(
+        Proof[] proofs,
+        BlindedMessage[] blindedMessages,
+        P2PKWitness witness,
+        string? meltQuoteId = null)
+    {
+        if (proofs[0].Secret is Nut10Secret nut10_3)
+            Console.WriteLine($"CP3 ProofSecret: {nut10_3.ProofSecret.GetType()}");
+        byte[] msg;
+        try
+        {
+            var msgStr = meltQuoteId is null
+                ? GetMessageToSign(proofs, blindedMessages)
+                : GetMessageToSign(proofs, blindedMessages, meltQuoteId);
+
+            msg = Encoding.UTF8.GetBytes(msgStr);
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            return false;
+        }
+        
+        if (proofs[0].Secret is not Nut10Secret nut10)
+            return false;
+        
+        return nut10.ProofSecret switch
+        {
+            HTLCProofSecret htlcs => htlcs.VerifyWitness(msg, witness),
+            P2PKProofSecret p2pks => p2pks.VerifyWitness(msg, witness),
+            _ => false
+        };
+    }
+
+    public static bool VerifySigAllWitness(Proof[] proofs, BlindedMessage[] blindedMessages, string? meltQuoteId = null)
+    {
+        var firstProof = proofs.FirstOrDefault();
+        if (firstProof?.Secret is not Nut10Secret { ProofSecret: var proofSecret } || firstProof.Witness is null)
+            return false;
+
+        P2PKWitness? witness;
+        try
+        {
+            var htlcWitness = JsonSerializer.Deserialize<HTLCWitness>(firstProof.Witness);
+            if (htlcWitness?.Preimage is not null)
+            {
+                witness = htlcWitness;
+            }
+            else
+            {
+                witness = JsonSerializer.Deserialize<P2PKWitness>(firstProof.Witness);
+            }
+        }
+        catch
+        {
+            return false;
+        }
+        return witness is not null && VerifySigAllWitness(proofs, blindedMessages, witness, meltQuoteId);
+    }
+    
+    private static bool ValidateFirstProof(Proof firstProof, out Nut10ProofSecret secret)
+    {
+        secret = null;
+        
+        if (firstProof.Secret is not Nut10Secret nut10)
+        {
+            return false;
+        }
+
+        var builder = nut10.ProofSecret switch
+        {
+            HTLCProofSecret htlcs => HTLCBuilder.Load(htlcs),
+            P2PKProofSecret p2pks => P2PkBuilder.Load(p2pks),
+            // won't throw exception if there will be a new type of nut10 secret, but will return false
+            _ => new P2PkBuilder(){SigFlag = null} 
+        };
+        
+        if (builder.SigFlag != "SIG_ALL")
+        {
+            return false;
+        }
+
+        secret = nut10.ProofSecret;
         return true;
     }
     
-    private bool _checkIfEqualToFirst(P2PKProofSecret other) =>
-        _firstProofSecret is { } a && other is { } b &&
+    private static bool CheckIfEqualToFirst(Nut10ProofSecret first, Nut10ProofSecret other) =>
+        first is { } a && other is { } b &&
         a.Data == b.Data &&
         ((a.Tags == null && b.Tags == null) ||
          (a.Tags != null && b.Tags != null && a.Tags.SequenceEqual(b.Tags)));

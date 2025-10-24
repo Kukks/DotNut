@@ -7,6 +7,8 @@ public enum SubscriptionKind
 {
     bolt11_melt_quote,
     bolt11_mint_quote,
+    bolt12_melt_quote,
+    bolt12_mint_quote,
     proof_state
 }
 

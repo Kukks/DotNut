@@ -63,7 +63,7 @@ public class MintHandlerBolt11: IMintHandler<PostMintQuoteBolt11Response, List<P
         };
         
         var promises=  await client.Mint<PostMintRequest, PostMintResponse>("bolt11", req, ct);
-        return CashuUtils.ConstructProofsFromPromises(promises.Signatures.ToList(), _outputs, _keyset.Keys);
+        return Utils.ConstructProofsFromPromises(promises.Signatures.ToList(), _outputs, _keyset.Keys);
     }
 
 }

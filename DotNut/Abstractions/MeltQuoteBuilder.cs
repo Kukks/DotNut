@@ -13,7 +13,6 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
     private string? _invoice;
     private OutputData? _blankOutputs;
     private string _unit = "sat";
-    private bool _verifyDLEQ = true;
     
     private List<PrivKey>? _privKeys;
     private string? _htlcPreimage;
@@ -80,12 +79,6 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         return this;
     }
 
-    public IMeltQuoteBuilder WithDLEQVerification(bool verifyDLEQ = true)
-    {
-        this._verifyDLEQ = verifyDLEQ;
-        return this;
-    }
-    
     public async Task<IMeltHandler<PostMeltQuoteBolt11Response, List<Proof>>> ProcessAsyncBolt11(CancellationToken ct = default)
     {
         var mintApi = await _wallet.GetMintApi();
@@ -104,14 +97,11 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         
         if (_blankOutputs == null)
         {
-            var outputsAmount = CashuUtils.CalculateNumberOfBlankOutputs((ulong)quote.FeeReserve);
+            var outputsAmount = Utils.CalculateNumberOfBlankOutputs((ulong)quote.FeeReserve);
             var amounts = Enumerable.Repeat(1UL, outputsAmount).ToList();
             this._blankOutputs = await this._wallet.CreateOutputs(amounts, this._unit, ct);
         }
-
-        await _maybeProcessP2PkHTLC(quote.Quote);
-
-        return new MeltHandlerBolt11(_wallet, quote, _blankOutputs);
+        return new MeltHandlerBolt11(_wallet, quote, _blankOutputs, _privKeys, _htlcPreimage);
     }
     
     public async Task<IMeltHandler<PostMeltQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(
@@ -120,48 +110,6 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         throw new NotImplementedException();
     }
     
-    private async Task _maybeProcessP2PkHTLC(string quoteId)
-    {
-        if (_privKeys == null || _privKeys.Count == 0)
-        {
-            return;
-        }
-        
-        if (_proofs == null)
-        {
-            throw new ArgumentNullException(nameof(_proofs), "No proofs to melt!");
-        }
-        
-        var sigAllHandler = new SigAllHandler
-        {
-            Proofs = this._proofs,
-            BlindedMessages = this._blankOutputs?.BlindedMessages ?? [],
-            MeltQuoteId = quoteId,
-            HTLCPreimage = this._htlcPreimage,
-        };
-
-        if (sigAllHandler.TrySign(out P2PKWitness? witness))
-        {
-            if (witness == null)
-            {
-                throw new ArgumentNullException(nameof(witness), "sig_all input was correct, but couldn't create a witness signature!");
-            }
-            this._proofs[0].Witness = JsonSerializer.Serialize(witness);
-        }
-
-        foreach (var proof in _proofs)
-        {
-            
-            if (proof.Secret is not Nut10Secret { ProofSecret: P2PKProofSecret p2pk, Key: { } key }) continue;
-            if (proof.Secret is Nut10Secret { ProofSecret: HTLCProofSecret htlc } && _htlcPreimage is {} preimage)
-            {
-                var w = htlc.GenerateWitness(proof, _privKeys.Select(p=>p.Key).ToArray(), preimage);
-                proof.Witness = JsonSerializer.Serialize(w);
-                continue;
-            }
-            var proofWitness = p2pk.GenerateWitness(proof, _privKeys.Select(p => p.Key).ToArray());
-            proof.Witness = JsonSerializer.Serialize(proofWitness);
-        }
-    }
+    
 }
 

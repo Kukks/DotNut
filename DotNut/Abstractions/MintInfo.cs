@@ -268,7 +268,6 @@ public class ProtectedEndpointSpec
     public string Path { get; set; } = string.Empty;
 }
 
-// Internal classes for protected endpoints caching
 internal class ProtectedEndpoints
 {
     public Dictionary<string, bool> Cache { get; set; } = new();

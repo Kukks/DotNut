@@ -34,7 +34,7 @@ public class NostrNip17PaymentRequestInterfaceHandler : PaymentRequestInterfaceH
         var nprofileStr = nostrTransport.Target;
         
         var nprofile = (NIP19.NosteProfileNote) NIP19.FromNIP19Note(nprofileStr);
-        using var  client = new CompositeNostrClient(nprofile.Relays.Select(r => new Uri(r)).ToArray());
+        using var client = new CompositeNostrClient(nprofile.Relays.Select(r => new Uri(r)).ToArray());
         await client.Connect(cancellationToken);
         var ephemeralKey = ECPrivKey.Create(RandomNumberGenerator.GetBytes(32));
         var msg = new NostrEvent()

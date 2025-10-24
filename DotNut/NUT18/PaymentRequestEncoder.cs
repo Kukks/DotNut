@@ -1,4 +1,4 @@
-﻿using PeterO.Cbor;
+using PeterO.Cbor;
 
 namespace DotNut;
 
@@ -46,6 +46,8 @@ public class PaymentRequestEncoder : ICBORToFromConverter<PaymentRequest>
 
             transports.Add(transportItem);
         }
+        cbor.Add("t", transports);
+
         if (paymentRequest.Nut10 is not null)
         {
             var nut10Obj = CBORObject.NewMap();
@@ -68,8 +70,6 @@ public class PaymentRequestEncoder : ICBORToFromConverter<PaymentRequest>
             }
             cbor.Add("nut10", nut10Obj);
         }
-
-        cbor.Add("t", transports);
         return cbor;
     }
 
@@ -155,7 +155,6 @@ public class PaymentRequestEncoder : ICBORToFromConverter<PaymentRequest>
                     break;
             }
         }
-
         return paymentRequest;
     }
 }

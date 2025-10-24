@@ -8,6 +8,5 @@ public class PaymentRequestPayload
     [JsonPropertyName("memo")] public string? Memo { get; set; }
     [JsonPropertyName("mint")] public string Mint { get; set; }
     [JsonPropertyName("unit")] public string Unit { get; set; }
-
     [JsonPropertyName("proofs")] public Proof[] Proofs { get; set; }
 }

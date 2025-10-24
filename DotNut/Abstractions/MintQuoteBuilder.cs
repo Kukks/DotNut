@@ -17,7 +17,6 @@ class MintQuoteBuilder : IMintQuoteBuilder
     private OutputData? _outputs;
     private string? _method = "bolt11";
 
-    //for bolt12
     private string? _pubkey;
 
     private KeysetId? _keysetId;
@@ -65,8 +64,8 @@ class MintQuoteBuilder : IMintQuoteBuilder
     }
 
     /// <summary>
-    /// Optional. Necessary for bolt12
-    /// Sets pubkey for bolt12 offer 
+    /// Optional. If specified, to mint the tokens user needs to provide signature on mint quote.
+    /// Necessary for bolt12
     /// </summary>
     /// <param name="pubkey"></param>
     /// <returns></returns>
@@ -163,6 +162,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
             Amount = this._amount.Value,
             Unit = this._unit,
             Description = this._description,
+            Pubkey = this._pubkey??null,
         };
         var quoteBolt11 =
             await api.CreateMintQuote<PostMintQuoteBolt11Response, PostMintQuoteBolt11Request>("bolt11", reqBolt11,

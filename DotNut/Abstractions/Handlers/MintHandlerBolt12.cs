@@ -1,9 +1,10 @@
+using System.Xml;
 using DotNut.Abstractions.Websockets;
 using DotNut.Api;
 using DotNut.ApiModels;
 using DotNut.ApiModels.Melt.bolt12;
 using DotNut.ApiModels.Mint.bolt12;
-
+using DotNut;
 namespace DotNut.Abstractions;
 
 public class MintHandlerBolt12: IMintHandler<PostMintQuoteBolt12Response, List<Proof>>
@@ -13,7 +14,7 @@ public class MintHandlerBolt12: IMintHandler<PostMintQuoteBolt12Response, List<P
     private readonly PostMintQuoteBolt12Response _quote;
     private readonly GetKeysResponse.KeysetItemResponse _keyset;
     private readonly OutputData _outputs;
-    
+    private string? _signature;
     private string? SubscriptionId;
     private WebsocketService? _websocketService;
 
@@ -25,26 +26,41 @@ public class MintHandlerBolt12: IMintHandler<PostMintQuoteBolt12Response, List<P
         this._outputs = outputs;
     }
 
+    public IMintHandler<PostMintQuoteBolt12Response, List<Proof>> WithSignature(string signature)
+    {
+        _signature = signature;
+        return this;
+    }
+
+    public IMintHandler<PostMintQuoteBolt12Response, List<Proof>> SignWithPrivkey(string privKeyHex)
+    {
+        return this.SignWithPrivkey(new PrivKey(privKeyHex));
+    }
+
+    public IMintHandler<PostMintQuoteBolt12Response, List<Proof>> SignWithPrivkey(PrivKey privkey)
+    {
+        this._signature = privkey.SignMintQuote(_quote.Quote, this._outputs.BlindedMessages);
+        return this;
+    }
+    
     public async Task<PostMintQuoteBolt12Response> GetQuote(CancellationToken ct = default) => this._quote;
+    
     public async Task<List<Proof>> Mint(CancellationToken ct = default)
     {
-        var client = await this._wallet.GetMintApi();
+        if (this._signature is null)
+        {
+            throw new ArgumentNullException(nameof(this._signature), $"Signature for mint quote {this._quote.Quote} is required!");
+        }
         
+        var client = await this._wallet.GetMintApi();
         var req = new PostMintRequest
         {
             Outputs = this._outputs.BlindedMessages.ToArray(),
-            Quote = _quote.Quote
+            Quote = _quote.Quote,
+            Signature = _signature,
         };
         
         var promises=  await client.Mint<PostMintRequest, PostMintResponse>("bolt12", req, ct);
         return CashuUtils.ConstructProofsFromPromises(promises.Signatures.ToList(), _outputs, _keyset.Keys);
     }
-    
-    private async Task<PostMintResponse> _processMint(PostMintRequest req, CancellationToken cts = default)
-    {
-        var client = await this._wallet.GetMintApi();
-
-        return await client.Mint<PostMintRequest, PostMintResponse>("bolt12", req, cts);
-    }
-    
 }

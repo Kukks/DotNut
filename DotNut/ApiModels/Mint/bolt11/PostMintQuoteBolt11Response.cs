@@ -25,4 +25,8 @@ public class PostMintQuoteBolt11Response
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("unit")]
     public string? Unit {get; set;}
+    
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("pubkey")]
+    public string PubKey {get; set;}
 }

@@ -1,5 +1,4 @@
-﻿using System.Security.Cryptography.X509Certificates;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json.Serialization;
 using NBitcoin.Secp256k1;
 using SHA256 = System.Security.Cryptography.SHA256;
@@ -74,29 +73,36 @@ public class P2PKProofSecret : Nut10ProofSecret
         return result;
     }
 
+    /*
+     * =========================
+     * NUT-XX Pay to blinded key
+     * =========================
+     */
     
-    public P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)
+    public virtual P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, KeysetId keysetId)
+    {
+        ArgumentNullException.ThrowIfNull(proof.P2PkE);
+        return GenerateBlindWitness(proof.Secret.GetBytes(), keys, keysetId, proof.P2PkE);
+    }
+
+    public virtual P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)
     {
         return GenerateBlindWitness(proof.Secret.GetBytes(), keys, keysetId, P2PkE);
-    }  
+    }
     
-    public P2PKWitness GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)
+    public virtual P2PKWitness GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)
     {
         return GenerateBlindWitness(message.B_.Key.ToBytes(), keys, keysetId, P2PkE);
     }
     
-    public P2PKWitness GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)
+    public virtual P2PKWitness GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)
     {
         var hash = SHA256.HashData(msg);
         return GenerateBlindWitness(ECPrivKey.Create(hash), keys, keysetId, P2PkE);
     }
     
-    public P2PKWitness GenerateBlindWitness(ECPrivKey hash, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)
+    public virtual P2PKWitness GenerateBlindWitness(ECPrivKey hash, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)
     {
-        if (Key != "P2PK")
-        {
-            throw new InvalidOperationException("Only P2PK is supported");
-        }
         var msg = hash.ToBytes();
         var allowedKeys = GetAllowedPubkeys(out var requiredSignatures);
         var keysRequiredLeft = requiredSignatures;
@@ -121,8 +127,7 @@ public class P2PKProofSecret : Nut10ProofSecret
                 }
                 
                 var Zx = Cashu.ComputeZx(key, P2PkE);
-                var shouldAddBytes = Cashu.CheckRiOverflow(Zx, keysetIdBytes, i);
-                var ri = Cashu.ComputeRi(Zx, keysetIdBytes, i, shouldAddBytes);
+                var ri = Cashu.ComputeRi(Zx, keysetIdBytes, i);
 
                 var tweakedPrivkey = key.TweakAdd(ri.ToBytes());
                 var tweakedPubkey = tweakedPrivkey.CreatePubKey();

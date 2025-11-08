@@ -142,30 +142,16 @@ public static class Cashu
         return xOnly.ToBytes();
     }
     
-    public static bool CheckRiOverflow(byte[] Zx, byte[] keysetId, int i)
+    public static ECPrivKey ComputeRi(byte[] Zx, byte[] keysetId, int i)
     {
-        var hash = SHA256.HashData(Concat(P2BK_PREFIX, Zx, keysetId, [(byte)(i & 0xFF)]));
+        byte[] hash;
+        
+        hash = SHA256.HashData(Concat(P2BK_PREFIX, Zx, keysetId, [(byte)(i & 0xFF)]));
         var hashValue = new BigInteger(hash);
-
         if (hashValue == 0 || hashValue.CompareTo(N) != -1)
         {
-            return true;
+            hash = SHA256.HashData(Concat(P2BK_PREFIX, Zx, keysetId, [(byte)(i & 0xFF)], [0xff]));
         }
-
-        return false;
-    }
-    
-    public static ECPrivKey ComputeRi(byte[] Zx, byte[] keysetId, int i, bool extraByte)
-    {
-        // ECPrivkey.Create wont throw exception as long as user will take care about extra byte. 
-        // See: CheckRiOverflow
-        byte[] hash;
-        if (!extraByte)
-        {
-            hash = SHA256.HashData(Concat(P2BK_PREFIX, Zx, keysetId, [(byte)(i & 0xFF)]));
-            return ECPrivKey.Create(hash);
-        }
-        hash = SHA256.HashData(Concat(P2BK_PREFIX, Zx, keysetId, [(byte)(i & 0xFF)], [0xff]));
         return ECPrivKey.Create(hash);
     }
     

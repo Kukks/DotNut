@@ -98,16 +98,22 @@ public class P2PkBuilder
     }
     
     
+    /*
+     * =========================
+     * NUT-XX Pay to blinded key
+     * =========================
+     */
+    
     //For sig_inputs, generates random p2pk_e for each input
     public P2PKProofSecret BuildBlinded(KeysetId keysetId, out ECPubKey p2pkE)
     {
         var e = new PrivKey(RandomNumberGenerator.GetHexString(64));
         p2pkE = e.Key.CreatePubKey();
-        return Build(keysetId, e);
+        return BuildBlinded(keysetId, e);
     }
 
     //For sig_all, p2pk_e must be provided
-    public P2PKProofSecret Build(KeysetId keysetId, ECPrivKey p2pke)
+    public P2PKProofSecret BuildBlinded(KeysetId keysetId, ECPrivKey p2pke)
     {
         var pubkeys = RefundPubkeys != null ? Pubkeys.Concat(RefundPubkeys).ToArray() : Pubkeys;
         var rs = new List<ECPrivKey>();
@@ -120,12 +126,7 @@ public class P2PkBuilder
         for (int i = 0; i < pubkeys.Length; i++)
         {
             var Zx = Cashu.ComputeZx(e, pubkeys[i]);
-            if (i == 0)
-            {
-                extraByte = Cashu.CheckRiOverflow(Zx, keysetIdBytes, i);
-            }
-            
-            var Ri = Cashu.ComputeRi(Zx, keysetIdBytes, i, extraByte);
+            var Ri = Cashu.ComputeRi(Zx, keysetIdBytes, i);
             rs.Add(Ri);
         }
         _blindPubkeys(rs.ToArray());

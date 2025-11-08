@@ -692,9 +692,7 @@ public class UnitTest1
 
         for (int i = 0; i <= 10; i++)
         {
-
-            var extraByte = Cashu.CheckRiOverflow(Convert.FromHexString(zx), kid.GetBytes(), i);
-            var ri = (PrivKey)Cashu.ComputeRi(Convert.FromHexString(zx), kid.GetBytes(), i, extraByte);
+            var ri = (PrivKey)Cashu.ComputeRi(Convert.FromHexString(zx), kid.GetBytes(), i);
             Assert.Equal(rs[i], ri.ToString());
         }
 
@@ -736,8 +734,7 @@ public class UnitTest1
 
         for (int i = 0; i <= 10; i++)
         {
-            var extraByte = Cashu.CheckRiOverflow(Convert.FromHexString(zx), kid.GetBytes(), i);
-            var ri = Cashu.ComputeRi(Convert.FromHexString(zx), kid.GetBytes(), i, extraByte);
+            var ri = Cashu.ComputeRi(Convert.FromHexString(zx), kid.GetBytes(), i);
             var derivedKey = p.Key.TweakAdd(ri.ToBytes());
 
             Assert.Equal(skStd[i], Convert.ToHexString(derivedKey.ToBytes()).ToLowerInvariant());
@@ -760,8 +757,7 @@ public class UnitTest1
 
         for (int i = 0; i <= 10; i++)
         {
-            var extraByte = Cashu.CheckRiOverflow(Convert.FromHexString(zx), kid.GetBytes(), i);
-            var ri = Cashu.ComputeRi(Convert.FromHexString(zx), kid.GetBytes(), i, extraByte);
+            var ri = Cashu.ComputeRi(Convert.FromHexString(zx), kid.GetBytes(), i);
             var derivedKeyNeg = p.Key.sec.Negate().Add(ri.sec).ToPrivateKey();
 
             Assert.Equal(skNeg[i], Convert.ToHexString(derivedKeyNeg.ToBytes()).ToLowerInvariant());
@@ -772,29 +768,31 @@ public class UnitTest1
     [Fact]
     public void Nut26_Flow()
     {
+        // sender generates ephermal keypair
         var e = new PrivKey("1cedb9df0c6872188b560ace9e35fd55c2532d53e19ae65b46159073886482ca");
         var E = new PubKey("02a8cda4cf448bfce9a9e46e588c06ea1780fcb94e3bbdf3277f42995d403a8b0c");
         
-        var secretKey =
-            ECPrivKey.Create(Convert.FromHexString("99590802251e78ee1051648439eedb003dc539093a48a44e7b8f2642c909ea37"));
-
-        var signing_key_two =
+        
+        // receiver privkeys, with corresponding pubkeys that will get blinded
+        var signing_key =
             ECPrivKey.Create(Convert.FromHexString("0000000000000000000000000000000000000000000000000000000000000001"));
-
-        var signing_key_three =
+        var signing_key_two =
             ECPrivKey.Create(Convert.FromHexString("7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f"));
+        
+        var refundPubkey =
+            ECPrivKey.Create(Convert.FromHexString("99590802251e78ee1051648439eedb003dc539093a48a44e7b8f2642c909ea37")).CreatePubKey();
 
         var keysetId = new KeysetId("009a1f293253e41e");
         
         var conditions = new P2PkBuilder()
         {
             Lock = DateTimeOffset.FromUnixTimeSeconds(21000000000),
-            Pubkeys = new[] {signing_key_two.CreatePubKey(), signing_key_three.CreatePubKey()},
-            RefundPubkeys = new[] {secretKey.CreatePubKey()},
+            Pubkeys = new[] {signing_key.CreatePubKey(), signing_key_two.CreatePubKey()},
+            RefundPubkeys = new[] {refundPubkey},
             SignatureThreshold = 2,
             SigFlag = "SIG_INPUTS"
         };
-        var p2pkProofSecret = conditions.Build(keysetId, e);
+        var p2pkProofSecret = conditions.BuildBlinded(keysetId, e);
 
         var secret = new Nut10Secret(P2PKProofSecret.Key, p2pkProofSecret);
 
@@ -806,7 +804,45 @@ public class UnitTest1
             C = "02698c4e2b5f9534cd0687d87513c759790cf829aa5739184a3e3735471fbda904".ToPubKey(),
             P2PkE = E
         };
-        var witness = p2pkProofSecret.GenerateBlindWitness(proof, new[] {signing_key_two, signing_key_three}, keysetId, E);
+        var witness = p2pkProofSecret.GenerateBlindWitness(proof, new[] {signing_key, signing_key_two}, keysetId, E);
+        
+        Assert.True(p2pkProofSecret.VerifyWitness(secret, witness));
+    }
+
+    [Fact]
+    public void Nut26_Flow_WithRandomE()
+    {
+        var signing_key =
+            ECPrivKey.Create(Convert.FromHexString("0000000000000000000000000000000000000000000000000000000000000001"));
+        var signing_key_two =
+            ECPrivKey.Create(Convert.FromHexString("7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f"));
+        
+        var refundPubkey =
+            ECPrivKey.Create(Convert.FromHexString("99590802251e78ee1051648439eedb003dc539093a48a44e7b8f2642c909ea37")).CreatePubKey();
+
+        var keysetId = new KeysetId("009a1f293253e41e");
+        
+        var conditions = new P2PkBuilder()
+        {
+            Lock = DateTimeOffset.FromUnixTimeSeconds(21000000000),
+            Pubkeys = new[] {signing_key.CreatePubKey(), signing_key_two.CreatePubKey()},
+            RefundPubkeys = new[] {refundPubkey},
+            SignatureThreshold = 2,
+            SigFlag = "SIG_INPUTS"
+        };
+        var p2pkProofSecret = conditions.BuildBlinded(keysetId, out var E);
+
+        var secret = new Nut10Secret(P2PKProofSecret.Key, p2pkProofSecret);
+
+        var proof = new Proof()
+        {
+            Id = keysetId,
+            Amount = 0,
+            Secret = secret,
+            C = "02698c4e2b5f9534cd0687d87513c759790cf829aa5739184a3e3735471fbda904".ToPubKey(),
+            P2PkE = E
+        };
+        var witness = p2pkProofSecret.GenerateBlindWitness(proof, new[] {signing_key, signing_key_two}, keysetId, E);
         
         Assert.True(p2pkProofSecret.VerifyWitness(secret, witness));
     }

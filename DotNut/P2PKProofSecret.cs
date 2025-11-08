@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Text.Json.Serialization;
 using NBitcoin.Secp256k1;
 using SHA256 = System.Security.Cryptography.SHA256;
@@ -23,15 +24,10 @@ public class P2PKProofSecret : Nut10ProofSecret
         requiredSignatures = builder.SignatureThreshold;
         return builder.Pubkeys;
     }
-
+    
 
     public virtual P2PKWitness GenerateWitness(Proof proof, ECPrivKey[] keys)
     {
-        if (proof.P2PkR is not null)
-        {
-            var rs = proof.P2PkR.Select(r=>new PrivKey(r).Key).ToArray();
-            return GenerateWitness(proof.Secret.GetBytes(), keys, rs);
-        }
         return GenerateWitness(proof.Secret.GetBytes(), keys);
     }  
     
@@ -39,33 +35,13 @@ public class P2PKProofSecret : Nut10ProofSecret
     {
         return GenerateWitness(message.B_.Key.ToBytes(), keys);
     }
-
-    public virtual P2PKWitness GenerateWitness(byte[] msg, ECPrivKey[] keys, ECPrivKey[] p2pkBs)
-    {
-        var hash = SHA256.HashData(msg);
-        return GenerateWitness(ECPrivKey.Create(hash), keys, p2pkBs);
-    }
-
+    
     public virtual P2PKWitness GenerateWitness(byte[] msg, ECPrivKey[] keys)
     {
         var hash = SHA256.HashData(msg);
         return GenerateWitness(ECPrivKey.Create(hash), keys);
     }
-
-    public virtual P2PKWitness GenerateWitness(ECPrivKey hash, ECPrivKey[] keys, ECPrivKey[] p2pkBs)
-    {
-        if (p2pkBs.Length != keys.Length)
-        {
-            throw new ArgumentException("Every P2Pk Blidning factor must have corresponding privkey!");
-        }
-
-        for (var i = 0; i < keys.Length; i++)
-        {
-            keys[i] = keys[i].sec.Add(p2pkBs[i].sec).ToPrivateKey();
-        }
-        return GenerateWitness(hash, keys);
-    }
-
+    
     public virtual P2PKWitness GenerateWitness(ECPrivKey hash, ECPrivKey[] keys)
     {
         var msg = hash.ToBytes();
@@ -98,6 +74,90 @@ public class P2PKProofSecret : Nut10ProofSecret
         return result;
     }
 
+    
+    public P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)
+    {
+        return GenerateBlindWitness(proof.Secret.GetBytes(), keys, keysetId, P2PkE);
+    }  
+    
+    public P2PKWitness GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)
+    {
+        return GenerateBlindWitness(message.B_.Key.ToBytes(), keys, keysetId, P2PkE);
+    }
+    
+    public P2PKWitness GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)
+    {
+        var hash = SHA256.HashData(msg);
+        return GenerateBlindWitness(ECPrivKey.Create(hash), keys, keysetId, P2PkE);
+    }
+    
+    public P2PKWitness GenerateBlindWitness(ECPrivKey hash, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)
+    {
+        if (Key != "P2PK")
+        {
+            throw new InvalidOperationException("Only P2PK is supported");
+        }
+        var msg = hash.ToBytes();
+        var allowedKeys = GetAllowedPubkeys(out var requiredSignatures);
+        var keysRequiredLeft = requiredSignatures;
+        var availableKeysLeft = keys;
+        var result = new P2PKWitness();
+
+        var keysetIdBytes = keysetId.GetBytes();
+        var pubkeysTotalCount = Builder.Pubkeys.Length + Builder.RefundPubkeys?.Length;
+        
+        HashSet<int> usedSlots = new();
+        
+        while (keysRequiredLeft > 0 && availableKeysLeft.Any())
+        {
+            var key = availableKeysLeft.First();
+            for (int i = 0; i < pubkeysTotalCount; i++)
+            {
+                if (usedSlots.Contains(i))
+                {
+                    continue;
+                }
+                
+                var Zx = Cashu.ComputeZx(key, P2PkE);
+                var shouldAddBytes = Cashu.CheckRiOverflow(Zx, keysetIdBytes, i);
+                var ri = Cashu.ComputeRi(Zx, keysetIdBytes, i, shouldAddBytes);
+
+                var tweakedPrivkey = key.TweakAdd(ri.ToBytes());
+                var tweakedPubkey = tweakedPrivkey.CreatePubKey();
+                
+                var tweakedPrivkeyNeg = key.sec.Negate().Add(ri.sec).ToPrivateKey();
+                var tweakedPubkeyNeg = tweakedPrivkeyNeg.CreatePubKey();
+                
+                if (allowedKeys.Contains(tweakedPubkey))
+                {
+                    usedSlots.Add(i);
+                    var sig = tweakedPrivkey.SignBIP340(msg);
+                    tweakedPrivkey.CreateXOnlyPubKey().SigVerifyBIP340(sig, msg);
+                    result.Signatures = result.Signatures.Append(sig.ToHex()).ToArray();
+                    availableKeysLeft = availableKeysLeft.Except(new[] {key}).ToArray();
+                    keysRequiredLeft = requiredSignatures - result.Signatures.Length;
+                    break;
+                }
+
+                if (allowedKeys.Contains(tweakedPubkeyNeg))
+                {
+                    usedSlots.Add(i);
+                    var sig = tweakedPrivkeyNeg.SignBIP340(msg);
+                    tweakedPrivkeyNeg.CreateXOnlyPubKey().SigVerifyBIP340(sig, msg);
+                    result.Signatures = result.Signatures.Append(sig.ToHex()).ToArray();
+                    availableKeysLeft = availableKeysLeft.Except(new[] {key}).ToArray();
+                    keysRequiredLeft = requiredSignatures - result.Signatures.Length;
+                    break;
+
+                }
+            }
+        }
+        if (keysRequiredLeft > 0)
+            throw new InvalidOperationException("Not enough valid keys to sign");
+        return result;
+    }
+
+   
     public virtual bool VerifyWitness(string message, P2PKWitness witness)
     {
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(message));

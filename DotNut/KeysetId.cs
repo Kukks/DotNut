@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Text.Encodings.Web;
+using System.Text.Json.Serialization;
 using DotNut.JsonConverters;
 
 namespace DotNut;
@@ -73,5 +74,10 @@ public class KeysetId : IEquatable<KeysetId>,IEqualityComparer<KeysetId>
     {
         string versionStr = _id.Substring(0, 2);
         return Convert.ToByte(versionStr, 16);
+    }
+
+    public byte[] GetBytes()
+    {
+        return Convert.FromHexString(_id);
     }
 }

@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using NBitcoin.Secp256k1;
 
 namespace DotNut;
@@ -98,74 +97,60 @@ public class P2PkBuilder
         return builder;
     }
     
-        
-    /// <summary>
-    /// Overload, every p2pkSecret will contain blinded pubkeys
-    /// </summary>
-    /// <param name="P2PkRs"></param>
-    /// <returns></returns>
-    public P2PKProofSecret Build(out ECPrivKey[] p2pkRs)
+    
+    //For sig_inputs, generates random p2pk_e for each input
+    public P2PKProofSecret BuildBlinded(KeysetId keysetId, out ECPubKey p2pkE)
     {
-        var rs = new List<ECPrivKey>();
-        for(int i = 0; i < (Pubkeys.Length + RefundPubkeys.Length); i++)
-        {
-            var r = new PrivKey(RandomNumberGenerator.GetHexString(64));
-            rs.Add(r);
-        }
-        p2pkRs = rs.ToArray();
-        _blindPubkeys(p2pkRs);
-        return this.Build();
+        var e = new PrivKey(RandomNumberGenerator.GetHexString(64));
+        p2pkE = e.Key.CreatePubKey();
+        return Build(keysetId, e);
     }
 
-    public static P2PkBuilder Load(P2PKProofSecret proofSecret, ECPrivKey[]? p2pkRs)
+    //For sig_all, p2pk_e must be provided
+    public P2PKProofSecret Build(KeysetId keysetId, ECPrivKey p2pke)
     {
-        var builder = Load(proofSecret);
-        if (p2pkRs == null || p2pkRs.Length == 0)
+        var pubkeys = RefundPubkeys != null ? Pubkeys.Concat(RefundPubkeys).ToArray() : Pubkeys;
+        var rs = new List<ECPrivKey>();
+        bool extraByte = false;
+        
+        var keysetIdBytes = keysetId.GetBytes();
+
+        var e = p2pke;
+        
+        for (int i = 0; i < pubkeys.Length; i++)
         {
-            return builder;
+            var Zx = Cashu.ComputeZx(e, pubkeys[i]);
+            if (i == 0)
+            {
+                extraByte = Cashu.CheckRiOverflow(Zx, keysetIdBytes, i);
+            }
+            
+            var Ri = Cashu.ComputeRi(Zx, keysetIdBytes, i, extraByte);
+            rs.Add(Ri);
         }
-        builder._unblindPubkeys(p2pkRs);
-        return builder;
+        _blindPubkeys(rs.ToArray());
+        return Build();
     }
     
-    private void _blindPubkeys(ECPrivKey[] privkeys)
+    private void _blindPubkeys(ECPrivKey[] rs)
     {
-        if (Pubkeys.Length + RefundPubkeys?.Length != privkeys.Length)
+        if (Pubkeys.Length + RefundPubkeys?.Length != rs.Length)
         {
             throw new ArgumentException("Invalid P2Pk blinding factors length length");
         }
 
-        for (var i = 0; i < privkeys.Length; i++)
+        for (var i = 0; i < rs.Length; i++)
         {
-            if (i >= Pubkeys.Length)
+            if (i < Pubkeys.Length)
             {
-                Pubkeys[i] = Pubkeys[i].AddTweak(privkeys[i].CreatePubKey().ToBytes());
+                Pubkeys[i] = Cashu.ComputeB_(Pubkeys[i], rs[i]);
                 continue;
             }
 
-            RefundPubkeys[i - Pubkeys.Length] =
-                RefundPubkeys[i - Pubkeys.Length].AddTweak(privkeys[i].CreatePubKey().ToBytes());
-        }
-    }
-    private void _unblindPubkeys(ECPrivKey[] privkeys)
-    {
-        if (Pubkeys.Length + RefundPubkeys.Length != privkeys.Length)
-        {
-            throw new ArgumentException("Invalid ");
-        }
-
-        for (var i = 0; i < privkeys.Length; i++)
-        {
-            if (i >= Pubkeys.Length)
+            if (RefundPubkeys != null)
             {
-                Pubkeys[i] = Pubkeys[i].Q.ToGroupElementJacobian()
-                    .Add(privkeys[i].CreatePubKey().Q.Negate()).ToPubkey();
-                
-                continue;
+                RefundPubkeys[i - Pubkeys.Length] = Cashu.ComputeB_(RefundPubkeys[i - Pubkeys.Length], rs[i]);
             }
-
-            
-            RefundPubkeys[i - Pubkeys.Length] = Cashu.ComputeB_(RefundPubkeys[i - Pubkeys.Length], privkeys[i]);
         }
     }
 }

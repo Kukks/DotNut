@@ -24,8 +24,8 @@ public class Proof
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public DLEQProof? DLEQ { get; set; }
     
-    [JsonPropertyName("p2pk_r")]
+    [JsonPropertyName("p2pk_e")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string[]? P2PkR { get; set; } // must not be exposed to mint. strip when possible
+    public PubKey? P2PkE { get; set; } // must not be exposed to mint
     
 }

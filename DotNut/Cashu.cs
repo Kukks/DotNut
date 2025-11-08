@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Numerics;
+using System.Text;
 using NBitcoin.Secp256k1;
 using SHA256 = System.Security.Cryptography.SHA256;
 
@@ -8,6 +9,10 @@ public static class Cashu
 {
     private static readonly byte[] DOMAIN_SEPARATOR = "Secp256k1_HashToCurve_Cashu_"u8.ToArray();
 
+    private static readonly byte[] P2BK_PREFIX = "Cashu_P2BK_v1"u8.ToArray();
+        
+    internal static readonly BigInteger N =
+        BigInteger.Parse("115792089237316195423570985008687907852837564279074904382605163141518161494337");
     public static ECPubKey MessageToCurve(string message)
     {
         var hash = Encoding.UTF8.GetBytes(message);
@@ -126,23 +131,73 @@ public static class Cashu
         return C_.Q.ToGroupElementJacobian().Add((A.Q * r.sec).ToGroupElement().Negate()).ToPubkey();
     }
 
+    public static byte[] ComputeZx(ECPrivKey e, ECPubKey P)
+    {
+        var x = (e.sec * P.Q).ToGroupElement().x;
+        if (!ECXOnlyPubKey.TryCreate(x, Context.Instance, out var xOnly))
+        {
+            // should never happen
+            throw new InvalidOperationException("Could not create xOnly pubkey");
+        }
+        return xOnly.ToBytes();
+    }
+    
+    public static bool CheckRiOverflow(byte[] Zx, byte[] keysetId, int i)
+    {
+        var hash = SHA256.HashData(Concat(P2BK_PREFIX, Zx, keysetId, [(byte)(i & 0xFF)]));
+        var hashValue = new BigInteger(hash);
+
+        if (hashValue == 0 || hashValue.CompareTo(N) != -1)
+        {
+            return true;
+        }
+
+        return false;
+    }
+    
+    public static ECPrivKey ComputeRi(byte[] Zx, byte[] keysetId, int i, bool extraByte)
+    {
+        // ECPrivkey.Create wont throw exception as long as user will take care about extra byte. 
+        // See: CheckRiOverflow
+        byte[] hash;
+        if (!extraByte)
+        {
+            hash = SHA256.HashData(Concat(P2BK_PREFIX, Zx, keysetId, [(byte)(i & 0xFF)]));
+            return ECPrivKey.Create(hash);
+        }
+        hash = SHA256.HashData(Concat(P2BK_PREFIX, Zx, keysetId, [(byte)(i & 0xFF)], [0xff]));
+        return ECPrivKey.Create(hash);
+    }
+    
+    
     private static byte[] Concat(params byte[][] arrays)
     {
-        return arrays.Aggregate((a, b) => a.Concat(b).ToArray());
-    }
+        int totalLength = arrays.Sum(a => a?.Length ?? 0);
+        var result = new byte[totalLength];
+        int offset = 0;
 
+        foreach (var arr in arrays)
+        {
+            if (arr == null || arr.Length == 0) continue;
+            Buffer.BlockCopy(arr, 0, result, offset, arr.Length);
+            offset += arr.Length;
+        }
+
+        return result;
+    }
+    
     public static string ToHex(this ECPrivKey key)
     {
         return Convert.ToHexString(key.ToBytes()).ToLower();
     }
-
+    
     public static byte[] ToBytes(this ECPrivKey key)
     {
         Span<byte> output = stackalloc byte[32];
         key.WriteToSpan(output);
         return output.ToArray();
     }
-
+    
     public static byte[] ToUncompressedBytes(this ECPubKey key)
     {
         Span<byte> output = stackalloc byte[65];

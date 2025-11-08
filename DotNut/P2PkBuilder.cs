@@ -134,9 +134,10 @@ public class P2PkBuilder
     
     private void _blindPubkeys(ECPrivKey[] rs)
     {
-        if (Pubkeys.Length + RefundPubkeys?.Length != rs.Length)
+        var expectedLength = Pubkeys.Length + (RefundPubkeys?.Length ?? 0);
+        if (expectedLength != rs.Length)
         {
-            throw new ArgumentException("Invalid P2Pk blinding factors length length");
+            throw new ArgumentException("Invalid P2Pk blinding factors length");
         }
 
         for (var i = 0; i < rs.Length; i++)

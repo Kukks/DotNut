@@ -8,44 +8,46 @@ public class P2PkBuilder
     public DateTimeOffset? Lock { get; set; }
     public ECPubKey[]? RefundPubkeys { get; set; }
     public int SignatureThreshold { get; set; } = 1;
+
     public ECPubKey[] Pubkeys { get; set; }
+
     //SIG_INPUTS, SIG_ALL 
     public string? SigFlag { get; set; }
-
     public string? Nonce { get; set; }
-
+    
     public P2PKProofSecret Build()
     {
         var tags = new List<string[]>();
-        if(Pubkeys.Length > 1)
+        if (Pubkeys.Length > 1)
         {
-            tags.Add(new[] {"pubkeys"}.Concat(Pubkeys.Skip(1).Select(p => p.ToHex())).ToArray());
+            tags.Add(new[] { "pubkeys" }.Concat(Pubkeys.Skip(1).Select(p => p.ToHex())).ToArray());
         }
+
         if (!string.IsNullOrEmpty(SigFlag))
         {
-            tags.Add(new[] {"sigflag", SigFlag});
+            tags.Add(new[] { "sigflag", SigFlag });
         }
 
         if (Lock.HasValue)
         {
-            tags.Add(new[] {"locktime", Lock.Value.ToUnixTimeSeconds().ToString()});
+            tags.Add(new[] { "locktime", Lock.Value.ToUnixTimeSeconds().ToString() });
             if (RefundPubkeys?.Any() is true)
             {
-                tags.Add(new[] {"refund"}.Concat(RefundPubkeys.Select(p => p.ToHex()))
+                tags.Add(new[] { "refund" }.Concat(RefundPubkeys.Select(p => p.ToHex()))
                     .ToArray());
             }
         }
 
         if (SignatureThreshold > 1 && Pubkeys.Length >= SignatureThreshold)
         {
-            tags.Add(new[] {"n_sigs", SignatureThreshold.ToString()});
+            tags.Add(new[] { "n_sigs", SignatureThreshold.ToString() });
         }
-       
+
 
         return new P2PKProofSecret()
         {
             Data = Pubkeys.First().ToHex(),
-            Nonce = Nonce?? RandomNumberGenerator.GetHexString(32, true),
+            Nonce = Nonce ?? RandomNumberGenerator.GetHexString(32, true),
             Tags = tags.ToArray()
         };
     }
@@ -63,6 +65,7 @@ public class P2PkBuilder
         {
             builder.Pubkeys = [primaryPubkey];
         }
+
         var rawUnixTs = proofSecret.Tags?.FirstOrDefault(strings => strings.FirstOrDefault() == "locktime")?.Skip(1)
             ?.FirstOrDefault();
         builder.Lock = rawUnixTs is not null && long.TryParse(rawUnixTs, out var unixTs)
@@ -88,8 +91,68 @@ public class P2PkBuilder
         {
             builder.SignatureThreshold = nSigsValue;
         }
+
         builder.Nonce = proofSecret.Nonce;
 
         return builder;
+    }
+    
+    
+    /*
+     * =========================
+     * NUT-XX Pay to blinded key
+     * =========================
+     */
+    
+    //For sig_inputs, generates random p2pk_e for each input
+    public P2PKProofSecret BuildBlinded(KeysetId keysetId, out ECPubKey p2pkE)
+    {
+        var e = new PrivKey(RandomNumberGenerator.GetHexString(64));
+        p2pkE = e.Key.CreatePubKey();
+        return BuildBlinded(keysetId, e);
+    }
+
+    //For sig_all, p2pk_e must be provided
+    public P2PKProofSecret BuildBlinded(KeysetId keysetId, ECPrivKey p2pke)
+    {
+        var pubkeys = RefundPubkeys != null ? Pubkeys.Concat(RefundPubkeys).ToArray() : Pubkeys;
+        var rs = new List<ECPrivKey>();
+        bool extraByte = false;
+        
+        var keysetIdBytes = keysetId.GetBytes();
+
+        var e = p2pke;
+        
+        for (int i = 0; i < pubkeys.Length; i++)
+        {
+            var Zx = Cashu.ComputeZx(e, pubkeys[i]);
+            var Ri = Cashu.ComputeRi(Zx, keysetIdBytes, i);
+            rs.Add(Ri);
+        }
+        _blindPubkeys(rs.ToArray());
+        return Build();
+    }
+    
+    private void _blindPubkeys(ECPrivKey[] rs)
+    {
+        var expectedLength = Pubkeys.Length + (RefundPubkeys?.Length ?? 0);
+        if (expectedLength != rs.Length)
+        {
+            throw new ArgumentException("Invalid P2Pk blinding factors length");
+        }
+
+        for (var i = 0; i < rs.Length; i++)
+        {
+            if (i < Pubkeys.Length)
+            {
+                Pubkeys[i] = Cashu.ComputeB_(Pubkeys[i], rs[i]);
+                continue;
+            }
+
+            if (RefundPubkeys != null)
+            {
+                RefundPubkeys[i - Pubkeys.Length] = Cashu.ComputeB_(RefundPubkeys[i - Pubkeys.Length], rs[i]);
+            }
+        }
     }
 }

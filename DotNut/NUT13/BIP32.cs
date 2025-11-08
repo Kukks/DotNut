@@ -12,8 +12,7 @@ public class BIP32 : IHdKeyAlgo
     public static readonly IHdKeyAlgo Instance = new BIP32();
     private static readonly byte[] CurveBytes = "Bitcoin seed"u8.ToArray();
 
-    private static readonly BigInteger  N =
-        BigInteger .Parse("115792089237316195423570985008687907852837564279074904382605163141518161494337");
+    private static readonly BigInteger N = Cashu.N;
 
     private BIP32()
     {

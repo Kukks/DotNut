@@ -51,6 +51,11 @@ public class CashuTokenV4Encoder : ICashuTokenEncoder, ICBORToFromConverter<Cash
                     proofItem.Add("w", proof.Witness);
                 }
 
+                if (proof.P2PkE?.Key is not null)
+                {
+                    proofItem.Add("pe", Convert.FromHexString(proof.P2PkE.Key.ToString()));
+                }
+
                 proofSetItemArray.Add(proofItem);
             }
 
@@ -98,7 +103,11 @@ public class CashuTokenV4Encoder : ICashuTokenEncoder, ICBORToFromConverter<Cash
                                     R = ECPrivKey.Create(cborDLEQ["r"].GetByteString())
                                 }
                                 : null,
-                            Id = id
+                            Id = id,
+                            
+                            P2PkE = proof.GetOrDefault("pe", null) is { } p2pkE?
+                                ECPubKey.Create(p2pkE.GetByteString()) : null
+                            
                         });
                     }).ToList()
                 }

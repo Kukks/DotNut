@@ -111,6 +111,8 @@ public class P2PKProofSecret : Nut10ProofSecret
         while (keysRequiredLeft > 0 && availableKeysLeft.Any())
         {
             var key = availableKeysLeft.First();
+            var remainingKeys = availableKeysLeft.Skip(1).ToArray();
+
             for (int i = 0; i < pubkeysTotalCount; i++)
             {
                 if (usedSlots.Contains(i))
@@ -134,7 +136,6 @@ public class P2PKProofSecret : Nut10ProofSecret
                     var sig = tweakedPrivkey.SignBIP340(msg);
                     tweakedPrivkey.CreateXOnlyPubKey().SigVerifyBIP340(sig, msg);
                     result.Signatures = result.Signatures.Append(sig.ToHex()).ToArray();
-                    availableKeysLeft = availableKeysLeft.Except(new[] {key}).ToArray();
                     keysRequiredLeft = requiredSignatures - result.Signatures.Length;
                     break;
                 }
@@ -145,12 +146,12 @@ public class P2PKProofSecret : Nut10ProofSecret
                     var sig = tweakedPrivkeyNeg.SignBIP340(msg);
                     tweakedPrivkeyNeg.CreateXOnlyPubKey().SigVerifyBIP340(sig, msg);
                     result.Signatures = result.Signatures.Append(sig.ToHex()).ToArray();
-                    availableKeysLeft = availableKeysLeft.Except(new[] {key}).ToArray();
                     keysRequiredLeft = requiredSignatures - result.Signatures.Length;
                     break;
 
                 }
             }
+            availableKeysLeft = remainingKeys;
         }
         if (keysRequiredLeft > 0)
             throw new InvalidOperationException("Not enough valid keys to sign");

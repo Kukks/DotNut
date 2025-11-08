@@ -104,7 +104,7 @@ public class P2PKProofSecret : Nut10ProofSecret
         var result = new P2PKWitness();
 
         var keysetIdBytes = keysetId.GetBytes();
-        var pubkeysTotalCount = Builder.Pubkeys.Length + Builder.RefundPubkeys?.Length;
+        var pubkeysTotalCount = Builder.Pubkeys.Length + (Builder.RefundPubkeys?.Length ?? 0);
         
         HashSet<int> usedSlots = new();
         

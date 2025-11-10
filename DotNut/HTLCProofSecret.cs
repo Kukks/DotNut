@@ -55,7 +55,7 @@ public class HTLCProofSecret : P2PKProofSecret
 
     public bool VerifyPreimage(string preimage)
     {
-        return Builder.HashLock.ToBytes().SequenceEqual(SHA256.HashData(Encoding.UTF8.GetBytes(preimage)));
+        return Encoding.UTF8.GetBytes(Builder.HashLock).SequenceEqual(SHA256.HashData(Encoding.UTF8.GetBytes(preimage)));
     }
 
     public bool VerifyWitness(string message, HTLCWitness witness)
@@ -67,7 +67,7 @@ public class HTLCProofSecret : P2PKProofSecret
     public bool VerifyWitness(ISecret secret, HTLCWitness witness)
     {
         if (secret is Nut10Secret {ProofSecret: HTLCProofSecret htlcProofSecret} &&
-            !VerifyPreimage(htlcProofSecret.Builder.HashLock.ToHex()))
+            !VerifyPreimage(htlcProofSecret.Builder.HashLock))
         {
             return false;
         }

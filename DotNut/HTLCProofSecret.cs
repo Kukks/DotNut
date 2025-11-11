@@ -26,36 +26,40 @@ public class HTLCProofSecret : P2PKProofSecret
 
     public HTLCWitness GenerateWitness(Proof proof, ECPrivKey[] keys, string preimage)
     {
-        return GenerateWitness(proof.Secret.GetBytes(), keys, Encoding.UTF8.GetBytes(preimage));
+        return GenerateWitness(proof.Secret.GetBytes(), keys, Convert.FromHexString(preimage));
     }
 
     public HTLCWitness GenerateWitness(BlindedMessage blindedMessage, ECPrivKey[] keys, string preimage)
     {
-        return GenerateWitness(blindedMessage.B_.Key.ToBytes(), keys, Encoding.UTF8.GetBytes(preimage));
+        return GenerateWitness(blindedMessage.B_.Key.ToBytes(), keys, Convert.FromHexString(preimage));
     }
 
     public HTLCWitness GenerateWitness(byte[] msg, ECPrivKey[] keys, byte[] preimage)
     {
         var hash = SHA256.HashData(msg);
-
         return GenerateWitness(ECPrivKey.Create(hash), keys, preimage);
     }
 
     public HTLCWitness GenerateWitness(ECPrivKey hash, ECPrivKey[] keys, byte[] preimage)
     {
-        if (!VerifyPreimage(Encoding.UTF8.GetString(preimage)))
+        if (!VerifyPreimage(preimage))
             throw new InvalidOperationException("Invalid preimage");
         var p2pkhWitness = base.GenerateWitness(hash, keys);
         return new HTLCWitness()
         {
             Signatures = p2pkhWitness.Signatures,
-            Preimage = Encoding.UTF8.GetString(preimage)
+            Preimage = Convert.ToHexString(preimage)
         };
     }
 
     public bool VerifyPreimage(string preimage)
     {
-        return Encoding.UTF8.GetBytes(Builder.HashLock).SequenceEqual(SHA256.HashData(Encoding.UTF8.GetBytes(preimage)));
+        return Convert.FromHexString(Builder.HashLock).SequenceEqual(SHA256.HashData(Convert.FromHexString(preimage)));
+    }
+
+    public bool VerifyPreimage(byte[] preimage)
+    {
+        return Convert.FromHexString(Builder.HashLock).SequenceEqual(SHA256.HashData(preimage));
     }
 
     public bool VerifyWitness(string message, HTLCWitness witness)
@@ -66,8 +70,7 @@ public class HTLCProofSecret : P2PKProofSecret
 
     public bool VerifyWitness(ISecret secret, HTLCWitness witness)
     {
-        if (secret is Nut10Secret {ProofSecret: HTLCProofSecret htlcProofSecret} &&
-            !VerifyPreimage(htlcProofSecret.Builder.HashLock))
+        if (secret is not Nut10Secret {ProofSecret: HTLCProofSecret})
         {
             return false;
         }
@@ -118,6 +121,11 @@ public class HTLCProofSecret : P2PKProofSecret
         {
             return false;
         }
+        if (!VerifyPreimage(htlcWitness.Preimage))
+        {
+            return false;
+        }
+
         return base.VerifyWitnessHash(hash, witness);
     }
 }

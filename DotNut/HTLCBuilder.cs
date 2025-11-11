@@ -6,13 +6,22 @@ public class HTLCBuilder : P2PkBuilder
 {
     public string HashLock { get; set; }
 
+    /*
+     * ugly hack to reuse P2PkBuilder for HTLCs.
+     * P2PkBuilder expects a pubkey in `data` field, but we need to store a hashlock instead
+     * 
+     * we inject a dummy pubkey so the loader doesn’t break, then remove it after load/build.
+     */
     private static readonly PubKey _dummy =
         "020000000000000000000000000000000000000000000000000000000000000001".ToPubKey();
     
     public static HTLCBuilder Load(HTLCProofSecret proofSecret)
     {
         var hashLock = proofSecret.Data;
-        
+        if (hashLock.Length != 64) // hex string
+        {
+            throw new ArgumentException("HashLock must be 32 bytes (64 chars hex)", nameof(HashLock));
+        }
         var tempProof = new P2PKProofSecret
         {
             Data = _dummy.ToString(),
@@ -37,6 +46,10 @@ public class HTLCBuilder : P2PkBuilder
     
     public new HTLCProofSecret Build()
     {
+        if (HashLock.Length != 64)
+        {
+            throw new ArgumentException("HashLock must be 32 bytes (64 chars hex)", nameof(HashLock));
+        }
         var innerBuilder = new P2PkBuilder()
         {
             Lock = Lock,

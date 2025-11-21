@@ -4,13 +4,33 @@ namespace DotNut;
 
 public class HTLCBuilder : P2PkBuilder
 {
-    public ECPubKey HashLock { get; set; }
+    public string HashLock { get; set; }
+
+    /*
+     * ugly hack to reuse P2PkBuilder for HTLCs.
+     * P2PkBuilder expects a pubkey in `data` field, but we need to store a hashlock instead
+     * 
+     * we inject a dummy pubkey so the loader doesn’t break, then remove it after load/build.
+     */
+    private static readonly PubKey _dummy =
+        "020000000000000000000000000000000000000000000000000000000000000001".ToPubKey();
     
     public static HTLCBuilder Load(HTLCProofSecret proofSecret)
     {
-        var hashLock = proofSecret.Data.ToPubKey();
-        var innerbuilder = P2PkBuilder.Load(proofSecret);
-        innerbuilder.Pubkeys = innerbuilder.Pubkeys.Except(new[] {hashLock}).ToArray();
+        var hashLock = proofSecret.Data;
+        if (hashLock.Length != 64) // hex string
+        {
+            throw new ArgumentException("HashLock must be 32 bytes (64 chars hex)", nameof(HashLock));
+        }
+        var tempProof = new P2PKProofSecret
+        {
+            Data = _dummy.ToString(),
+            Nonce = proofSecret.Nonce,
+            Tags = proofSecret.Tags 
+        };
+        
+        var innerbuilder = P2PkBuilder.Load(tempProof);
+        innerbuilder.Pubkeys = innerbuilder.Pubkeys.Except([_dummy.Key]).ToArray();
         return new HTLCBuilder()
         {
             HashLock = hashLock,
@@ -26,6 +46,10 @@ public class HTLCBuilder : P2PkBuilder
     
     public new HTLCProofSecret Build()
     {
+        if (HashLock.Length != 64)
+        {
+            throw new ArgumentException("HashLock must be 32 bytes (64 chars hex)", nameof(HashLock));
+        }
         var innerBuilder = new P2PkBuilder()
         {
             Lock = Lock,
@@ -35,12 +59,12 @@ public class HTLCBuilder : P2PkBuilder
             SigFlag = SigFlag,
             Nonce = Nonce
         };
-        innerBuilder.Pubkeys = innerBuilder.Pubkeys.Prepend(HashLock).ToArray();
+        innerBuilder.Pubkeys = innerBuilder.Pubkeys.Prepend(_dummy.Key).ToArray();
         
         var p2pkProof = innerBuilder.Build();
         return new HTLCProofSecret()
         {
-            Data = HashLock.ToHex(),
+            Data = HashLock,
             Nonce = p2pkProof.Nonce,
             Tags = p2pkProof.Tags
         };

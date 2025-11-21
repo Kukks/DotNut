@@ -107,7 +107,27 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
     public async Task<IMeltHandler<PostMeltQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(
         CancellationToken ct = default)
     {
-        throw new NotImplementedException();
+        var mintApi = await _wallet.GetMintApi();
+        await _wallet._maybeSyncKeys(ct);
+        ArgumentNullException.ThrowIfNull(this._invoice);
+
+        var req = new PostMeltQuoteBolt12Request()
+        {
+            Request = this._invoice,
+            Unit = this._unit,
+            // todo melt quote bolt12 options
+        };
+        var quote =
+            await mintApi.CreateMeltQuote<PostMeltQuoteBolt12Response, PostMeltQuoteBolt12Request>("bolt12", req, ct);
+        
+        
+        if (_blankOutputs == null)
+        {
+            var outputsAmount = Utils.CalculateNumberOfBlankOutputs((ulong)quote.FeeReserve);
+            var amounts = Enumerable.Repeat(1UL, outputsAmount).ToList();
+            this._blankOutputs = await this._wallet.CreateOutputs(amounts, this._unit, ct);
+        }
+        return new MeltHandlerBolt12(_wallet, quote, _blankOutputs, _privKeys, _htlcPreimage);
     }
     
     

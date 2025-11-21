@@ -157,19 +157,6 @@ public class Wallet : IWalletBuilder
     }
 
 
-    /// <summary>
-    /// Optional.
-    /// Allows user to build stateful wallet, by providing a proof manager - a class allowing wallet to fetch, save and use proofs from desired kind of storage.
-    /// (See InMemoryProofManager.cs)
-    /// </summary>
-    /// <param name="proofManager"></param>
-    /// <returns></returns>
-    public IStatefulWalletBuilder WithProofManager(IProofManager proofManager)
-    {
-        return new StatefulWallet(this, proofManager);
-    }
-
-   
     /*
      * Main api methods
      */

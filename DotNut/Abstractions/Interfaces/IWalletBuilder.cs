@@ -127,16 +127,6 @@ public interface IWalletBuilder
     /// <returns></returns>
     IWalletBuilder WithWebsocketService(IWebsocketService websocketService);
     
-    /// <summary>
-    /// Optional.
-    /// Allows user to build stateful wallet, by providing a proof manager - a class allowing wallet to fetch, save and use proofs from desired kind of storage.
-    /// (See InMemoryProofManager.cs)
-    /// </summary>
-    /// <param name="proofManager"></param>
-    /// <returns></returns>
-    IStatefulWalletBuilder WithProofManager(IProofManager proofManager);
-    
-    
     Task<MintInfo> GetInfo(bool forceReferesh = false, CancellationToken ct = default);
     Task<OutputData> CreateOutputs(List<ulong> amounts, KeysetId id, CancellationToken ct = default);
 

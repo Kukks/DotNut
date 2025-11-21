@@ -69,4 +69,14 @@ public class HTLCBuilder : P2PkBuilder
             Tags = p2pkProof.Tags
         };
     }
+
+    public new HTLCProofSecret BuildBlinded(KeysetId keysetId, out ECPubKey p2pkE)
+    {
+        throw new NotImplementedException();
+    }
+
+    public HTLCProofSecret BuildBlinded(KeysetId keysetId, ECPrivKey p2pke)
+    {
+        throw new NotImplementedException();
+    }
 }

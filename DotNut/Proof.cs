@@ -20,9 +20,12 @@ public class Proof
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Witness { get; set; }
     
-    
     [JsonPropertyName("dleq")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public DLEQProof? DLEQ { get; set; }
+    
+    [JsonPropertyName("p2pk_e")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public PubKey? P2PkE { get; set; } // must not be exposed to mint
     
 }

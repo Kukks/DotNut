@@ -24,6 +24,8 @@ public class HTLCProofSecret : P2PKProofSecret
         return builder.Pubkeys;
     }
 
+    
+    
     public HTLCWitness GenerateWitness(Proof proof, ECPrivKey[] keys, string preimage)
     {
         return GenerateWitness(proof.Secret.GetBytes(), keys, Convert.FromHexString(preimage));
@@ -52,6 +54,37 @@ public class HTLCProofSecret : P2PKProofSecret
         };
     }
 
+    
+
+    public HTLCWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId)
+    {
+        throw new NotImplementedException();
+    }
+    public HTLCWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId,
+        ECPubKey P2PkE)
+    {
+        throw new NotImplementedException();
+    }
+
+    public HTLCWitness GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)
+    {
+        throw new NotImplementedException();
+    }
+
+    public HTLCWitness GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId,
+        ECPubKey P2PkE)
+    {
+        throw new NotImplementedException();
+    }
+    
+    public HTLCWitness GenerateBlindWitness(ECPrivKey hash, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId,
+        ECPubKey P2PkE)
+    {
+        throw new NotImplementedException();
+    }
+    
+    
+    
     public bool VerifyPreimage(string preimage)
     {
         return Convert.FromHexString(Builder.HashLock).SequenceEqual(SHA256.HashData(Convert.FromHexString(preimage)));
@@ -77,6 +110,7 @@ public class HTLCProofSecret : P2PKProofSecret
 
         return VerifyWitness(secret.GetBytes(), witness);
     }
+    
 
     [Obsolete("Use GenerateWitness(Proof proof, ECPrivKey[] keys, string preimage)")]
     public override P2PKWitness GenerateWitness(Proof proof, ECPrivKey[] keys)
@@ -95,6 +129,40 @@ public class HTLCProofSecret : P2PKProofSecret
     {
         throw new InvalidOperationException("Use GenerateWitness(byte[] msg, ECPrivKey[] keys, byte[] preimage)");
     }
+    
+
+    [Obsolete("Use GenerateBlindWitness(Proof proof, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId)")]
+    public override P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, KeysetId keysetId)
+    {
+        throw new InvalidOperationException();
+    }
+    
+    [Obsolete("Use GenerateBlindWitness(Proof proof, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)")]
+    public override P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)
+    {
+        throw new InvalidOperationException("Use GenerateBlindWitness(Proof proof, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)");
+    }
+    
+    [Obsolete("Use GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)")]
+    public override P2PKWitness GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, KeysetId keysetId,
+        ECPubKey P2PkE)
+    {
+        throw new InvalidOperationException("Use GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)");
+    }
+    
+    [Obsolete("Use GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)")]
+    public override P2PKWitness GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)
+    {
+        throw new InvalidOperationException("Use GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)");
+    }
+    
+    [Obsolete("Use GenerateBlindWitness(ECPrivKey hash, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)")]
+    public override P2PKWitness GenerateBlindWitness(ECPrivKey hash, ECPrivKey[] keys, KeysetId keysetId,
+        ECPubKey P2PkE)
+    {
+        throw new InvalidOperationException("Use GenerateBlindWitness(ECPrivKey hash, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)");
+    }
+
 
     public override P2PKWitness GenerateWitness(ECPrivKey hash, ECPrivKey[] keys)
     {

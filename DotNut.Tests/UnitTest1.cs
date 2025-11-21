@@ -1,3 +1,5 @@
+using System.Runtime.Intrinsics.Arm;
+using System.Security.Cryptography;
 using System.Text.Json;
 using DotNut.ApiModels;
 using DotNut.NBitcoin.BIP39;
@@ -649,5 +651,199 @@ public class UnitTest1
         Assert.Equal("PENDING", response3.State);
         Assert.Equal(1640995200, response3.Expiry);
         Assert.Null(response3.PaymentPreimage);
+    }
+    private static readonly byte[] P2BK_PREFIX = "Cashu_P2BK_v1"u8.ToArray();
+
+    [Fact]
+    public void Nut26Tests()
+    {
+        // sender ephemeral keypair
+        var e = new PrivKey("1cedb9df0c6872188b560ace9e35fd55c2532d53e19ae65b46159073886482ca");
+        var E = new PubKey("02a8cda4cf448bfce9a9e46e588c06ea1780fcb94e3bbdf3277f42995d403a8b0c");
+
+        Assert.Equal(E.Key.ToString()?.ToLowerInvariant(), e.Key.CreatePubKey().ToString().ToLowerInvariant());
+
+        // receiver keypair
+        var p = new PrivKey("ad37e8abd800be3e8272b14045873f4353327eedeb702b72ddcc5c5adff5129c");
+        var P = new PubKey("02771fed6cb88aaac38b8b32104a942bf4b8f4696bc361171b3c7d06fa2ebddf06");
+
+        Assert.Equal(P.Key.ToString().ToLowerInvariant(), p.Key.CreatePubKey().ToString().ToLowerInvariant());
+        
+        var kid = new KeysetId("009a1f293253e41e");
+
+        var zx = "40d6ba4430a6dfa915bb441579b0f4dee032307434e9957a092bbca73151df8b";
+        Assert.Equal(zx, Convert.ToHexString(Cashu.ComputeZx(e, P)).ToLowerInvariant());
+        Assert.Equal(zx, Convert.ToHexString(Cashu.ComputeZx(p, E)).ToLowerInvariant());
+
+        string[] rs =
+        [
+            "41b5f15975f787bd5bd8d91753cbbe56d0d7aface851b1063e8011f68551862d",
+            "c4d68c79b8676841f767bcd53437af3f43d51b205f351d5cdfe5cb866ec41494",
+            "04ecf53095882f28965f267e46d2c555f15bcd74c3a84f42cf0de8ebfb712c7c",
+            "4163bc31b3087901b8b28249213b0ecc447cee3ea1f0c04e4dd5934e0c3f78ad",
+            "f5d6d20c399887f29bdda771660f87226e3a0d4ef36a90f40d3f717085957b60",
+            "f275404a115cd720ee099f5d6b7d5dc705d1c95ac6ae01c917031b64f7dccc72",
+            "39dffa9f0160bcda63920305fc12f88d824f5b654970dbd579c08367c12fcd78",
+            "3331338e87608c7f36265c9b52bb5ebeac1bb3e2220d2682370f4b7c09dccd4b",
+            "44947bd36c0200fb5d5d05187861364f6b666aac8ce37b368e27f01cea7cf147",
+            "cf4e69842833e0dab8a7302933d648fee98de80284af2d7ead71b420a8f0ebde",
+            "3638eae8a9889bbd96769637526010b34cd1e121805eaaaaa0602405529ca92f"
+        ];
+
+        for (int i = 0; i <= 10; i++)
+        {
+            var ri = (PrivKey)Cashu.ComputeRi(Convert.FromHexString(zx), kid.GetBytes(), i);
+            Assert.Equal(rs[i], ri.ToString());
+        }
+
+
+        string[] blindedPublicKeys =
+        [
+            "03f221b62aa21ee45982d14505de2b582716ae95c265168f586dc547f0ea8f135f",
+            "0299692178029fe08c49e8123bb0e84d6e960b27f82c8aed43013526489d46c0d5",
+            "03ae189850bda004f9723e17372c99ff9df9e29750d2147d40efb45ac8ab2cdd2c",
+            "03109838d718fbe02e9458ffa423f25bae0388146542534f8e2a094de6f7b697fa",
+            "0339d5ed7ea93292e60a4211b2daf20dff53f050835614643a43edccc35c8313db",
+            "0237861efcd52fe959bce07c33b5607aeae0929749b8339f68ba4365f2fb5d2d8d",
+            "026d5500988a62cde23096047db61e9fb5ef2fea5c521019e23862108ea4e14d72",
+            "039024fd20b26e73143509537d7c18595cfd101da4b18bb86ddd30e944aac6ef1b",
+            "03017ec4218ca2ed0fbe050e3f1a91221407bf8c896b803a891c3a52d162867ef8",
+            "0380dc0d2c79249e47b5afb61b7d40e37b9b0370ec7c80b50c62111021b886ab31",
+            "0261a8a32e718f5f27610a2b7c2069d6bab05d1ead7da21aa9dd2a3c758bdf6479"
+        ];
+        //it's the same blinding as with computeB_
+        for (int i = 0; i <= 10; i++)
+        {
+            Assert.Equal(blindedPublicKeys[i], ((PubKey)Cashu.ComputeB_(P, new PrivKey(rs[i]))).ToString());
+        }
+
+        string[] skStd =
+        [
+            "eeedda054df845fbde4b8a579952fd9a240a2e9ad3c1dc791c4c6e51654698c9",
+            "720e75259068268079da6e1579beee83dc58bd279b5ca893fddfc9547e82e5ef",
+            "b224dddc6d88ed6718d1d7be8c5a0499448e4c62af187ab5acda4546db663f18",
+            "ee9ba4dd8b0937403b25338966c24e0f97af6d2c8d60ebc12ba1efa8ec348b49",
+            "a30ebab8119946311e5058b1ab96c66706bdaf562f921c2b2b396f3e95544cbb",
+            "9fad28f5e95d955f707c509db1049d0b9e556b6202d58d0034fd1933079b9dcd",
+            "e717e34ad9617b18e604b446419a37d0d581da5334e10748578cdfc2a124e014",
+            "e0691c3a5f614abdb8990ddb98429e01ff4e32d00d7d51f514dba7d6e9d1dfe7",
+            "f1cc647f4402bf39dfcfb658bde87592be98e99a7853a6a96bf44c77ca7203e3",
+            "7c86523000349f193b19e169795d884382118a09c0d6b8b5cb6bb1eeb8afbd39",
+            "e370d394818959fc18e9477797e74ff6a004600f6bced61d7e2c80603291bbcb"
+        ];
+
+        for (int i = 0; i <= 10; i++)
+        {
+            var ri = Cashu.ComputeRi(Convert.FromHexString(zx), kid.GetBytes(), i);
+            var derivedKey = p.Key.TweakAdd(ri.ToBytes());
+
+            Assert.Equal(skStd[i], Convert.ToHexString(derivedKey.ToBytes()).ToLowerInvariant());
+        }
+
+        string[] skNeg =
+        [
+            "947e08ad9df6c97ed96627d70e447f1238540da5ac2a25cf208614287592b4d2",
+            "179ea3cde066aa0374f50b94eeb06ffbf0a29c3273c4f1ea02196f2b8ecf01f8",
+            "57b50c84bd8770ea13ec753e014b861158d82b6d8780c40bb113eb1debb25b21",
+            "942bd385db07bac3363fd108dbb3cf87abf94c3765c935172fdb957ffc80a752",
+            "489ee9606197c9b4196af631208847df1b078e6107fa65812f731515a5a068c4",
+            "453d579e395c18e26b96ee1d25f61e83b29f4a6cdb3dd6563936bf0a17e7b9d6",
+            "8ca811f3295ffe9be11f51c5b68bb948e9cbb95e0d49509e5bc68599b170fc1d",
+            "85f94ae2af5fce40b3b3ab5b0d341f7a139811dae5e59b4b19154dadfa1dfbf0",
+            "975c9327940142bcdaea53d832d9f70ad2e2c8a550bbefff702df24edabe1fec",
+            "221680d85033229c36347ee8ee4f09bb965b6914993f020bcfa557c5c8fbd942",
+            "8901023cd187dd7f1403e4f70cd8d16eb44e3f1a44371f738266263742ddd7d4",
+        ];
+
+        for (int i = 0; i <= 10; i++)
+        {
+            var ri = Cashu.ComputeRi(Convert.FromHexString(zx), kid.GetBytes(), i);
+            var derivedKeyNeg = p.Key.sec.Negate().Add(ri.sec).ToPrivateKey();
+
+            Assert.Equal(skNeg[i], Convert.ToHexString(derivedKeyNeg.ToBytes()).ToLowerInvariant());
+        }
+
+    }
+
+    [Fact]
+    public void Nut26_Flow()
+    {
+        // sender generates ephermal keypair
+        var e = new PrivKey("1cedb9df0c6872188b560ace9e35fd55c2532d53e19ae65b46159073886482ca");
+        var E = new PubKey("02a8cda4cf448bfce9a9e46e588c06ea1780fcb94e3bbdf3277f42995d403a8b0c");
+        
+        
+        // receiver privkeys, with corresponding pubkeys that will get blinded
+        var signing_key =
+            ECPrivKey.Create(Convert.FromHexString("0000000000000000000000000000000000000000000000000000000000000001"));
+        var signing_key_two =
+            ECPrivKey.Create(Convert.FromHexString("7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f"));
+        
+        var refundPubkey =
+            ECPrivKey.Create(Convert.FromHexString("99590802251e78ee1051648439eedb003dc539093a48a44e7b8f2642c909ea37")).CreatePubKey();
+
+        var keysetId = new KeysetId("009a1f293253e41e");
+        
+        var conditions = new P2PkBuilder()
+        {
+            Lock = DateTimeOffset.FromUnixTimeSeconds(21000000000),
+            Pubkeys = new[] {signing_key.CreatePubKey(), signing_key_two.CreatePubKey()},
+            RefundPubkeys = new[] {refundPubkey},
+            SignatureThreshold = 2,
+            SigFlag = "SIG_INPUTS"
+        };
+        var p2pkProofSecret = conditions.BuildBlinded(keysetId, e);
+
+        var secret = new Nut10Secret(P2PKProofSecret.Key, p2pkProofSecret);
+
+        var proof = new Proof()
+        {
+            Id = keysetId,
+            Amount = 0,
+            Secret = secret,
+            C = "02698c4e2b5f9534cd0687d87513c759790cf829aa5739184a3e3735471fbda904".ToPubKey(),
+            P2PkE = E
+        };
+        var witness = p2pkProofSecret.GenerateBlindWitness(proof, new[] {signing_key, signing_key_two}, keysetId, E);
+        
+        Assert.True(p2pkProofSecret.VerifyWitness(secret, witness));
+    }
+
+    [Fact]
+    public void Nut26_Flow_WithRandomE()
+    {
+        var signing_key =
+            ECPrivKey.Create(Convert.FromHexString("0000000000000000000000000000000000000000000000000000000000000001"));
+        var signing_key_two =
+            ECPrivKey.Create(Convert.FromHexString("7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f"));
+        
+        var refundPubkey =
+            ECPrivKey.Create(Convert.FromHexString("99590802251e78ee1051648439eedb003dc539093a48a44e7b8f2642c909ea37")).CreatePubKey();
+
+        var keysetId = new KeysetId("009a1f293253e41e");
+        
+        var conditions = new P2PkBuilder()
+        {
+            Lock = DateTimeOffset.FromUnixTimeSeconds(21000000000),
+            Pubkeys = new[] {signing_key.CreatePubKey(), signing_key_two.CreatePubKey()},
+            RefundPubkeys = new[] {refundPubkey},
+            SignatureThreshold = 2,
+            SigFlag = "SIG_INPUTS"
+        };
+        var p2pkProofSecret = conditions.BuildBlinded(keysetId, out var E);
+
+        var secret = new Nut10Secret(P2PKProofSecret.Key, p2pkProofSecret);
+
+        var proof = new Proof()
+        {
+            Id = keysetId,
+            Amount = 0,
+            Secret = secret,
+            C = "02698c4e2b5f9534cd0687d87513c759790cf829aa5739184a3e3735471fbda904".ToPubKey(),
+            P2PkE = E
+        };
+        var witness = p2pkProofSecret.GenerateBlindWitness(proof, new[] {signing_key, signing_key_two}, keysetId, E);
+        
+        Assert.True(p2pkProofSecret.VerifyWitness(secret, witness));
     }
 }

@@ -24,35 +24,18 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         _wallet = wallet;
     }
 
-    /// <summary>
-    /// Mandatory.
-    /// Invoice must be provided in order to create (Lightning) MeltQuote. 
-    /// </summary>
-    /// <param name="invoice"></param>
-    /// <returns></returns>
     public IMeltQuoteBuilder WithInvoice(string invoice)
     {
         this._invoice = invoice;
         return this;
     }
     
-    /// <summary>
-    /// Optional.
-    /// If not set, defaults to satoshi. If token has other unit, must be set.
-    /// </summary>
-    /// <param name="unit"></param>
-    /// <returns></returns>
     public IMeltQuoteBuilder WithUnit(string unit)
     {
         this._unit = unit;
         return this;
     }
     
-    /// <summary>
-    /// Optional. Allows user to specify blank outputs. If not set, these will be generated automatically.
-    /// </summary>
-    /// <param name="blankOutputs"></param>
-    /// <returns></returns>
     public IMeltQuoteBuilder WithBlankOutputs(OutputData blankOutputs)
     {
         this._blankOutputs = blankOutputs;

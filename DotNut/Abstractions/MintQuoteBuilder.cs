@@ -42,44 +42,24 @@ class MintQuoteBuilder : IMintQuoteBuilder
         return this;
     }
 
-    /// <summary>
-    /// Mandatory.
-    /// </summary>
-    /// <param name="amount">Amount of token in currently choosen unit to be melted</param>
     public IMintQuoteBuilder WithAmount(ulong amount)
     {
         this._amount = amount;
         return this;
     }
 
-    /// <summary>
-    /// Optional.
-    /// Sets unit of tokens being minted. Sat by default.
-    /// </summary>
-    /// <param name="unit">Unit of minted proofs</param>
     public IMintQuoteBuilder WithUnit(string unit)
     {
         this._unit = unit;
         return this;
     }
 
-    /// <summary>
-    /// Optional. If specified, to mint the tokens user needs to provide signature on mint quote.
-    /// Necessary for bolt12
-    /// </summary>
-    /// <param name="pubkey"></param>
-    /// <returns></returns>
     public IMintQuoteBuilder WithPubkey(string pubkey)
     {
         this._pubkey = pubkey;
         return this;
     }
 
-    /// <summary>
-    /// Optional.
-    /// Allows user to set keysetId manually. Otherwise, builder will choose active one manually, with the lowest fees.
-    /// </summary>
-    /// <param name="keysetId"></param>
     public IMintQuoteBuilder WithKeyset(KeysetId keysetId)
     {
         this._keysetId = keysetId;
@@ -87,26 +67,12 @@ class MintQuoteBuilder : IMintQuoteBuilder
     }
 
 
-    /// <summary>
-    /// Optional.
-    /// User may provide outputs for mint to sign. Blinding factors and secrets won't be revealed to mint.
-    /// If not provided, wallet will try to derive them from seed and counter, or create random ones if mnemonic is not avaible.
-    /// </summary>
-    /// <param name="outputs">OutputData instance. Enumerables of BlindingFactors, BlindedMessages and Secrets, in right order.</param>
     public IMintQuoteBuilder WithOutputs(OutputData outputs)
     {
         this._outputs = outputs;
         return this;
     }
 
-    /// <summary>
-    /// Optional.
-    /// User may provide p2pkbuilder specifying p2pk lock parameters. Nonce from builder will be added _only_ to first proof,
-    /// since it has to be unique for each proof.
-    /// P2Pk proofs aren't derived deterministicly, since they can't get restored from seed and they would make restore process longer.
-    /// </summary>
-    /// <param name="p2pkBuilder"></param>
-    /// <returns></returns>
     public IMintQuoteBuilder WithP2PkLock(P2PkBuilder p2pkBuilder)
     {
         this._builder = p2pkBuilder;
@@ -119,12 +85,6 @@ class MintQuoteBuilder : IMintQuoteBuilder
         return this;
     }
 
-    /// <summary>
-    /// Optional.
-    /// User may provide description for melt quote invoice. 
-    /// </summary>
-    /// <param name="description"></param>
-    /// <returns></returns>
     public IMintQuoteBuilder WithDescription(string description)
     {
         this._description = description;

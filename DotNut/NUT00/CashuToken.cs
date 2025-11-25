@@ -6,6 +6,16 @@ public class CashuToken
 {
     public class Token
     {
+        public Token()
+        {
+        }
+
+        public Token(string mint, List<Proof> proofs)
+        {
+            Mint = mint;
+            Proofs = proofs;
+        }
+
         [JsonPropertyName("mint")] public string Mint { get; set; }
         [JsonPropertyName("proofs")] public List<Proof> Proofs { get; set; }
     }

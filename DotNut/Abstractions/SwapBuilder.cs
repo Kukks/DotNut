@@ -46,21 +46,12 @@ class SwapBuilder : ISwapBuilder
         _wallet = wallet;
     }
     
-    /// <summary>
-    /// Optional. Base unit of wallet instance. If not set defaults to "SAT".
-    /// </summary>
-    /// <param name="unit"></param>
     public ISwapBuilder WithUnit(string unit)
     {
         this._unit = unit;
         return this;
     }
 
-    /// <summary>
-    /// Provide inputs for a swap. 
-    /// </summary>
-    /// <param name="proofs"></param>
-    /// <returns></returns>
     public ISwapBuilder FromInputs(IEnumerable<Proof> proofs)
     {
         this._proofsToSwap = proofs.ToList();
@@ -73,48 +64,24 @@ class SwapBuilder : ISwapBuilder
         return this;
     }
 
-    /// <summary>
-    /// Optional.
-    /// True by default, allows user to turn off DLEQ verification (not advised)
-    /// </summary>
-    /// <param name="verify"></param>
-    /// <returns></returns>
     public ISwapBuilder WithDLEQVerification(bool verify = true)
     {
         _verifyDLEQ = verify;
         return this;
     }
 
-    /// <summary>
-    /// Optional.
-    /// Allows user to turn off fee calculation. By default, it will calculate and generate smaller set of outputs.
-    /// </summary>
-    /// <param name="includeFees"></param>
-    /// <returns></returns>
     public ISwapBuilder WithFeeCalculation(bool includeFees = true)
     {
         this._includeFees = includeFees;
         return this;
     }
 
-    /// <summary>
-    /// Optional. Allows user to choose amounts he wants to get.
-    /// If sum of amounts smaller than input size, all proofs will be swapped, but rest of proofs will get
-    /// standard outputs amounts (biggest proof size possible)
-    /// </summary>
-    /// <param name="amounts"></param>
-    /// <returns></returns>
     public ISwapBuilder WithAmounts(IEnumerable<ulong> amounts)
     {
         _amounts = amounts.ToList();
         return this;
     }
     
-    /// <summary>
-    /// Optional. Allows user to choose destination keysetId
-    /// </summary>
-    /// <param name="keysetId"></param>
-    /// <returns></returns>
     public ISwapBuilder ForKeyset(KeysetId keysetId)
     {
         _keysetId = keysetId;
@@ -128,14 +95,6 @@ class SwapBuilder : ISwapBuilder
         return this;
     }
 
-    /// <summary>
-    /// Optional.
-    /// If provided, every proof will be generated with random nonce.
-    /// P2Pk tokens aren't deterministic. if lost - ¯\_(ツ)_/¯
-    /// </summary>
-    /// <param name="inputData"></param>
-    /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
     public ISwapBuilder ToP2PK(P2PkBuilder p2pkBuilder)
     {
         this._builder = p2pkBuilder;

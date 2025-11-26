@@ -53,7 +53,7 @@ public class CashuTokenV4Encoder : ICashuTokenEncoder, ICBORToFromConverter<Cash
 
                 if (proof.P2PkE?.Key is not null)
                 {
-                    proofItem.Add("pe", Convert.FromHexString(proof.P2PkE.Key.ToString()));
+                    proofItem.Add("pe", proof.P2PkE.Key.ToBytes());
                 }
 
                 proofSetItemArray.Add(proofItem);
@@ -76,6 +76,14 @@ public class CashuTokenV4Encoder : ICashuTokenEncoder, ICBORToFromConverter<Cash
 
     public CashuToken FromCBORObject(CBORObject obj)
     {
+        var peValue = obj.GetOrDefault("pe", null);
+        Console.WriteLine($"pe exists: {peValue != null}");
+        if (peValue != null)
+        {
+            Console.WriteLine($"pe type: {peValue.Type}");
+            Console.WriteLine($"pe bytes length: {peValue.GetByteString()?.Length}");
+        }
+        
         return new CashuToken
         {
             Unit = obj["u"].AsString(),
@@ -105,8 +113,9 @@ public class CashuTokenV4Encoder : ICashuTokenEncoder, ICBORToFromConverter<Cash
                                 : null,
                             Id = id,
                             
-                            P2PkE = proof.GetOrDefault("pe", null) is { } p2pkE?
-                                ECPubKey.Create(p2pkE.GetByteString()) : null
+                            P2PkE = proof.GetOrDefault("pe", null) is { } p2pkE
+                                ? (PubKey?) ECPubKey.Create(p2pkE.GetByteString()) 
+                                : null
                             
                         });
                     }).ToList()

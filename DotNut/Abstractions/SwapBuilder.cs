@@ -233,7 +233,7 @@ class SwapBuilder : ISwapBuilder
         if (this._builder is not null)
         {
             // skipped checks for keysetid and keys, since its validated before. make sure to remember about it.
-            foreach (var p2pkOutput in _amounts.Select(amount => Utils.CreateP2PkOutput(amount, this._keysetId!, keys, _builder)))
+            foreach (var p2pkOutput in _amounts.Select(amount => Utils.CreateNut10Output(amount, this._keysetId!, _builder)))
             {
                 outputs.BlindingFactors.Add(p2pkOutput.BlindingFactors[0]);
                 outputs.BlindedMessages.Add(p2pkOutput.BlindedMessages[0]);

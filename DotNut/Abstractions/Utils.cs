@@ -1,7 +1,5 @@
-using System.Runtime.InteropServices.ComTypes;
 using System.Security.Cryptography;
 using DotNut.NUT13;
-using NBitcoin.Secp256k1;
 
 namespace DotNut.Abstractions;
 
@@ -136,19 +134,26 @@ public static class Utils
         };
     }
 
-    public static OutputData CreateP2PkOutput(
+    public static OutputData CreateNut10Output(
         ulong amount,
         KeysetId keysetId,
-        Keyset keys,
         P2PkBuilder builder
     )
     {
-        var proofSecret = builder.Build();
-        var secret = new Nut10Secret("P2PK", proofSecret);
+        // ugliest hack ever
+        Nut10Secret secret;
+        if (builder is HTLCBuilder htlc)
+        {
+            secret = new Nut10Secret("HTLC", htlc.Build());
+        }
+        else
+        {
+            secret = new Nut10Secret("P2PK", builder.Build());
+        }
 
         var r = RandomPrivkey();
         var B_ = Cashu.ComputeB_(secret.ToCurve(), r);
-        return new OutputData()
+        return new OutputData
         {
             BlindedMessages = [new BlindedMessage() { Amount = amount, B_ = B_, Id = keysetId }],
             BlindingFactors = [r],

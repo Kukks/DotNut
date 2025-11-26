@@ -160,8 +160,6 @@ public class Wallet : IWalletBuilder
     /*
      * Main api methods
      */
-    
-
     public IMintQuoteBuilder CreateMintQuote()
     {
         _ensureApiConnected();
@@ -179,7 +177,6 @@ public class Wallet : IWalletBuilder
         _ensureApiConnected();
         return new MeltQuoteBuilder(this);
     }
-    
 
     public async Task<PostCheckStateResponse> CheckState(IEnumerable<Proof> proofs)
     {

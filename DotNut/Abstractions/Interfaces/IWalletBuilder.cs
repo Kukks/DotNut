@@ -173,6 +173,12 @@ public interface IWalletBuilder
     /// </summary>
     /// <returns></returns>
     IRestoreBuilder Restore();
-    
+
+    /// <summary>
+    /// Check state of proofs
+    /// </summary>
+    /// <returns></returns>
+    Task<PostCheckStateResponse> CheckState(IEnumerable<Proof> proofs);
+
 }
 

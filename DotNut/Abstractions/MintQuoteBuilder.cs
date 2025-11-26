@@ -191,7 +191,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
         // skipped checks for keysetid and keys, since its validated before. make sure to remember about it.
         foreach (var amount in _amounts)
         {
-            var p2pkOutput = Utils.CreateP2PkOutput(amount, this._keysetId!, this._keyset.Keys, _builder);
+            var p2pkOutput = Utils.CreateNut10Output(amount, this._keysetId!, _builder);
             outputs.BlindingFactors.Add(p2pkOutput.BlindingFactors[0]);
             outputs.BlindedMessages.Add(p2pkOutput.BlindedMessages[0]);
             outputs.Secrets.Add(p2pkOutput.Secrets[0]);

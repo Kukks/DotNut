@@ -7,7 +7,7 @@ A complete C# implementation of the [Cashu protocol](https://cashu.space) - priv
 
 ## What is Cashu?
 
-Cashu is a free and open-source Chaumian e-cash system built for Bitcoin. It offers near-perfect privacy for users and can serve as an excellent cusotdial scaling solution. DotNut provides a full-featured C# client library for interacting with Cashu mints.
+Cashu is a free and open-source Chaumian e-cash system built for Bitcoin. It offers near-perfect privacy for users and can serve as an excellent custodial scaling solution. DotNut provides a full-featured C# client library for interacting with Cashu mints.
 
 ## Installation
 

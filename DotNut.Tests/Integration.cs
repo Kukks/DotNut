@@ -3,10 +3,7 @@ using DotNut.Abstractions;
 using DotNut.Abstractions.Interfaces;
 using DotNut.Abstractions.Websockets;
 using DotNut.Api;
-using DotNut.ApiModels;
-using Newtonsoft.Json;
-using NuGet.Frameworks;
-using Xunit.Sdk;
+using SHA256 = System.Security.Cryptography.SHA256;
 
 namespace DotNut.Tests;
 
@@ -298,8 +295,7 @@ public class Integration
          
          Assert.NotEmpty(swappedProofs);
      }
-
-
+     
      [Fact]
      public async Task MintMeltP2PkMultisig()
      {
@@ -349,76 +345,221 @@ public class Integration
          Assert.NotEmpty(change);
      }
 
-[Fact]
-public async Task SubscribeToMintMeltQuoteUpdates()
-{
-    await using var service = new WebsocketService();
-    var connection = await service.ConnectAsync(MintUrl);
-    Assert.NotNull(connection);
+     [Fact]
+     public async Task MintSwapHTLC()
+     {
+         var wallet = Wallet
+             .Create()
+             .WithMint(MintUrl);
+         
+         var privKeyBob = new PrivKey(RandomNumberGenerator.GetHexString(64, true));
+         var preimage = "0000000000000000000000000000000000000000000000000000000000000001";
+         var hashLock = Convert.ToHexString(SHA256.HashData(Convert.FromHexString(preimage)));
+         
+         var mintHandler = await wallet.CreateMintQuote()
+             .WithAmount(1337)
+             .WithHTLCLock(new HTLCBuilder()
+             {
+                 HashLock = hashLock,
+                 Pubkeys = [privKeyBob.Key.CreatePubKey()],
+                 SignatureThreshold = 1
+             })
+             .ProcessAsyncBolt11();
 
-    var wallet = Wallet.Create().WithMint(MintUrl);
+         await PayInvoice();
+         var htlcProofs = await mintHandler.Mint();
+         
+         Assert.NotEmpty(htlcProofs);
+         Assert.Equal(1337UL, Utils.SumProofs(htlcProofs));
+         
+         // try swap without preimage - should fail
+         await Assert.ThrowsAsync<CashuProtocolException>(async () =>
+         {
+             await wallet.Swap()
+                 .FromInputs(htlcProofs)
+                 .WithPrivkeys([privKeyBob])
+                 .ProcessAsync();
+         });
+         
+         // swap with correct preimage and signature
+         var swappedProofs = await wallet.Swap()
+             .FromInputs(htlcProofs)
+             .WithPrivkeys([privKeyBob])
+             .WithHtlcPreimage(preimage)
+             .ProcessAsync();
+         
+         Assert.NotEmpty(swappedProofs);
+         Assert.Equal(1337UL, Utils.SumProofs(swappedProofs));
+     }
+     
+     [Fact]
+     public async Task SwapWithCustomAmounts()
+     {
+         var wallet = Wallet
+             .Create()
+             .WithMint(MintUrl);
+         
+         // mint some proofs
+         var mintQuote = await wallet
+             .CreateMintQuote()
+             .WithAmount(100)
+             .WithUnit("sat")
+             .ProcessAsyncBolt11();
 
-    var mintHandler = await wallet
-        .CreateMintQuote()
-        .WithAmount(3338)
-        .WithUnit("sat")
-        .ProcessAsyncBolt11();
+         await PayInvoice();
+         var mintedProofs = await mintQuote.Mint();
+         Assert.NotEmpty(mintedProofs);
+         
+         // swap with specific amounts
+         var desiredAmounts = new List<ulong> { 32, 32, 32, 2, 1 }; // 96 sat (should consume 1 for fees)
+         var newProofs = await wallet
+             .Swap()
+             .FromInputs(mintedProofs)
+             .WithAmounts(desiredAmounts)
+             .ProcessAsync();
+         
+         Assert.NotEmpty(newProofs);
+         // amount should be at least the requested amounts
+         Assert.True(Utils.SumProofs(newProofs) >= 96);
+     }
+     
+     [Fact]
+     public async Task SwapToSpecificKeyset()
+     {
+         var wallet = Wallet
+             .Create()
+             .WithMint(MintUrl);
+         
+         // get active keyset
+         var activeKeysetId = await wallet.GetActiveKeysetId("sat");
+         Assert.NotNull(activeKeysetId);
+         
+         // mint some proofs
+         var mintQuote = await wallet
+             .CreateMintQuote()
+             .WithAmount(64)
+             .WithUnit("sat")
+             .ProcessAsyncBolt11();
 
-    var quote = await mintHandler.GetQuote();
+         await PayInvoice();
+         var mintedProofs = await mintQuote.Mint();
+         Assert.NotEmpty(mintedProofs);
+         
+         // swap to specific keyset
+         var newProofs = await wallet
+             .Swap()
+             .FromInputs(mintedProofs)
+             .ForKeyset(activeKeysetId)
+             .ProcessAsync();
+         
+         Assert.NotEmpty(newProofs);
+         Assert.All(newProofs, p => Assert.Equal(activeKeysetId, p.Id));
+     }
+     
+     [Fact]
+     public async Task MeltWithInsufficientFunds()
+     {
+         var wallet = Wallet
+             .Create()
+             .WithMint(MintUrl);
+         
+         // mint small amount
+         var mintQuote = await wallet
+             .CreateMintQuote()
+             .WithAmount(10)
+             .WithUnit("sat")
+             .ProcessAsyncBolt11();
 
-    var sub = await service.SubscribeToMintQuoteAsync(MintUrl, new[] { quote.Quote });
-
-    int connectedCount = 0;
-    int notificationCount = 0;
-
-    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-
-    var connectedTcs = new TaskCompletionSource();
-    var paidTcs = new TaskCompletionSource();
-
-    _ = Task.Run(async () =>
+         await PayInvoice();
+         var mintedProofs = await mintQuote.Mint();
+         Assert.NotEmpty(mintedProofs);
+         
+         // try to melt for larger invoice - should fail during proof selection
+         var meltHandler = await wallet
+             .CreateMeltQuote()
+             .WithInvoice(valuesInvoices[1000]) // 1000 sat invoice
+             .WithUnit("sat")
+             .ProcessAsyncBolt11();
+         
+         var quote = await meltHandler.GetQuote();
+         var amountNeeded = quote.Amount + (ulong)quote.FeeReserve;
+         
+         // selectProofsToSend should return empty Send list when insufficient
+         var selection = await wallet.SelectProofsToSend(mintedProofs, amountNeeded, true);
+         Assert.Empty(selection.Send);
+         Assert.NotEmpty(selection.Keep);
+     }
+     
+    [Fact]
+    public async Task SubscribeToMintMeltQuoteUpdates()
     {
-        await connectedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        await Task.Delay(1000, cts.Token);
-        await PayInvoice();
-    }, cts.Token);
+        await using var service = new WebsocketService();
+        var connection = await service.ConnectAsync(MintUrl);
+        Assert.NotNull(connection);
 
-    await foreach (var msg in sub.NotificationChannel.Reader.ReadAllAsync(cts.Token))
-    {
-        switch (msg)
+        var wallet = Wallet.Create().WithMint(MintUrl);
+
+        var mintHandler = await wallet
+            .CreateMintQuote()
+            .WithAmount(3338)
+            .WithUnit("sat")
+            .ProcessAsyncBolt11();
+
+        var quote = await mintHandler.GetQuote();
+
+        var sub = await service.SubscribeToMintQuoteAsync(MintUrl, new[] { quote.Quote });
+
+        int connectedCount = 0;
+        int notificationCount = 0;
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+
+        var connectedTcs = new TaskCompletionSource();
+        var paidTcs = new TaskCompletionSource();
+
+        _ = Task.Run(async () =>
         {
-            case WsMessage.Response:
-                connectedCount++;
-                connectedTcs.TrySetResult();
-                break;
+            await connectedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await Task.Delay(1000, cts.Token);
+            await PayInvoice();
+        }, cts.Token);
 
-            case WsMessage.Notification notification:
-                notificationCount++;
+        await foreach (var msg in sub.NotificationChannel.Reader.ReadAllAsync(cts.Token))
+        {
+            switch (msg)
+            {
+                case WsMessage.Response:
+                    connectedCount++;
+                    connectedTcs.TrySetResult();
+                    break;
 
-                if (notificationCount >= 2)
-                    paidTcs.TrySetResult();
+                case WsMessage.Notification notification:
+                    notificationCount++;
 
-                break;
+                    if (notificationCount >= 2)
+                        paidTcs.TrySetResult();
 
-            case WsMessage.Error error:
-                Assert.Fail($"WebSocket error: {error}");
-                break;
+                    break;
 
-            default:
-                Assert.Fail($"Unexpected message type: {msg.GetType().Name}");
+                case WsMessage.Error error:
+                    Assert.Fail($"WebSocket error: {error}");
+                    break;
+
+                default:
+                    Assert.Fail($"Unexpected message type: {msg.GetType().Name}");
+                    break;
+            }
+
+            if (paidTcs.Task.IsCompleted)
                 break;
         }
-
-        if (paidTcs.Task.IsCompleted)
-            break;
-    }
     
-    Assert.Equal(1, connectedCount);
-    Assert.True(notificationCount >= 2, $"Expected >=2 notifications, got {notificationCount}");
+        Assert.Equal(1, connectedCount);
+        Assert.True(notificationCount >= 2, $"Expected >=2 notifications, got {notificationCount}");
 
-    var proofs = await mintHandler.Mint();
-    Assert.NotEmpty(proofs);
-}
+        var proofs = await mintHandler.Mint();
+        Assert.NotEmpty(proofs);
+    }
 
 
      private async Task PayInvoice()

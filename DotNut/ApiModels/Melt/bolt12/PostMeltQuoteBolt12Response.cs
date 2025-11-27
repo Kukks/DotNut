@@ -19,9 +19,9 @@ public class PostMeltQuoteBolt12Response
     [JsonPropertyName("expiry")] public int Expiry { get; set; }
     
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("payment_preimage")] public string PaymentPreimage { get; set; }
+    [JsonPropertyName("payment_preimage")] public string? PaymentPreimage { get; set; }
     
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    [JsonPropertyName("change")] public BlindSignature[] Change { get; set; }
+    [JsonPropertyName("change")] public BlindSignature[]? Change { get; set; }
 
 }

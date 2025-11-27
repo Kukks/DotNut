@@ -1,5 +1,3 @@
-using DotNut.Abstractions.Interfaces;
-
 namespace DotNut.Abstractions;
 
 public class InMemoryCounter : ICounter

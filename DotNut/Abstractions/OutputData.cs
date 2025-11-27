@@ -1,4 +1,4 @@
-namespace DotNut;
+namespace DotNut.Abstractions;
 
 public class OutputData
 {

@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
+using DotNut.Abstractions;
 using DotNut.NBitcoin.BIP39;
 using NBip32Fast;
 

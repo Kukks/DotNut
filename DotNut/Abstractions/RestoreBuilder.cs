@@ -1,4 +1,3 @@
-using DotNut.Abstractions.Interfaces;
 using DotNut.ApiModels;
 using DotNut.NBitcoin.BIP39;
 using DotNut.NUT13;

@@ -1,8 +1,5 @@
-using DotNut.Abstractions.Interfaces;
-using DotNut.Abstractions.Websockets;
 using DotNut.Api;
 using DotNut.ApiModels;
-using DotNut.ApiModels.Info;
 using DotNut.NBitcoin.BIP39;
 using NBitcoin.Secp256k1;
 

@@ -105,48 +105,24 @@ public class Wallet : IWalletBuilder
         return this;
     }
     
-    /// <summary>
-    /// Optional and mandatory if Mnemonic provided. Counter for each Keyset Id for derivation purposes.
-    /// </summary>
-    /// <param name="counter">Counter object</param>
     public IWalletBuilder WithCounter(ICounter counter)
     {
         this._counter = counter;
         return this;
     }
 
-    /// <summary>
-    /// Optional and mandatory if Mnemonic provided. Counter for each Keyset Id for derivation purposes.
-    /// </summary>
-    /// <param name="counter">Counter dictionary</param>
-    /// <returns></returns>
     public IWalletBuilder WithCounter(IDictionary<KeysetId, int> counter)
     {
         this._counter = new InMemoryCounter(counter);
         return this;
     }
 
-    /// <summary>
-    /// Optional and if not set, always true. Controls automatic counter incrementation for secret generation.
-    /// </summary>
-    /// <param name="shouldBumpCounter">If true, counter increments automatically. If false, requires manual management.</param>
-    /// <remarks>
-    /// WARNING: Disabling auto-increment is potentially dangerous. Manual counter management is required 
-    /// to prevent secret reuse, which will cause mint rejection and operation failures.
-    /// </remarks>
     public IWalletBuilder ShouldBumpCounter(bool shouldBumpCounter = true)
     {
         this._shouldBumpCounter = shouldBumpCounter;
         return this;
     }
     
-    /// <summary>
-    /// Optional.
-    /// Adds websocket service. You should use single websocket service (singleton at best) for multiple wallets, in order to handle everything in nice manner.
-    /// If not set, but requested it'll be created automatically (which won't be so optimal).
-    /// </summary>
-    /// <param name="websocketService"></param>
-    /// <returns></returns>
     public IWalletBuilder WithWebsocketService(IWebsocketService websocketService)
     {
         this._wsService = websocketService;

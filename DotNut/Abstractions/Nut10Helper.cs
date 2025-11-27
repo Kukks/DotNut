@@ -8,7 +8,7 @@ public class Nut10Helper
     public static void MaybeProcessNut10(
         List<PrivKey> privKeys,
         List<Proof> proofs,
-        OutputData? outputs = null,
+        List<OutputData>? outputs = null,
         string? htlcPreimage = null,
         string? meltQuoteId = null
         )
@@ -17,12 +17,13 @@ public class Nut10Helper
         {
             return;
         }
-
+        
+        outputs ??= [];
         var sigAllHandler = new SigAllHandler
         {
             Proofs = proofs,
             PrivKeys = privKeys,
-            BlindedMessages = outputs?.BlindedMessages ?? [],
+            BlindedMessages = outputs.Select(o=>o.BlindedMessage).ToList(),
             HTLCPreimage = htlcPreimage,
             MeltQuoteId = meltQuoteId
         };

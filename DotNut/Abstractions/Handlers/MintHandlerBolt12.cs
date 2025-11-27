@@ -13,12 +13,12 @@ public class MintHandlerBolt12: IMintHandler<PostMintQuoteBolt12Response, List<P
     private readonly IWalletBuilder _wallet;
     private readonly PostMintQuoteBolt12Response _quote;
     private readonly GetKeysResponse.KeysetItemResponse _keyset;
-    private readonly OutputData _outputs;
+    private readonly List<OutputData> _outputs;
     private string? _signature;
     private string? SubscriptionId;
     private WebsocketService? _websocketService;
 
-    public MintHandlerBolt12(Wallet wallet, PostMintQuoteBolt12Response quote, GetKeysResponse.KeysetItemResponse keyset, OutputData outputs)
+    public MintHandlerBolt12(Wallet wallet, PostMintQuoteBolt12Response quote, GetKeysResponse.KeysetItemResponse keyset, List<OutputData> outputs)
     {
         this._wallet = wallet;
         this._quote = quote;
@@ -39,7 +39,7 @@ public class MintHandlerBolt12: IMintHandler<PostMintQuoteBolt12Response, List<P
 
     public IMintHandler<PostMintQuoteBolt12Response, List<Proof>> SignWithPrivkey(PrivKey privkey)
     {
-        this._signature = privkey.SignMintQuote(_quote.Quote, this._outputs.BlindedMessages);
+        this._signature = privkey.SignMintQuote(_quote.Quote, this._outputs.Select(o=>o.BlindedMessage).ToList());
         return this;
     }
     
@@ -55,7 +55,7 @@ public class MintHandlerBolt12: IMintHandler<PostMintQuoteBolt12Response, List<P
         var client = await this._wallet.GetMintApi();
         var req = new PostMintRequest
         {
-            Outputs = this._outputs.BlindedMessages.ToArray(),
+            Outputs = this._outputs.Select(o=>o.BlindedMessage).ToArray(),
             Quote = _quote.Quote,
             Signature = _signature,
         };

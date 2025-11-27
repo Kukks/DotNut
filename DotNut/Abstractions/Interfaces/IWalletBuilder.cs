@@ -128,7 +128,8 @@ public interface IWalletBuilder
     IWalletBuilder WithWebsocketService(IWebsocketService websocketService);
     
     Task<MintInfo> GetInfo(bool forceReferesh = false, CancellationToken ct = default);
-    Task<OutputData> CreateOutputs(List<ulong> amounts, KeysetId id, CancellationToken ct = default);
+    Task<List<OutputData>> CreateOutputs(List<ulong> amounts, KeysetId id, CancellationToken ct = default);
+    Task<List<OutputData>> CreateOutputs(List<ulong> amounts, string unit, CancellationToken ct = default);
 
     Task<IDictionary<string, KeysetId>?> GetActiveKeysetIdsWithUnits(CancellationToken ct = default);
 
@@ -142,8 +143,6 @@ public interface IWalletBuilder
 
     Task<List<GetKeysetsResponse.KeysetItemResponse>> GetKeysets(bool forceRefresh = false,
         CancellationToken ct = default);
-
-    Task<OutputData> CreateOutputs(List<ulong> amounts, string unit, CancellationToken ct = default);
 
     Task<SendResponse> SelectProofsToSend(List<Proof> proofs, ulong amount, bool includeFees,
         CancellationToken ct = default);

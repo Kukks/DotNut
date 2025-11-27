@@ -39,7 +39,7 @@ public static class Utils
     /// <param name="keysetId">Active keyset id which will sign outputs</param>
     /// <param name="keys">Keys for given KeysetId</param>
     /// <returns>Blank Outputs</returns>
-    public static OutputData CreateBlankOutputs(ulong amount, KeysetId keysetId, Keyset keys, DotNut.NBitcoin.BIP39.Mnemonic? mnemonic = null, int? counter = null)
+    public static List<OutputData> CreateBlankOutputs(ulong amount, KeysetId keysetId, Keyset keys, DotNut.NBitcoin.BIP39.Mnemonic? mnemonic = null, int? counter = null)
     {
         if (amount == 0)
         {
@@ -82,7 +82,7 @@ public static class Utils
     /// <param name="keys">Keyset for given ID</param>
     /// <returns></returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public static OutputData CreateOutputs(
+    public static List<OutputData> CreateOutputs(
         List<ulong> amounts,
         KeysetId keysetId,
         Keyset keys,
@@ -92,46 +92,41 @@ public static class Utils
         if (amounts.Any(a => !keys.Keys.Contains(a)))
             throw new ArgumentException("Invalid amounts");
 
-        var blindedMessages = new List<BlindedMessage>(amounts.Count);
-        var secrets = new List<DotNut.ISecret>(amounts.Count);
-        var blindingFactors = new List<PrivKey>(amounts.Count);
-
+        var outputs = new List<OutputData>(amounts.Count);
+        
 
         if (mnemonic is not null && counter is { } c)
         {
             for (var i = 0; i < amounts.Count; i++)
             {
                 var secret = mnemonic.DeriveSecret(keysetId, c + i);
-                secrets.Add(secret);
-
                 var r = new PrivKey(mnemonic.DeriveBlindingFactor(keysetId, c + i));
-                blindingFactors.Add(r);
-
                 var B_ = Cashu.ComputeB_(secret.ToCurve(), r);
-                blindedMessages.Add(new BlindedMessage {Amount = amounts[i], B_ = B_, Id = keysetId });
+                var output = new OutputData
+                {
+                    BlindedMessage = new BlindedMessage { Amount = amounts[i], B_ = B_, Id = keysetId },
+                    BlindingFactor = r,
+                    Secret = secret
+                };
+                outputs.Add(output);
             }
+            return outputs;
         }
-        else
+        
+        foreach (var amount in amounts)
         {
-            foreach (var amount in amounts)
+            var secret = RandomSecret();
+            var r = RandomPrivkey();
+            var B_ = DotNut.Cashu.ComputeB_(secret.ToCurve(), r);
+            var output = new OutputData
             {
-                var secret = RandomSecret();
-                secrets.Add(secret);
-
-                var r = RandomPrivkey();
-                blindingFactors.Add(r);
-
-                var B_ = DotNut.Cashu.ComputeB_(secret.ToCurve(), r);
-                blindedMessages.Add(new BlindedMessage() { Amount = amount, B_ = B_, Id = keysetId });
-            }
+                BlindedMessage = new BlindedMessage { Amount = amount, B_ = B_, Id = keysetId },
+                BlindingFactor = r,
+                Secret = secret
+            };
+            outputs.Add(output);
         }
-
-        return new OutputData()
-        {
-            BlindingFactors = blindingFactors,
-            BlindedMessages = blindedMessages,
-            Secrets = secrets
-        };
+        return outputs;
     }
 
     public static OutputData CreateNut10Output(
@@ -155,15 +150,16 @@ public static class Utils
         var B_ = Cashu.ComputeB_(secret.ToCurve(), r);
         return new OutputData
         {
-            BlindedMessages = [new BlindedMessage() { Amount = amount, B_ = B_, Id = keysetId }],
-            BlindingFactors = [r],
-            Secrets = [secret]
+            BlindedMessage = new BlindedMessage() { Amount = amount, B_ = B_, Id = keysetId },
+            BlindingFactor = r,
+            Secret = secret
         };
     }
-    public static OutputData CreateNut10BlindedOutput(ulong amount, KeysetId keysetId, P2PkBuilder builder, out PubKey E)
+    public static OutputData CreateNut10BlindedOutput(ulong amount, KeysetId keysetId, P2PkBuilder builder)
     {
         // ugliest hack ever
         Nut10Secret secret;
+        PubKey E;
         if (builder is HTLCBuilder htlc)
         {
             secret = new Nut10Secret("HTLC", htlc.BuildBlinded(keysetId, out var e));
@@ -179,9 +175,10 @@ public static class Utils
         var B_ = Cashu.ComputeB_(secret.ToCurve(), r);
         return new OutputData
         {
-            BlindedMessages = [new BlindedMessage() { Amount = amount, B_ = B_, Id = keysetId }],
-            BlindingFactors = [r],
-            Secrets = [secret]
+            BlindedMessage = new BlindedMessage() { Amount = amount, B_ = B_, Id = keysetId },
+            BlindingFactor = r,
+            Secret = secret,
+            P2BkE = E
         };
     }
     public static OutputData CreateNut10BlindedOutput(ulong amount, KeysetId keysetId, P2PkBuilder builder, PrivKey e)
@@ -201,9 +198,10 @@ public static class Utils
         var B_ = Cashu.ComputeB_(secret.ToCurve(), r);
         return new OutputData
         {
-            BlindedMessages = [new BlindedMessage() { Amount = amount, B_ = B_, Id = keysetId }],
-            BlindingFactors = [r],
-            Secrets = [secret]
+            BlindedMessage = new BlindedMessage() { Amount = amount, B_ = B_, Id = keysetId },
+            BlindingFactor = r,
+            Secret = secret,
+            P2BkE = e.Key.CreatePubKey()
         };
     }
     
@@ -247,7 +245,7 @@ public static class Utils
 
     public static List<Proof> ConstructProofsFromPromises(
         List<BlindSignature> promises,
-        OutputData outputs,
+        List<OutputData> outputs,
         Keyset keys
         )
     {
@@ -260,8 +258,8 @@ public static class Utils
             }
             var proof = ConstructProofFromPromise(
                 promises[i],
-                outputs.BlindingFactors[i],
-                outputs.Secrets[i],
+                outputs[i].BlindingFactor,
+                outputs[i].Secret,
                 key
             );
             proofs.Add(proof);

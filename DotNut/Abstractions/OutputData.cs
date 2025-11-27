@@ -2,7 +2,9 @@ namespace DotNut;
 
 public class OutputData
 {
-    public List<BlindedMessage> BlindedMessages { get; set; } = [];
-    public List<ISecret> Secrets { get; set; } = [];
-    public List<PrivKey> BlindingFactors { get; set; } = [];
+    public BlindedMessage BlindedMessage { get; set; }
+    public ISecret Secret { get; set; }
+    public PrivKey BlindingFactor { get; set; }
+    
+    public PubKey? P2BkE {get; set;}
 }

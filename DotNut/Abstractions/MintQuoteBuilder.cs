@@ -14,7 +14,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
     private List<ulong>? _amounts;
     private string _unit = "sat";
     private string? _description;
-    private OutputData? _outputs;
+    private List<OutputData>? _outputs;
     private string? _method = "bolt11";
 
     private string? _pubkey;
@@ -67,7 +67,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
     }
 
 
-    public IMintQuoteBuilder WithOutputs(OutputData outputs)
+    public IMintQuoteBuilder WithOutputs(List<OutputData> outputs)
     {
         this._outputs = outputs;
         return this;
@@ -133,40 +133,40 @@ class MintQuoteBuilder : IMintQuoteBuilder
     public async Task<IMintHandler<PostMintQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(
         CancellationToken ct = default)
     {
-            await this._wallet._maybeSyncKeys(ct);
-            if (this._pubkey == null)
-            {
-                throw new ArgumentNullException(nameof(_pubkey), "Can't request bolt12 mint quote without pubkey!");
-            }
+        await this._wallet._maybeSyncKeys(ct);
+        if (this._pubkey == null)
+        {
+            throw new ArgumentNullException(nameof(_pubkey), "Can't request bolt12 mint quote without pubkey!");
+        }
             
-            if (this._keyset == null)
-            {
-                this._keyset = await this._wallet.GetKeys(this._keysetId, false, ct) ??
-                               throw new ArgumentException($"Cant fetch keys for keysetId: {_keysetId}");
-            }
+        if (this._keyset == null)
+        {
+            this._keyset = await this._wallet.GetKeys(this._keysetId, false, ct) ??
+                           throw new ArgumentException($"Cant fetch keys for keysetId: {_keysetId}");
+        }
             
-            var outputs = await this._createOutputs();
+        var outputs = await this._createOutputs();
 
 
-            var req = new PostMintQuoteBolt12Request()
-            {
-                Amount = this._amount.Value,
-                Unit = this._unit,
-                Pubkey = this._pubkey,
-                Description = this._description,
-            };
-            var mintQuote =
-                await (await _wallet.GetMintApi())
-                    .CreateMintQuote<PostMintQuoteBolt12Response, PostMintQuoteBolt12Request>("bolt12", req,
-                        ct);
-            return new MintHandlerBolt12(this._wallet, mintQuote, this._keyset, outputs);
+        var req = new PostMintQuoteBolt12Request()
+        {
+            Amount = this._amount.Value,
+            Unit = this._unit,
+            Pubkey = this._pubkey,
+            Description = this._description,
+        };
+        var mintQuote =
+            await (await _wallet.GetMintApi())
+                .CreateMintQuote<PostMintQuoteBolt12Response, PostMintQuoteBolt12Request>("bolt12", req,
+                    ct);
+        return new MintHandlerBolt12(this._wallet, mintQuote, this._keyset, outputs);
 
     }
 
-
-    async Task<OutputData> _createOutputs()
+    // skipped checks for keysetid and keys, since its validated before. make sure to remember about it.
+    async Task<List<OutputData>> _createOutputs()
     {
-        var outputs = new OutputData();
+        var outputs = new List<OutputData>();
         
         if (this._outputs != null)
         {
@@ -188,13 +188,11 @@ class MintQuoteBuilder : IMintQuoteBuilder
             return await _wallet.CreateOutputs(_amounts, this._keysetId!);
         }
         
-        // skipped checks for keysetid and keys, since its validated before. make sure to remember about it.
+        
         foreach (var amount in _amounts)
         {
             var p2pkOutput = Utils.CreateNut10Output(amount, this._keysetId!, _builder);
-            outputs.BlindingFactors.Add(p2pkOutput.BlindingFactors[0]);
-            outputs.BlindedMessages.Add(p2pkOutput.BlindedMessages[0]);
-            outputs.Secrets.Add(p2pkOutput.Secrets[0]);
+            outputs.Add(p2pkOutput);
         }
         return outputs;
 

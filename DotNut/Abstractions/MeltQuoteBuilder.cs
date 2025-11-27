@@ -11,7 +11,7 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
     private readonly Wallet _wallet;
     private List<Proof>? _proofs;
     private string? _invoice;
-    private OutputData? _blankOutputs;
+    private List<OutputData>? _blankOutputs;
     private string _unit = "sat";
     
     private List<PrivKey>? _privKeys;
@@ -36,7 +36,7 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         return this;
     }
     
-    public IMeltQuoteBuilder WithBlankOutputs(OutputData blankOutputs)
+    public IMeltQuoteBuilder WithBlankOutputs(List<OutputData> blankOutputs)
     {
         this._blankOutputs = blankOutputs;
         return this;

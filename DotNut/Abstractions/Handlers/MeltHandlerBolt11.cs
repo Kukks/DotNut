@@ -9,7 +9,7 @@ public class MeltHandlerBolt11 : IMeltHandler<PostMeltQuoteBolt11Response, List<
 {
     private IWalletBuilder _wallet;
     private PostMeltQuoteBolt11Response _quote;
-    private OutputData _blankOutputs;
+    private List<OutputData> _blankOutputs;
     private bool _withSignatureVerification;
     private List<PrivKey>? _privKeys;
     private string? _htlcPreimage;
@@ -28,7 +28,7 @@ public class MeltHandlerBolt11 : IMeltHandler<PostMeltQuoteBolt11Response, List<
     public MeltHandlerBolt11(
         IWalletBuilder wallet,
         PostMeltQuoteBolt11Response quote,
-        OutputData blankOutputs,
+        List<OutputData> blankOutputs,
         List<PrivKey>? privKeys = null,
         string? htlcPreimage = null)
     {
@@ -48,7 +48,7 @@ public class MeltHandlerBolt11 : IMeltHandler<PostMeltQuoteBolt11Response, List<
         {
             Quote = _quote.Quote,
             Inputs = inputs.ToArray(),
-            Outputs = _blankOutputs.BlindedMessages.ToArray(),
+            Outputs = _blankOutputs.Select(bo=> bo.BlindedMessage).ToArray(),
         };
         
        var res = await  client.Melt<PostMeltQuoteBolt11Response, PostMeltRequest>("bolt11", req, ct);

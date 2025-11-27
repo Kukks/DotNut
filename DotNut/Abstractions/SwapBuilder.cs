@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using DotNut.Abstractions.Interfaces;
 using DotNut.ApiModels;
@@ -15,7 +16,7 @@ class SwapBuilder : ISwapBuilder
     private readonly CashuToken? _token;
     private List<Proof>? _proofsToSwap;
     
-    private OutputData? _outputs;
+    private List<OutputData>? _outputs;
     private List<ulong>? _amounts;
     private KeysetId? _keysetId;
     
@@ -58,7 +59,7 @@ class SwapBuilder : ISwapBuilder
         return this;
     }
 
-    public ISwapBuilder ForOutputs(OutputData outputs)
+    public ISwapBuilder ForOutputs(List<OutputData> outputs)
     {
         this._outputs = outputs;
         return this;
@@ -173,7 +174,7 @@ class SwapBuilder : ISwapBuilder
         var request = new PostSwapRequest()
         {
             Inputs = swapInputs.ToArray(),
-            Outputs = outputs.BlindedMessages.ToArray(),
+            Outputs = outputs.Select(o=>o.BlindedMessage).ToArray(),
         };
 
         Nut10Helper.MaybeProcessNut10(_privKeys??[], swapInputs, outputs, _htlcPreimage);
@@ -219,7 +220,7 @@ class SwapBuilder : ISwapBuilder
         return _proofsToSwap;
     }
 
-    async Task<OutputData> _getOutputs(Keyset keys, CancellationToken ct = default)
+    async Task<List<OutputData>> _getOutputs(Keyset keys, CancellationToken ct = default)
     {
         if (this._outputs != null)
         {
@@ -235,29 +236,30 @@ class SwapBuilder : ISwapBuilder
             throw new ArgumentNullException(nameof(_amounts), "Amounts can't be null.");
         }
         
-        var outputs = new OutputData();
+        var outputs = new List<OutputData>();
         if (this._builder is not null)
         {
             if (this._shouldBlind)
             {
                 if (this._builder.SigFlag == "SIG_ALL")
                 {
-                    // create first output, then rest of them should have identical E.
-                    
+                    var e = new PrivKey(RandomNumberGenerator.GetHexString(64));
+                    foreach (var amount in _amounts)
+                    {
+                        outputs.Add(Utils.CreateNut10BlindedOutput(amount, this._keysetId!, _builder, e));
+                    }
+                    return outputs;
                 }
-                foreach (var p2pkOutput in _amounts.Select(amount => Utils.CreateNut10Output(amount, this._keysetId!, _builder)))
+                foreach (var amount in _amounts)
                 {
-                    outputs.BlindingFactors.Add(p2pkOutput.BlindingFactors[0]);
-                    outputs.BlindedMessages.Add(p2pkOutput.BlindedMessages[0]);
-                    outputs.Secrets.Add(p2pkOutput.Secrets[0]);
+                    outputs.Add(Utils.CreateNut10BlindedOutput(amount, this._keysetId!, _builder));
                 }
+                return outputs;
             }
             // skipped checks for keysetid and keys, since its validated before. make sure to remember about it.
-            foreach (var p2pkOutput in _amounts.Select(amount => Utils.CreateNut10Output(amount, this._keysetId!, _builder)))
+            foreach (var amount in _amounts)
             {
-                outputs.BlindingFactors.Add(p2pkOutput.BlindingFactors[0]);
-                outputs.BlindedMessages.Add(p2pkOutput.BlindedMessages[0]);
-                outputs.Secrets.Add(p2pkOutput.Secrets[0]);
+                outputs.Add(Utils.CreateNut10Output(amount, this._keysetId!, _builder));
             }
             return outputs;
         }

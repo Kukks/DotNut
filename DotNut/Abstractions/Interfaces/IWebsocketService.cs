@@ -1,6 +1,7 @@
 using System.Net.WebSockets;
+using DotNut.Abstractions.Websockets;
 
-namespace DotNut.Abstractions.Websockets;
+namespace DotNut.Abstractions;
 
 public interface IWebsocketService : IAsyncDisposable
 {

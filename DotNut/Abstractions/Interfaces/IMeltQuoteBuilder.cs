@@ -1,7 +1,7 @@
 using DotNut.ApiModels;
 using DotNut.ApiModels.Melt.bolt12;
 
-namespace DotNut.Abstractions.Interfaces;
+namespace DotNut.Abstractions;
 
 /// <summary>
 /// Melt operation builder (pay invoices)
@@ -9,7 +9,7 @@ namespace DotNut.Abstractions.Interfaces;
 public interface IMeltQuoteBuilder
 {
     /// <summary>
-    /// Optional. Sets the base unit for the quote; defaults to sat.
+    /// Optional. Sets the base unit for the quote; defaults to "sat".
     /// </summary>
     IMeltQuoteBuilder WithUnit(string unit);
 
@@ -26,7 +26,7 @@ public interface IMeltQuoteBuilder
     /// <summary>
     /// Optional. Provide private keys for P2PK proofs associated with the inputs.
     /// </summary>
-    IMeltQuoteBuilder WithPrivkeys(IEnumerable<PrivKey> privKeys);
+    IMeltQuoteBuilder WithPrivKeys(IEnumerable<PrivKey> privKeys);
 
     /// <summary>
     /// Optional. Supply HTLC preimage to sign HTLC-based proofs.

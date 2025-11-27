@@ -1,4 +1,3 @@
-using DotNut.Abstractions.Interfaces;
 using DotNut.Abstractions.Websockets;
 using DotNut.Api;
 using DotNut.ApiModels;

@@ -1,8 +1,4 @@
-using DotNut.Abstractions.Websockets;
-using DotNut.ApiModels;
-using DotNut.ApiModels.Melt.bolt12;
-
-namespace DotNut.Abstractions.Interfaces;
+namespace DotNut.Abstractions;
 
 public interface IMeltHandler;
 

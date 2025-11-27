@@ -217,7 +217,8 @@ public static class Utils
         BlindSignature promise,
         PrivKey r,
         DotNut.ISecret secret,
-        PubKey amountPubkey)
+        PubKey amountPubkey,
+        PubKey? P2PkE = null)
     {
 
         //unblind signature
@@ -240,6 +241,7 @@ public static class Utils
             Secret = secret,
             C = C,
             DLEQ = promise.DLEQ,
+            P2PkE = P2PkE
         };
     }
 
@@ -260,7 +262,8 @@ public static class Utils
                 promises[i],
                 outputs[i].BlindingFactor,
                 outputs[i].Secret,
-                key
+                key,
+                outputs[i].P2BkE
             );
             proofs.Add(proof);
         }

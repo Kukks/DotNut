@@ -1,9 +1,7 @@
 using System.Security.Cryptography;
 using DotNut.Abstractions;
-using DotNut.Abstractions.Interfaces;
 using DotNut.Abstractions.Websockets;
 using DotNut.Api;
-using SHA256 = System.Security.Cryptography.SHA256;
 
 namespace DotNut.Tests;
 
@@ -333,7 +331,7 @@ public class Integration
          var handler = await wallet
              .CreateMeltQuote()
              .WithInvoice(valuesInvoices[501])
-             .WithPrivkeys([privKeyBob, privKeyAlice])
+             .WithPrivKeys([privKeyBob, privKeyAlice])
              .ProcessAsyncBolt11();
 
          var q = await handler.GetQuote();

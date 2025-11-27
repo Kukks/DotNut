@@ -1,4 +1,4 @@
-namespace DotNut.Abstractions.Interfaces;
+namespace DotNut.Abstractions;
 
 /// <summary>
 /// Restore operation builder

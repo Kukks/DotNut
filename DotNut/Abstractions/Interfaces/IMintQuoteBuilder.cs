@@ -1,7 +1,7 @@
 using DotNut.ApiModels;
 using DotNut.ApiModels.Mint.bolt12;
 
-namespace DotNut.Abstractions.Interfaces;
+namespace DotNut.Abstractions;
 
 /// <summary>
 /// Mint operation builder (receive from invoice)

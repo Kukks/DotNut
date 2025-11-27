@@ -1,6 +1,4 @@
-using System.Text.Json;
 using DotNut.Abstractions.Handlers;
-using DotNut.Abstractions.Interfaces;
 using DotNut.ApiModels;
 using DotNut.ApiModels.Melt.bolt12;
 
@@ -44,7 +42,7 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
     
 
     // when proofs were p2pk
-    public IMeltQuoteBuilder WithPrivkeys(IEnumerable<PrivKey> privKeys)
+    public IMeltQuoteBuilder WithPrivKeys(IEnumerable<PrivKey> privKeys)
     {
         this._privKeys = privKeys.ToList();
         return this;

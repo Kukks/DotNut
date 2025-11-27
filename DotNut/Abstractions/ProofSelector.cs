@@ -1,7 +1,6 @@
 using System.Diagnostics;
-using DotNut.Abstractions;
 
-namespace DotNut;
+namespace DotNut.Abstractions;
 
 // Borrowed from cashu-ts 
 // see https://github.com/cashubtc/cashu-ts/pull/314

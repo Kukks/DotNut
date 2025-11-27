@@ -83,26 +83,27 @@ public class P2PKProofSecret : Nut10ProofSecret
         var witness = JsonSerializer.Deserialize<P2PKWitness>(proof.Witness) ?? new P2PKWitness();
         return VerifyWitness(proof.Secret, witness);
     }
+    
     /*
      * =========================
      * NUT-XX Pay to blinded key
      * =========================
      */
     
-    public virtual P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, KeysetId keysetId)
+    public virtual P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys)
     {
         ArgumentNullException.ThrowIfNull(proof.P2PkE);
-        return GenerateBlindWitness(proof.Secret.GetBytes(), keys, keysetId, proof.P2PkE);
+        return GenerateBlindWitness(proof.Secret.GetBytes(), keys, proof.Id, proof.P2PkE);
     }
 
-    public virtual P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)
+    public virtual P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, ECPubKey P2PkE)
     {
-        return GenerateBlindWitness(proof.Secret.GetBytes(), keys, keysetId, P2PkE);
+        return GenerateBlindWitness(proof.Secret.GetBytes(), keys, proof.Id, P2PkE);
     }
     
-    public virtual P2PKWitness GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)
+    public virtual P2PKWitness GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, ECPubKey P2PkE)
     {
-        return GenerateBlindWitness(message.B_.Key.ToBytes(), keys, keysetId, P2PkE);
+        return GenerateBlindWitness(message.B_.Key.ToBytes(), keys, message.Id, P2PkE);
     }
     
     public virtual P2PKWitness GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)

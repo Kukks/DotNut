@@ -18,11 +18,12 @@ public class SigAllHandler
     
     private P2PKProofSecret? _firstProofSecret; 
     
+    
     public bool TrySign(out P2PKWitness? p2pkwitness)
     {
         p2pkwitness = null;
         
-        if (BlindedMessages.Count == 0)
+        if (BlindedMessages.Count == 0 || Proofs.Count == 0)
         {
             return false;
         }
@@ -40,10 +41,26 @@ public class SigAllHandler
         
         if (_firstProofSecret is HTLCProofSecret s && HTLCPreimage is {} preimage)
         {
+            if (Proofs.First().P2PkE is { } E)
+            {
+                p2pkwitness = s.GenerateBlindWitness(msg,
+                    PrivKeys.Select(pk => (ECPrivKey)pk).ToArray(),
+                    Encoding.UTF8.GetBytes(preimage),
+                    Proofs[0].Id,
+                    E
+                );
+                return true;
+            }
             p2pkwitness = 
                 s.GenerateWitness(msg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray(), 
                     Encoding.UTF8.GetBytes(preimage)
                     );
+            return true;
+        }
+
+        if (Proofs.First().P2PkE is { } e2)
+        {
+            p2pkwitness = _firstProofSecret!.GenerateBlindWitness(msg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray(), Proofs[0].Id, e2);
             return true;
         }
         p2pkwitness = _firstProofSecret!.GenerateWitness(msg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray());

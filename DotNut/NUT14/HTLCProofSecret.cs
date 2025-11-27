@@ -56,17 +56,16 @@ public class HTLCProofSecret : P2PKProofSecret
 
     
 
-    public HTLCWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId)
+    public HTLCWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, string preimage)
     {
         throw new NotImplementedException();
     }
-    public HTLCWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId,
-        ECPubKey P2PkE)
+    public HTLCWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, string preimage, ECPubKey P2PkE)
     {
         throw new NotImplementedException();
     }
 
-    public HTLCWitness GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)
+    public HTLCWitness GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, string preimage, ECPubKey P2PkE)
     {
         throw new NotImplementedException();
     }
@@ -132,20 +131,19 @@ public class HTLCProofSecret : P2PKProofSecret
     
 
     [Obsolete("Use GenerateBlindWitness(Proof proof, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId)")]
-    public override P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, KeysetId keysetId)
+    public override P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys)
     {
         throw new InvalidOperationException();
     }
     
     [Obsolete("Use GenerateBlindWitness(Proof proof, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)")]
-    public override P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)
+    public override P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, ECPubKey P2PkE)
     {
         throw new InvalidOperationException("Use GenerateBlindWitness(Proof proof, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)");
     }
     
     [Obsolete("Use GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)")]
-    public override P2PKWitness GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, KeysetId keysetId,
-        ECPubKey P2PkE)
+    public override P2PKWitness GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, ECPubKey P2PkE)
     {
         throw new InvalidOperationException("Use GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)");
     }

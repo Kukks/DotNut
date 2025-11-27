@@ -909,7 +909,7 @@ public class UnitTest1
             C = "02698c4e2b5f9534cd0687d87513c759790cf829aa5739184a3e3735471fbda904".ToPubKey(),
             P2PkE = E
         };
-        var witness = p2pkProofSecret.GenerateBlindWitness(proof, new[] {signing_key, signing_key_two}, keysetId, E);
+        var witness = p2pkProofSecret.GenerateBlindWitness(proof, new[] {signing_key, signing_key_two}, E);
         
         Assert.True(p2pkProofSecret.VerifyWitness(secret, witness));
     }
@@ -947,7 +947,7 @@ public class UnitTest1
             C = "02698c4e2b5f9534cd0687d87513c759790cf829aa5739184a3e3735471fbda904".ToPubKey(),
             P2PkE = E
         };
-        var witness = p2pkProofSecret.GenerateBlindWitness(proof, new[] {signing_key, signing_key_two}, keysetId, E);
+        var witness = p2pkProofSecret.GenerateBlindWitness(proof, new[] {signing_key, signing_key_two}, E);
         
         Assert.True(p2pkProofSecret.VerifyWitness(secret, witness));
     }

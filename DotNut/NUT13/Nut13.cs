@@ -14,12 +14,10 @@ public static class Nut13
         DeriveSecret(mnemonic.DeriveSeed(), keysetId, counter);
     
 
-    public static OutputData DeriveOutputs(this Mnemonic mnemonic, IEnumerable<ulong> amounts, KeysetId keysetId,
+    public static List<OutputData> DeriveOutputs(this Mnemonic mnemonic, IEnumerable<ulong> amounts, KeysetId keysetId,
         int counter)
     {
-        var blindedMessages = new List<BlindedMessage>();
-        var secrets = new List<ISecret>();
-        var blindingFactors = new List<PrivKey>();
+        var outputs = new List<OutputData>();
 
         var amountList = amounts.ToList();
 
@@ -33,24 +31,20 @@ public static class Nut13
             var Y = secret.ToCurve();
             var B_ = Cashu.ComputeB_(Y, r);
 
-
-            blindedMessages.Add(
-                new BlindedMessage()
+            outputs.Add(new OutputData()
+            {
+                BlindedMessage =  new BlindedMessage()
                 {
                     Amount = amountList.ElementAt(i),
                     Id = keysetId,
                     B_ = B_
-                });
-            secrets.Add(secret);
-            blindingFactors.Add(r);
+                },
+                Secret = secret,
+                BlindingFactor = r
+            });
         }
 
-        return new OutputData()
-        {
-            BlindedMessages = blindedMessages,
-            BlindingFactors = blindingFactors,
-            Secrets = secrets
-        };
+        return outputs;
     }
     public static byte[] DeriveBlindingFactor(this byte[] seed, KeysetId keysetId, int counter)
     {

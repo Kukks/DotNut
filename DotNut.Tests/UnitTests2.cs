@@ -173,15 +173,13 @@ public class UnitTests2
         var amounts = new List<ulong> { 1, 2, 4 };
         var outputs = Utils.CreateOutputs(amounts, _testKeysetId, _testKeyset!);
         
-        Assert.Equal(3, outputs.BlindedMessages.Count);
-        Assert.Equal(3, outputs.BlindingFactors.Count);
-        Assert.Equal(3, outputs.Secrets.Count);
+        Assert.Equal(3, outputs.Count);
         
-        Assert.Equal(1UL, outputs.BlindedMessages[0].Amount);
-        Assert.Equal(2UL, outputs.BlindedMessages[1].Amount);
-        Assert.Equal(4UL, outputs.BlindedMessages[2].Amount);
+        Assert.Equal(1UL, outputs[0].BlindedMessage.Amount);
+        Assert.Equal(2UL, outputs[1].BlindedMessage.Amount);
+        Assert.Equal(4UL, outputs[2].BlindedMessage.Amount);
         
-        Assert.All(outputs.BlindedMessages, bm => Assert.Equal(_testKeysetId, bm.Id));
+        Assert.All(outputs, o => Assert.Equal(_testKeysetId, o.BlindedMessage.Id));
     }
 
     [Fact]
@@ -201,11 +199,11 @@ public class UnitTests2
         var outputs2 = Utils.CreateOutputs(amounts, _testKeysetId, _testKeyset!, mnemonic, 0);
         
         // Same mnemonic and counter should produce same outputs
-        for (int i = 0; i < outputs1.Secrets.Count; i++)
+        for (int i = 0; i < outputs1.Count; i++)
         {
             Assert.Equal(
-                ((StringSecret)outputs1.Secrets[i]).Secret, 
-                ((StringSecret)outputs2.Secrets[i]).Secret
+                ((StringSecret)outputs1[i].Secret).Secret, 
+                ((StringSecret)outputs2[i].Secret).Secret
             );
         }
     }
@@ -220,8 +218,8 @@ public class UnitTests2
         
         // without mnemonic, outputs should be random (different)
         Assert.NotEqual(
-            ((StringSecret)outputs1.Secrets[0]).Secret, 
-            ((StringSecret)outputs2.Secrets[0]).Secret
+            ((StringSecret)outputs1[0].Secret).Secret,
+            ((StringSecret)outputs2[0].Secret).Secret
         );
     }
 
@@ -491,15 +489,7 @@ public class UnitTests2
         var info = new MintInfo(response);
         Assert.NotNull(info);
     }
-
-    [Fact]
-    public void OutputData_EmptyConstructor()
-    {
-        var data = new OutputData();
-        Assert.NotNull(data.BlindedMessages);
-        Assert.NotNull(data.BlindingFactors);
-        Assert.NotNull(data.Secrets);
-    }
+    
 
     [Fact]
     public void P2PkBuilder_Build_CreatesValidSecret()

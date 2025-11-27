@@ -66,7 +66,7 @@ public class RestoreBuilder : IRestoreBuilder
                 await counter!.IncrementCounter(keysetId, batchNumber * 100);
                 var req = new PostRestoreRequest
                 {
-                    Outputs = outputs.BlindedMessages.ToArray()
+                    Outputs = outputs.Select(o=>o.BlindedMessage).ToArray()
                 };
                 var res = await api.Restore(req, ct);
 
@@ -88,7 +88,7 @@ public class RestoreBuilder : IRestoreBuilder
         }
         
         var freshProofs = new List<Proof>();
-        var activeUnits = await this._wallet.GetActiveKeysetIdsWithUnits();
+        var activeUnits = await this._wallet.GetActiveKeysetIdsWithUnits(ct);
         
         if (activeUnits == null || !activeUnits.Any())
         {
@@ -102,12 +102,12 @@ public class RestoreBuilder : IRestoreBuilder
             var amounts = Utils.SplitToProofsAmounts(totalAmount, correspondingKeys.Keys);
             var ctr = await counter!.GetCounterForId(unitKeyset.Value, ct);
             var newOutputs = Utils.CreateOutputs(amounts, unitKeyset.Value, correspondingKeys.Keys, mnemonic, ctr);
-            await counter.IncrementCounter(unitKeyset.Value, newOutputs.BlindedMessages.Count, ct);
+            await counter.IncrementCounter(unitKeyset.Value, newOutputs.Select(o=>o.BlindedMessage).Count(), ct);
             
             var swapRequest = new PostSwapRequest
             {
                 Inputs = recoveredProofs.ToArray(),
-                Outputs = newOutputs.BlindedMessages.ToArray(),
+                Outputs = newOutputs.Select(o=>o.BlindedMessage).ToArray(),
             };
         
             var swapResult = await api.Swap(swapRequest, ct);
@@ -118,7 +118,7 @@ public class RestoreBuilder : IRestoreBuilder
         return freshProofs;
     }
 
-    private async Task<OutputData> _createBatch(Mnemonic mnemonic, KeysetId keysetId, int batchNubmber, CancellationToken ct)
+    private async Task<List<OutputData>> _createBatch(Mnemonic mnemonic, KeysetId keysetId, int batchNubmber, CancellationToken ct)
     {
         var amounts = Enumerable.Repeat((ulong)1, 100).ToList();
         Console.WriteLine(batchNubmber);

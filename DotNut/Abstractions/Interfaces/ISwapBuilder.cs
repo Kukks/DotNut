@@ -23,7 +23,7 @@ public interface ISwapBuilder
     /// <summary>
     /// Optional. Supply custom blank outputs instead of deriving them automatically.
     /// </summary>
-    ISwapBuilder ForOutputs(OutputData outputs);
+    ISwapBuilder ForOutputs(List<OutputData> outputs);
 
     /// <summary>
     /// Optional. Toggle DLEQ verification for incoming proofs.

@@ -322,7 +322,7 @@ public class Wallet : IWalletBuilder
    /// <param name="ct"></param>
    /// <returns>Outputs</returns>
    /// <exception cref="ArgumentNullException">If keys not set. If Mnemonic set, but no Counter.</exception>
-    public async Task<OutputData> CreateOutputs(List<ulong> amounts, KeysetId id, CancellationToken ct = default)
+    public async Task<List<OutputData>> CreateOutputs(List<ulong> amounts, KeysetId id, CancellationToken ct = default)
     {
         await _maybeSyncKeys(ct);
         if (this._keys == null)
@@ -356,7 +356,7 @@ public class Wallet : IWalletBuilder
     /// <param name="ct"></param>
     /// <returns>Outputs</returns>
     /// <exception cref="ArgumentNullException">If no keysetID stored in wallet.</exception>
-    public async Task<OutputData> CreateOutputs(List<ulong> amounts, string unit, CancellationToken ct = default)
+    public async Task<List<OutputData>> CreateOutputs(List<ulong> amounts, string unit, CancellationToken ct = default)
     {
         var keysetId = await this.GetActiveKeysetId(unit, ct);
         if (keysetId == null)

@@ -21,7 +21,7 @@ public interface IMeltQuoteBuilder
     /// <summary>
     /// Optional. Supply previously generated blank outputs instead of deriving them.
     /// </summary>
-    IMeltQuoteBuilder WithBlankOutputs(OutputData blankOutputs);
+    IMeltQuoteBuilder WithBlankOutputs(List<OutputData> blankOutputs);
 
     /// <summary>
     /// Optional. Provide private keys for P2PK proofs associated with the inputs.

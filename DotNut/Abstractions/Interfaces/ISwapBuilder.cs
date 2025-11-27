@@ -51,6 +51,13 @@ public interface ISwapBuilder
     ISwapBuilder ToP2PK(P2PkBuilder p2pkBuilder);
 
     /// <summary>
+    /// Optional. Blind P2Pk / HTLC proofs.
+    /// </summary>
+    /// <param name="withBlinding"></param>
+    /// <returns></returns>
+    ISwapBuilder BlindPubkeys(bool withBlinding = true);
+
+    /// <summary>
     /// Optional. Supply preimage for HTLC-based proofs.
     /// </summary>
     ISwapBuilder WithHtlcPreimage(string preimage);

@@ -18,26 +18,6 @@ public class HTLCProofSecret : P2PKProofSecret
         return builder.Pubkeys;
     }
     
-    public override ECPubKey[] GetAllowedRefundPubkeys(out int? requiredSignatures)
-    {
-        var builder = Builder;
-        if (builder.Lock.HasValue && builder.Lock.Value.ToUnixTimeSeconds() < DateTimeOffset.Now.ToUnixTimeSeconds())
-        {
-            if (builder.RefundPubkeys == null)
-            {
-                requiredSignatures = 0; // proof is spendable without any signature
-                return [];
-            }
-            requiredSignatures = builder.RefundSignatureThreshold ?? 1;
-            return [..builder.RefundPubkeys??[]];
-        }
-
-        requiredSignatures = null; // there's no refund condition :/
-        return [];
-    }
-
-    
-    
     public HTLCWitness GenerateWitness(Proof proof, ECPrivKey[] keys, string preimage)
     {
         return GenerateWitness(proof.Secret.GetBytes(), keys, Convert.FromHexString(preimage));
@@ -56,12 +36,17 @@ public class HTLCProofSecret : P2PKProofSecret
 
     public HTLCWitness GenerateWitness(ECPrivKey hash, ECPrivKey[] keys, byte[] preimage)
     {
-        if (!VerifyPreimage(preimage))
-            throw new InvalidOperationException("Invalid preimage");
-        var p2pkhWitness = base.GenerateWitness(hash, keys);
+        // validate hash only if there'
+        var builder = Builder;
+        if (!builder.Lock.HasValue || builder.Lock.Value.ToUnixTimeSeconds() > DateTimeOffset.Now.ToUnixTimeSeconds())
+        {
+            if (!VerifyPreimage(preimage))
+                throw new InvalidOperationException("Invalid preimage");
+        }
+        var witness = base.GenerateWitness(hash, keys);
         return new HTLCWitness()
         {
-            Signatures = p2pkhWitness.Signatures,
+            Signatures = witness.Signatures,
             Preimage = Convert.ToHexString(preimage)
         };
     }
@@ -199,11 +184,11 @@ public class HTLCProofSecret : P2PKProofSecret
         {
             return false;
         }
-        if (!VerifyPreimage(htlcWitness.Preimage))
+        var builder = Builder;
+        if (builder.Lock.HasValue && builder.Lock.Value.ToUnixTimeSeconds() <= DateTimeOffset.Now.ToUnixTimeSeconds())
         {
-            return false;
+            return base.VerifyWitnessHash(hash, witness);
         }
-
-        return base.VerifyWitnessHash(hash, witness);
+        return VerifyPreimage(htlcWitness.Preimage) && base.VerifyWitnessHash(hash, witness);
     }
 }

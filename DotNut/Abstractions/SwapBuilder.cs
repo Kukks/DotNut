@@ -113,7 +113,7 @@ class SwapBuilder : ISwapBuilder
     }
     
     // P2Bk should be compatible with both p2pk and HTLC. Not implemented in the second one 
-    public ISwapBuilder ToP2Bk(bool withBlinding = true)
+    public ISwapBuilder BlindPubkeys(bool withBlinding = true)
     {
         this._shouldBlind = true;
         return this;
@@ -244,20 +244,23 @@ class SwapBuilder : ISwapBuilder
                     var e = new PrivKey(RandomNumberGenerator.GetHexString(64));
                     foreach (var amount in _amounts)
                     {
-                        outputs.Add(Utils.CreateNut10BlindedOutput(amount, this._keysetId!, _builder, e));
+                        var builder = _builder.Clone();
+                        outputs.Add(Utils.CreateNut10BlindedOutput(amount, this._keysetId!, builder, e));
                     }
                     return outputs;
                 }
                 foreach (var amount in _amounts)
                 {
-                    outputs.Add(Utils.CreateNut10BlindedOutput(amount, this._keysetId!, _builder));
+                    var builder = _builder.Clone();
+                    outputs.Add(Utils.CreateNut10BlindedOutput(amount, this._keysetId!, builder));
                 }
                 return outputs;
             }
             // skipped checks for keysetid and keys, since its validated before. make sure to remember about it.
             foreach (var amount in _amounts)
             {
-                outputs.Add(Utils.CreateNut10Output(amount, this._keysetId!, _builder));
+                var builder = _builder.Clone();
+                outputs.Add(Utils.CreateNut10Output(amount, this._keysetId!, builder));
             }
             return outputs;
         }

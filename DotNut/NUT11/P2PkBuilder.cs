@@ -177,4 +177,17 @@ public class P2PKBuilder
             }
         }
     }
+    
+    public virtual P2PkBuilder Clone()
+    {
+        return new P2PkBuilder()
+        {
+            Lock = Lock,
+            RefundPubkeys = RefundPubkeys?.ToArray(),
+            SignatureThreshold = SignatureThreshold,
+            Pubkeys = Pubkeys.ToArray(),
+            SigFlag = SigFlag,
+            Nonce = Nonce,
+        };
+    }
 }

@@ -25,11 +25,11 @@ class SwapBuilder : ISwapBuilder
 
     private bool _includeFees = true;
 
-    //p2pk stuff
+    //nut10 stuff
     private List<PrivKey>? _privKeys;
     private P2PkBuilder? _builder;
-
     private string? _htlcPreimage;
+    private bool _shouldBlind = false;
     
     public SwapBuilder(Wallet wallet, string tokenString)
     {
@@ -113,6 +113,13 @@ class SwapBuilder : ISwapBuilder
         return this;
     }
     
+    // P2Bk should be compatible with both p2pk and HTLC. Not implemented in the second one 
+    public ISwapBuilder ToP2Bk(bool withBlinding = true)
+    {
+        this._shouldBlind = true;
+        return this;
+    }
+    
     public async Task<List<Proof>> ProcessAsync(CancellationToken ct = default)
     {
         var mintApi = await _wallet.GetMintApi(ct);
@@ -169,8 +176,7 @@ class SwapBuilder : ISwapBuilder
             Outputs = outputs.BlindedMessages.ToArray(),
         };
 
-        await _maybeProcessP2Pk();
-        
+        Nut10Helper.MaybeProcessNut10(_privKeys??[], swapInputs, outputs, _htlcPreimage);
         var swapResponse = await mintApi.Swap(request, ct);
 
         var swappedProofs =
@@ -232,6 +238,20 @@ class SwapBuilder : ISwapBuilder
         var outputs = new OutputData();
         if (this._builder is not null)
         {
+            if (this._shouldBlind)
+            {
+                if (this._builder.SigFlag == "SIG_ALL")
+                {
+                    // create first output, then rest of them should have identical E.
+                    
+                }
+                foreach (var p2pkOutput in _amounts.Select(amount => Utils.CreateNut10Output(amount, this._keysetId!, _builder)))
+                {
+                    outputs.BlindingFactors.Add(p2pkOutput.BlindingFactors[0]);
+                    outputs.BlindedMessages.Add(p2pkOutput.BlindedMessages[0]);
+                    outputs.Secrets.Add(p2pkOutput.Secrets[0]);
+                }
+            }
             // skipped checks for keysetid and keys, since its validated before. make sure to remember about it.
             foreach (var p2pkOutput in _amounts.Select(amount => Utils.CreateNut10Output(amount, this._keysetId!, _builder)))
             {
@@ -243,49 +263,6 @@ class SwapBuilder : ISwapBuilder
         }
         
         return await _wallet.CreateOutputs(_amounts, this._keysetId!, ct);
-    }
-    
-    private async Task _maybeProcessP2Pk()
-    {
-        if (_privKeys == null || _privKeys.Count == 0)
-        {
-            return;
-        }
-        
-        if (_proofsToSwap == null)
-        {
-            throw new ArgumentNullException(nameof(_proofsToSwap), "No proofs to swap!");
-        }
-        
-        var sigAllHandler = new SigAllHandler
-        {
-            Proofs = this._proofsToSwap,
-            BlindedMessages = this._outputs?.BlindedMessages ?? [],
-            HTLCPreimage = this._htlcPreimage,
-        };
-
-        if (sigAllHandler.TrySign(out P2PKWitness? witness))
-        {
-            if (witness == null)
-            {
-                throw new ArgumentNullException(nameof(witness), "sig_all input was correct, but couldn't create a witness signature!");
-            }
-            this._proofsToSwap[0].Witness = JsonSerializer.Serialize(witness);
-        }
-
-        foreach (var proof in _proofsToSwap)
-        {
-            
-            if (proof.Secret is not Nut10Secret { ProofSecret: P2PKProofSecret p2pk, Key: { } key }) continue;
-            if (proof.Secret is Nut10Secret { ProofSecret: HTLCProofSecret htlc } && _htlcPreimage is {} preimage)
-            {
-                var w = htlc.GenerateWitness(proof, _privKeys.Select(p=>p.Key).ToArray(), preimage);
-                proof.Witness = JsonSerializer.Serialize(w);
-                continue;
-            }
-            var proofWitness = p2pk.GenerateWitness(proof, _privKeys.Select(p => p.Key).ToArray());
-            proof.Witness = JsonSerializer.Serialize(proofWitness);
-        }
     }
 
     private List<ulong> _getAmounts(ulong total, ulong fee, Keyset keys)

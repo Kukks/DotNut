@@ -160,6 +160,52 @@ public static class Utils
             Secrets = [secret]
         };
     }
+    public static OutputData CreateNut10BlindedOutput(ulong amount, KeysetId keysetId, P2PkBuilder builder, out PubKey E)
+    {
+        // ugliest hack ever
+        Nut10Secret secret;
+        if (builder is HTLCBuilder htlc)
+        {
+            secret = new Nut10Secret("HTLC", htlc.BuildBlinded(keysetId, out var e));
+            E = e;
+        }
+        else
+        {
+            secret = new Nut10Secret("P2PK", builder.BuildBlinded(keysetId, out var e));
+            E = e;
+        }
+
+        var r = RandomPrivkey();
+        var B_ = Cashu.ComputeB_(secret.ToCurve(), r);
+        return new OutputData
+        {
+            BlindedMessages = [new BlindedMessage() { Amount = amount, B_ = B_, Id = keysetId }],
+            BlindingFactors = [r],
+            Secrets = [secret]
+        };
+    }
+    public static OutputData CreateNut10BlindedOutput(ulong amount, KeysetId keysetId, P2PkBuilder builder, PrivKey e)
+    {
+        // ugliest hack ever
+        Nut10Secret secret;
+        if (builder is HTLCBuilder htlc)
+        {
+            secret = new Nut10Secret("HTLC", htlc.BuildBlinded(keysetId, e));
+        }
+        else
+        {
+            secret = new Nut10Secret("P2PK", builder.BuildBlinded(keysetId, e));
+        }
+
+        var r = RandomPrivkey();
+        var B_ = Cashu.ComputeB_(secret.ToCurve(), r);
+        return new OutputData
+        {
+            BlindedMessages = [new BlindedMessage() { Amount = amount, B_ = B_, Id = keysetId }],
+            BlindingFactors = [r],
+            Secrets = [secret]
+        };
+    }
     
     /// <summary>
     ///  Method creating proofs, from provided promises (blinded signatures)

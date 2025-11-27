@@ -1,3 +1,6 @@
+using System.Collections.Immutable;
+using System.Reflection.Metadata;
+using System.Security.Cryptography;
 using DotNut.Abstractions.Handlers;
 using DotNut.Api;
 using DotNut.ApiModels;
@@ -23,6 +26,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
     
     //for p2pk
     private P2PkBuilder? _builder;
+    private bool _shouldBlind = false;
 
     public MintQuoteBuilder(Wallet wallet)
     {
@@ -75,6 +79,12 @@ class MintQuoteBuilder : IMintQuoteBuilder
     public IMintQuoteBuilder WithP2PkLock(P2PkBuilder p2pkBuilder)
     {
         this._builder = p2pkBuilder;
+        return this;
+    }
+
+    public IMintQuoteBuilder BlindPubkeys(bool withBlinding = true)
+    {
+        this._shouldBlind = withBlinding;
         return this;
     }
 
@@ -187,13 +197,36 @@ class MintQuoteBuilder : IMintQuoteBuilder
             return await _wallet.CreateOutputs(_amounts, this._keysetId!);
         }
         
+        if (this._shouldBlind)
+        {
+            if (this._builder.SigFlag == "SIG_ALL")
+            {
+                var e = new PrivKey(RandomNumberGenerator.GetHexString(64));
+                foreach (var amount in _amounts)
+                {
+                    var builder = _builder.Clone();
+                    var p2pkOutput = Utils.CreateNut10BlindedOutput(amount, this._keysetId!, builder, e);
+                    outputs.Add(p2pkOutput);
+                }
+
+                return outputs;
+            }
+
+            foreach (var amount in _amounts)
+            {
+                var builder = _builder.Clone();
+                var p2pkOutput = Utils.CreateNut10BlindedOutput(amount, this._keysetId!, builder);
+                outputs.Add(p2pkOutput);
+            }
+            return outputs;
+        }
         
         foreach (var amount in _amounts)
         {
-            var p2pkOutput = Utils.CreateNut10Output(amount, this._keysetId!, _builder);
+            var builder = _builder.Clone();
+            var p2pkOutput = Utils.CreateNut10Output(amount, this._keysetId!, builder);
             outputs.Add(p2pkOutput);
         }
         return outputs;
-
     }
 }

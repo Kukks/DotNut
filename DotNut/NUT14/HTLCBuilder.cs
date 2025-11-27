@@ -79,4 +79,18 @@ public class HTLCBuilder : P2PkBuilder
     {
         throw new NotImplementedException();
     }
+    
+    public override HTLCBuilder Clone()
+    {
+        return new HTLCBuilder()
+        {
+            HashLock = HashLock,
+            Lock = Lock,
+            RefundPubkeys = RefundPubkeys?.ToArray(),
+            SignatureThreshold = SignatureThreshold,
+            Pubkeys = Pubkeys.ToArray(),
+            SigFlag = SigFlag,
+            Nonce = Nonce,
+        };
+    }
 }

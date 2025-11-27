@@ -23,8 +23,6 @@ public class HTLCProofSecret : P2PKProofSecret
         requiredSignatures = builder.SignatureThreshold;
         return builder.Pubkeys;
     }
-
-    
     
     public HTLCWitness GenerateWitness(Proof proof, ECPrivKey[] keys, string preimage)
     {
@@ -44,12 +42,17 @@ public class HTLCProofSecret : P2PKProofSecret
 
     public HTLCWitness GenerateWitness(ECPrivKey hash, ECPrivKey[] keys, byte[] preimage)
     {
-        if (!VerifyPreimage(preimage))
-            throw new InvalidOperationException("Invalid preimage");
-        var p2pkhWitness = base.GenerateWitness(hash, keys);
+        // validate hash only if there'
+        var builder = Builder;
+        if (!builder.Lock.HasValue || builder.Lock.Value.ToUnixTimeSeconds() > DateTimeOffset.Now.ToUnixTimeSeconds())
+        {
+            if (!VerifyPreimage(preimage))
+                throw new InvalidOperationException("Invalid preimage");
+        }
+        var witness = base.GenerateWitness(hash, keys);
         return new HTLCWitness()
         {
-            Signatures = p2pkhWitness.Signatures,
+            Signatures = witness.Signatures,
             Preimage = Convert.ToHexString(preimage)
         };
     }
@@ -187,11 +190,11 @@ public class HTLCProofSecret : P2PKProofSecret
         {
             return false;
         }
-        if (!VerifyPreimage(htlcWitness.Preimage))
+        var builder = Builder;
+        if (builder.Lock.HasValue && builder.Lock.Value.ToUnixTimeSeconds() <= DateTimeOffset.Now.ToUnixTimeSeconds())
         {
-            return false;
+            return base.VerifyWitnessHash(hash, witness);
         }
-
-        return base.VerifyWitnessHash(hash, witness);
+        return VerifyPreimage(htlcWitness.Preimage) && base.VerifyWitnessHash(hash, witness);
     }
 }

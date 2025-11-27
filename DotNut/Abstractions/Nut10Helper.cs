@@ -3,7 +3,7 @@ using NBitcoin.Secp256k1;
 
 namespace DotNut.Abstractions;
 
-public class Nut10Helper
+public static class Nut10Helper
 {
     public static void MaybeProcessNut10(
         List<PrivKey> privKeys,
@@ -50,8 +50,10 @@ public class Nut10Helper
 
     private static void handleWitnessCreation(Proof proof, ECPrivKey[] keys, string? htlcPreimage)
     {
-        if (proof.Secret is Nut10Secret { ProofSecret: HTLCProofSecret htlc } && htlcPreimage is { } preimage)
+        if (proof.Secret is Nut10Secret { ProofSecret: HTLCProofSecret htlc })
         {
+            // preimage isn't verified after timelock 
+            var preimage = htlcPreimage??""; 
             if (proof.P2PkE is { } E)
             {
                 var blindwitness = htlc.GenerateBlindWitness(proof, keys, preimage);
@@ -67,6 +69,7 @@ public class Nut10Helper
         {
             if (proof.P2PkE is { } E)
             {
+                Console.WriteLine();
                 var blindWitness = p2pk.GenerateBlindWitness(proof, keys);
                 proof.Witness = JsonSerializer.Serialize(blindWitness);
                 return;
@@ -75,4 +78,8 @@ public class Nut10Helper
             proof.Witness = JsonSerializer.Serialize(proofWitness);
         }
     }
+
+    
+
+    
 }

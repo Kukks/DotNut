@@ -63,6 +63,12 @@ class MintQuoteBuilder : IMintQuoteBuilder
         return this;
     }
 
+    public IMintQuoteBuilder WithPubkey(PubKey pubkey)
+    {
+        this._pubkey = pubkey.ToString();
+        return this;
+    }
+
     public IMintQuoteBuilder WithKeyset(KeysetId keysetId)
     {
         this._keysetId = keysetId;
@@ -148,6 +154,9 @@ class MintQuoteBuilder : IMintQuoteBuilder
             throw new ArgumentNullException(nameof(_pubkey), "Can't request bolt12 mint quote without pubkey!");
         }
             
+        this._keysetId ??= await this._wallet.GetActiveKeysetId(this._unit, ct) ??
+                           throw new ArgumentException($"Can't get active keyset ID for unit: {_unit}");
+        
         if (this._keyset == null)
         {
             this._keyset = await this._wallet.GetKeys(this._keysetId, false, ct) ??

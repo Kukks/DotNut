@@ -19,6 +19,17 @@ public interface IMintQuoteBuilder
     IMintQuoteBuilder WithAmount(ulong amount);
 
     /// <summary>
+    /// Optional for bolt11 and mandatory for bolt12. 
+    /// </summary>
+    /// <param name="pubkey"></param>
+    /// <returns></returns>
+    IMintQuoteBuilder WithPubkey(string pubkey);
+    /// <summary>
+    /// Optional for bolt11 and mandatory for bolt12. 
+    /// </summary>
+    IMintQuoteBuilder WithPubkey(PubKey pubkey);
+    
+    /// <summary>
     /// Optional. Provide precomputed outputs so blinding factors and secrets are reused safely.
     /// </summary>
     IMintQuoteBuilder WithOutputs(List<OutputData> outputs);

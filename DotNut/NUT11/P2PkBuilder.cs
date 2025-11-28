@@ -144,7 +144,6 @@ public class P2PkBuilder
     {
         var pubkeys = RefundPubkeys != null ? Pubkeys.Concat(RefundPubkeys).ToArray() : Pubkeys;
         var rs = new List<ECPrivKey>();
-
         for (int i = 0; i < pubkeys.Length; i++)
         {
             var Zx = Cashu.ComputeZx(p2pke, pubkeys[i]);

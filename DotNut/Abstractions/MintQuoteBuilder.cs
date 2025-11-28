@@ -17,7 +17,6 @@ class MintQuoteBuilder : IMintQuoteBuilder
     private string _unit = "sat";
     private string? _description;
     private List<OutputData>? _outputs;
-    private string? _method = "bolt11";
 
     private string? _pubkey;
 
@@ -31,18 +30,6 @@ class MintQuoteBuilder : IMintQuoteBuilder
     public MintQuoteBuilder(Wallet wallet)
     {
         this._wallet = wallet;
-    }
-
-    /// <summary>
-    /// Mandatory.
-    /// User has to provide Mint method
-    /// </summary>
-    /// <param name="method">Either MintMeltMethod.Bolt11 or MintMeltMethod.Bolt12</param>
-    /// <returns></returns>
-    public IMintQuoteBuilder WithMethod(string method)
-    {
-        this._method = method;
-        return this;
     }
 
     public IMintQuoteBuilder WithAmount(ulong amount)

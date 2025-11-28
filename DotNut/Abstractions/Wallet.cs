@@ -178,20 +178,12 @@ public class Wallet : IWalletBuilder
      * Public Mint utils
      */
     
-    /// <summary>
-    /// Set Last sync date to DateTime.MinValue - keysets will be synced before next operation
-    /// </summary>
     public void InvalidateCache()
     {
         _lastSync = DateTime.MinValue;
     }
 
-    /// <summary>
-    /// Get active keyset id for chosen unit.
-    /// </summary>
-    /// <param name="unit">keyset unit, e.g. sat</param>
-    /// <param name="ct"></param>
-    /// <returns>Active keysetId</returns>
+    
     public async Task<KeysetId?> GetActiveKeysetId(string unit, CancellationToken ct = default)
     {
         await _maybeSyncKeys(ct);
@@ -201,10 +193,7 @@ public class Wallet : IWalletBuilder
             ?.Id;
     }
 
-    /// <summary>
-    /// Get active keyset ids for each unit
-    /// </summary>
-    /// <returns>Dictionary of (unit, KeysetId) </returns>
+   
     public async Task<IDictionary<string, KeysetId>?> GetActiveKeysetIdsWithUnits(CancellationToken ct = default)
     {
         await _maybeSyncKeys(ct);
@@ -216,12 +205,6 @@ public class Wallet : IWalletBuilder
             );
     }
     
-    /// <summary>
-    /// Get keys of current mint stored in wallet.
-    /// </summary>
-    /// <param name="forceRefresh">Refetch flag</param>
-    /// <param name="ct"></param>
-    /// <returns>Mints keys</returns>
     public async Task<List<GetKeysResponse.KeysetItemResponse>> GetKeys(bool forceRefresh = false, CancellationToken ct = default)
     {
         if (forceRefresh)
@@ -233,14 +216,6 @@ public class Wallet : IWalletBuilder
         return this._keys ?? [];
     }
 
-   /// <summary>
-   /// Get Keys for given KeysetID
-   /// </summary>
-   /// <param name="id">KeysetId</param>
-   /// <param name="forceRefresh">Refetch flag</param>
-   /// <param name="ct"></param>
-   /// <returns>Keys for given keyset</returns>
-   /// <exception cref="ArgumentNullException">If wallet doesn't contain keysets for given keysetId</exception>
     public async Task<GetKeysResponse.KeysetItemResponse> GetKeys(KeysetId id, bool forceRefresh = false, CancellationToken ct = default)
     {
         if (forceRefresh)
@@ -253,13 +228,7 @@ public class Wallet : IWalletBuilder
         }
         return this._keys.Single(k => k.Id == id);
     }
-   
-   /// <summary>
-   /// Get Keysets stored in wallet
-   /// </summary>
-   /// <param name="forceRefresh">Refetch flag</param>
-   /// <param name="ct"></param>
-   /// <returns>List of Keysets</returns>
+    
     public async Task<List<GetKeysetsResponse.KeysetItemResponse>> GetKeysets(bool forceRefresh = false, CancellationToken ct = default)
     {
         if (forceRefresh)
@@ -271,12 +240,7 @@ public class Wallet : IWalletBuilder
         return _keysets ?? [];
     }
    
-   /// <summary>
-   /// Get Mints info, supported methods etc. 
-   /// </summary>
-   /// <param name="forceReferesh">Refetch flag</param>
-   /// <param name="ct"></param>
-   /// <returns>MintInfo object</returns>
+
     public async Task<MintInfo> GetInfo(bool forceReferesh = false, CancellationToken ct = default)
     {
         if (forceReferesh)
@@ -285,16 +249,7 @@ public class Wallet : IWalletBuilder
         }
         return await _lazyFetchMintInfo(ct);
     }
-   
-   /// <summary>
-   /// Create Outputs (BlindedMessags, Blinding Factors, Secrets), for given keysetId.
-   /// Deterministic if Mnemonic and Counter set up.
-   /// </summary>
-   /// <param name="amounts">List of amounts in Outputs.</param>
-   /// <param name="id">Keyset ID</param>
-   /// <param name="ct"></param>
-   /// <returns>Outputs</returns>
-   /// <exception cref="ArgumentNullException">If keys not set. If Mnemonic set, but no Counter.</exception>
+    
     public async Task<List<OutputData>> CreateOutputs(List<ulong> amounts, KeysetId id, CancellationToken ct = default)
     {
         await _maybeSyncKeys(ct);
@@ -321,14 +276,6 @@ public class Wallet : IWalletBuilder
         return Utils.CreateOutputs(amounts, id, keyset.Keys, this._mnemonic, counterValue);
     }
    
-    /// <summary>
-    /// Create Outputs for active KeysetId for given unit.
-    /// </summary>
-    /// <param name="amounts">List of amounts.</param>
-    /// <param name="unit"></param>
-    /// <param name="ct"></param>
-    /// <returns>Outputs</returns>
-    /// <exception cref="ArgumentNullException">If no keysetID stored in wallet.</exception>
     public async Task<List<OutputData>> CreateOutputs(List<ulong> amounts, string unit, CancellationToken ct = default)
     {
         var keysetId = await this.GetActiveKeysetId(unit, ct);

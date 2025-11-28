@@ -36,7 +36,7 @@ public static class Nut13
             {
                 BlindedMessage =  new BlindedMessage()
                 {
-                    Amount = amountList.ElementAt(i),
+                    Amount = amountList[i],
                     Id = keysetId,
                     B_ = B_
                 },

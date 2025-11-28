@@ -31,7 +31,7 @@ public class SwapInfo
         public class SwapOptions
         {
             [JsonPropertyName("description")]
-            public bool? Description;
+            public bool? Description {get; set;}
         }
     }
 }

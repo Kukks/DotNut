@@ -29,12 +29,12 @@ public class WebsocketConnection
 
     public static bool operator ==(WebsocketConnection? left, WebsocketConnection? right)
     {
-        return Equals(left, right);
+        return object.Equals(left, right);
     }
 
     public static bool operator !=(WebsocketConnection? left, WebsocketConnection? right)
     {
-        return !Equals(left, right);
+        return !object.Equals(left, right);
     }
 }
 

@@ -566,7 +566,7 @@ public class UnitTests2
     }
 
     [Fact]
-    public async Task Counter_ThrowsOnMissingKeysetId()
+    public async Task Counter_ReturnsZeroForUnknownKeysetId()
     {
         var counter = new InMemoryCounter();
         var unknownKeysetId = new KeysetId("00unknown1234567");

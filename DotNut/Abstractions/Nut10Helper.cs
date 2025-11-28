@@ -69,7 +69,6 @@ public static class Nut10Helper
         {
             if (proof.P2PkE is { } E)
             {
-                Console.WriteLine();
                 var blindWitness = p2pk.GenerateBlindWitness(proof, keys);
                 proof.Witness = JsonSerializer.Serialize(blindWitness);
                 return;

@@ -5,6 +5,9 @@ namespace DotNut.Abstractions;
 
 public interface IWebsocketService : IAsyncDisposable
 {
+    /// <summary>
+    /// Raised when a connection's state changes. Handlers should be thread-safe.
+    /// </summary>
     event EventHandler<ConnectionStateChangedEventArgs>? ConnectionStateChanged;
 
     Task<WebsocketConnection> LazyConnectAsync(string mintUrl, CancellationToken ct = default);

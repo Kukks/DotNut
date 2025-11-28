@@ -39,7 +39,7 @@ public static class Utils
     /// <param name="keysetId">Active keyset id which will sign outputs</param>
     /// <param name="keys">Keys for given KeysetId</param>
     /// <returns>Blank Outputs</returns>
-    public static List<OutputData> CreateBlankOutputs(ulong amount, KeysetId keysetId, Keyset keys, DotNut.NBitcoin.BIP39.Mnemonic? mnemonic = null, int? counter = null)
+    public static List<OutputData> CreateBlankOutputs(ulong amount, KeysetId keysetId, Keyset keys, NBitcoin.BIP39.Mnemonic? mnemonic = null, int? counter = null)
     {
         if (amount == 0)
         {
@@ -117,7 +117,7 @@ public static class Utils
         {
             var secret = RandomSecret();
             var r = RandomPrivkey();
-            var B_ = DotNut.Cashu.ComputeB_(secret.ToCurve(), r);
+            var B_ = Cashu.ComputeB_(secret.ToCurve(), r);
             var output = new OutputData
             {
                 BlindedMessage = new BlindedMessage { Amount = amount, B_ = B_, Id = keysetId },
@@ -238,7 +238,7 @@ public static class Utils
     public static Proof ConstructProofFromPromise(
         BlindSignature promise,
         PrivKey r,
-        DotNut.ISecret secret,
+        ISecret secret,
         PubKey amountPubkey,
         PubKey? P2PkE = null)
     {
@@ -246,9 +246,10 @@ public static class Utils
         //unblind signature
         var C = Cashu.ComputeC(promise.C_, r, amountPubkey);
 
+        DLEQProof? dleq = null;
         if (promise.DLEQ is not null)
         {
-            promise.DLEQ = new DLEQProof
+            dleq = new DLEQProof
             {
                 E = promise.DLEQ.E,
                 S = promise.DLEQ.S,
@@ -262,7 +263,7 @@ public static class Utils
             Amount = promise.Amount,
             Secret = secret,
             C = C,
-            DLEQ = promise.DLEQ,
+            DLEQ = dleq,
             P2PkE = P2PkE
         };
     }
@@ -274,9 +275,9 @@ public static class Utils
         )
     {
         List<Proof> proofs = new List<Proof>();
-        for (int i = promises.Count() - 1; i >= 0; i--)
+        for (int i = 0; i < promises.Count; i++)
         {
-            if (!keys.TryGetValue(promises[i].Amount, out PubKey key))
+            if (!keys.TryGetValue(promises[i].Amount, out var key))
             {
                 throw new ArgumentException($"Provided keyset doesn't contain PubKey for amount {promises[i].Amount}" );
             }

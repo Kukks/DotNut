@@ -115,7 +115,7 @@ class SwapBuilder : ISwapBuilder
     // P2Bk should be compatible with both p2pk and HTLC. Not implemented in the second one 
     public ISwapBuilder BlindPubkeys(bool withBlinding = true)
     {
-        this._shouldBlind = true;
+        this._shouldBlind = withBlinding;
         return this;
     }
     
@@ -136,13 +136,15 @@ class SwapBuilder : ISwapBuilder
                         throw new InvalidOperationException("Could not fetch Keyset ID");
         }
         var keys = await _wallet.GetKeys(false, ct);
-        var keysForCurrentId = keys.Single(k=>k.Id == _keysetId);
+        var keysForCurrentId = keys.SingleOrDefault(k => k.Id == _keysetId) 
+            ?? throw new InvalidOperationException($"Keys for id: {_keysetId} not found in wallet keys");
         
         if (_verifyDLEQ)
         {
             foreach (var proof in swapInputs!)
             {
-               var keyset = keys.Single(k => k.Id == proof.Id);
+               var keyset = keys.SingleOrDefault(k => k.Id == proof.Id)
+                            ?? throw new InvalidOperationException($"Keyset with ID {proof.Id} not found for proof verification.");
                if (!keyset.Keys.TryGetValue(proof.Amount, out var key))
                {
                    throw new InvalidOperationException($"Can't find key for amount {proof.Amount} in keyset {keyset.Id}");
@@ -187,33 +189,20 @@ class SwapBuilder : ISwapBuilder
     private List<Proof> _getSwapProofs(CancellationToken ct = default)
     {
         _proofsToSwap ??= new();
+        
         if (_tokenString != null)
-        {
+        { 
             var token = CashuTokenHelper.Decode(this._tokenString, out var v);
-            if (v == "A")
-            {
-                var mints = token.Tokens.Select(t => t.Mint).ToList();
-                if (mints.Count > 1)
-                {
-                    throw new ArgumentException("Only swap from single mint is allowed");
-                }
-                
-            }
+            ValidateSingleMint(token);
             this._proofsToSwap.AddRange(token.Tokens.SelectMany(t=>t.Proofs));
         }
 
-        if (_token == null)
+        if (_token != null)
         {
-            return _proofsToSwap;
+            ValidateSingleMint(_token);
+            this._proofsToSwap.AddRange(_token.Tokens.SelectMany(t=>t.Proofs));
         }
         
-        //if token is v1, ensure everything is from the same mint 
-        var tokenMints = _token.Tokens.Select(t => t.Mint).ToList();
-        if (tokenMints.Count > 1)
-        {
-            throw new ArgumentException("Only swap from single mint is allowed");
-        }
-        this._proofsToSwap.AddRange(_token.Tokens.SelectMany(t=>t.Proofs));
         
         return _proofsToSwap;
     }
@@ -224,7 +213,7 @@ class SwapBuilder : ISwapBuilder
         {
             if (this._builder is not null)
             {
-                throw new ArgumentException("Can't create p2pk outputs if outputs provided. Remove either p2pk builder parameter or outputs.");
+                throw new ArgumentException("Can't create nut10 outputs by builder if outputs provided. Remove either p2pk builder parameter or outputs.");
             }
             return this._outputs;
         }
@@ -272,15 +261,15 @@ class SwapBuilder : ISwapBuilder
     {
         if (_amounts != null)
         {
-            var sum = _amounts.Sum();
+            var sum = checked(_amounts.Aggregate(0UL, (acc, val) => acc + val));
             
-            if (sum + fee == total)
+            if (checked(sum + fee) == total)
             {
                 return _amounts;
             }
             if (sum + fee < total)
             {
-                var underpay = total - fee - sum;
+                var underpay = checked(total - fee - sum);
                 this._amounts.AddRange(Utils.SplitToProofsAmounts(underpay, keys));
                 return this._amounts;
             }
@@ -288,8 +277,17 @@ class SwapBuilder : ISwapBuilder
             throw new ArgumentException($"Invalid amounts requested. Sum of amounts: {sum}, total input: {total}, fee:{fee}.");
         }
 
-        this._amounts = Utils.SplitToProofsAmounts(total - fee, keys);
+        this._amounts = Utils.SplitToProofsAmounts(checked(total - fee), keys);
         return this._amounts;
+    }
+
+    private static void ValidateSingleMint(CashuToken token)
+    {
+        var distinctMints = token.Tokens.Select(t => t.Mint).Distinct().ToList();
+        if (distinctMints.Count > 1)
+        {
+            throw new ArgumentException("Only swap from single mint is allowed");
+        }
     }
 
 }

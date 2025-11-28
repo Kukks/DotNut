@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace DotNut.ApiModels.Info;
 
-public class MmpInfo
+public class MPPInfo
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     [JsonPropertyName("methods")]

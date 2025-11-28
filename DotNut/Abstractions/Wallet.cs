@@ -26,7 +26,7 @@ public class Wallet : IWalletBuilder
     //flags 
     private bool _shouldSyncKeyset = true;
     private DateTime? _lastSync = DateTime.MinValue;
-    private TimeSpan? _syncThresold; // if null sync only once 
+    private TimeSpan? _syncThreshold; // if null sync only once 
     
     private bool _shouldBumpCounter = true;
     private bool _allowInvalidKeysetIds = false;
@@ -80,10 +80,10 @@ public class Wallet : IWalletBuilder
         return this;
     }
 
-    public IWalletBuilder WithKeysetSync(bool syncKeyset, TimeSpan syncThreesold)
+    public IWalletBuilder WithKeysetSync(bool syncKeyset, TimeSpan syncThreshold)
     {
         this._shouldSyncKeyset = syncKeyset;
-        this._syncThresold = syncThreesold;
+        this._syncThreshold = syncThreshold;
         return this;
     }
     
@@ -192,12 +192,20 @@ public class Wallet : IWalletBuilder
             .FirstOrDefault(k => k is { Active: true } && k.Unit == unit, null)
             ?.Id;
     }
-
-   
-    public async Task<IDictionary<string, KeysetId>?> GetActiveKeysetIdsWithUnits(CancellationToken ct = default)
+    public async Task<Dictionary<string, List<KeysetId>>?> GetKeysetIdsWithUnits(CancellationToken ct = default)
     {
         await _maybeSyncKeys(ct);
         return _keysets?
+            .GroupBy(k => k.Unit)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderBy(k => k.InputFee).Select(k => k.Id).ToList()
+            );
+    }
+    public async Task<IDictionary<string, KeysetId>?> GetActiveKeysetIdsWithUnits(CancellationToken ct = default)
+    {
+        await _maybeSyncKeys(ct);
+        return _keysets?.Where(k=>k.Active)
             .GroupBy(k => k.Unit)
             .ToDictionary(
                 g => g.Key,
@@ -226,7 +234,9 @@ public class Wallet : IWalletBuilder
         {
             throw new ArgumentNullException(nameof(this._keys), "Wallet doesn't contain keys for this keyset!");
         }
-        return this._keys.Single(k => k.Id == id);
+
+        return this._keys.SingleOrDefault(k => k.Id == id)
+               ?? throw new InvalidOperationException($"Keys for keyset ID {id} not found in wallet");
     }
     
     public async Task<List<GetKeysetsResponse.KeysetItemResponse>> GetKeysets(bool forceRefresh = false, CancellationToken ct = default)
@@ -241,9 +251,9 @@ public class Wallet : IWalletBuilder
     }
    
 
-    public async Task<MintInfo> GetInfo(bool forceReferesh = false, CancellationToken ct = default)
+    public async Task<MintInfo> GetInfo(bool forceRefresh = false, CancellationToken ct = default)
     {
-        if (forceReferesh)
+        if (forceRefresh)
         {
             return await _fetchMintInfo(ct);
         }
@@ -303,7 +313,7 @@ public class Wallet : IWalletBuilder
         _ensureApiConnected();
         return _mintApi;
     }
-    public async Task<IProofSelector>? GetSelector(CancellationToken ct = default)
+    public async Task<IProofSelector> GetSelector(CancellationToken ct = default)
     {
         if (this._selector == null)
         {
@@ -433,12 +443,12 @@ public class Wallet : IWalletBuilder
             return;
         }
         // should sync keysets SINGLE time in the lifespan of object. If already synced - return;
-        if (_syncThresold == null && _lastSync != DateTime.MinValue)
+        if (_syncThreshold == null && _lastSync != DateTime.MinValue)
         { 
             return;
         }
         // should sync keysets in some timepsan 
-        if (_syncThresold != null && _lastSync + _syncThresold >= DateTime.Now)
+        if (_syncThreshold != null && _lastSync + _syncThreshold >= DateTime.UtcNow)
         {
             return;
         }
@@ -462,10 +472,11 @@ public class Wallet : IWalletBuilder
         foreach (var unknownKeyset in unknownKeysets)
         {
             var keyset = await this._fetchKeys(unknownKeyset.Id, cts); 
+            _lastSync = DateTime.UtcNow;
             this._keys.Add(keyset);
         }
         
-        _lastSync = DateTime.Now;
+        _lastSync = DateTime.UtcNow;
     }
 
 }

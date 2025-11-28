@@ -1,8 +1,5 @@
-using System.Security.Cryptography;
 using System.Text;
-using System.Text.Encodings.Web;
 using System.Text.Json;
-using DotNut;
 using NBitcoin.Secp256k1;
 
 namespace DotNut;
@@ -16,14 +13,15 @@ public class SigAllHandler
     public string? HTLCPreimage { get; set; }
     public string? MeltQuoteId { get; set; }
     
-    private P2PKProofSecret? _firstProofSecret; 
+    private Nut10ProofSecret? _firstProofSecret; 
     
     
     public bool TrySign(out P2PKWitness? p2pkwitness)
     {
         p2pkwitness = null;
         
-        if (BlindedMessages.Count == 0 || Proofs.Count == 0)
+        if ( BlindedMessages is null || Proofs is null || PrivKeys is null ||
+            BlindedMessages.Count == 0 || Proofs.Count == 0 || PrivKeys.Count == 0)
         {
             return false;
         }
@@ -32,14 +30,24 @@ public class SigAllHandler
         try
         {
             var msgStr = GetMessageToSign(Proofs.ToArray(), BlindedMessages.ToArray(), MeltQuoteId);
+            if (!ValidateFirstProof(Proofs[0], out var sec) || sec is null)
+            {
+                return false;
+            }
+            _firstProofSecret = sec;
             msg = Encoding.UTF8.GetBytes(msgStr);
         }
-        catch (Exception _)
+        catch (ArgumentException)
         {
             return false;
         }
         
-        if (_firstProofSecret is HTLCProofSecret s && HTLCPreimage is {} preimage)
+        if (_firstProofSecret is not P2PKProofSecret ps)
+        {
+            return false;
+        }
+        
+        if (ps is HTLCProofSecret s && HTLCPreimage is {} preimage)
         {
             if (Proofs.First().P2PkE is { } E)
             {
@@ -58,43 +66,49 @@ public class SigAllHandler
             return true;
         }
 
+        
         if (Proofs.First().P2PkE is { } e2)
         {
-            p2pkwitness = _firstProofSecret!.GenerateBlindWitness(msg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray(), Proofs[0].Id, e2);
+            p2pkwitness = ps.GenerateBlindWitness(msg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray(), Proofs[0].Id, e2);
             return true;
         }
-        p2pkwitness = _firstProofSecret!.GenerateWitness(msg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray());
+        p2pkwitness = ps.GenerateWitness(msg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray());
         return true;
     }
 
     public static string GetMessageToSign(Proof[] inputs, BlindedMessage[] outputs, string? meltQuoteId = null)
     {
+        if (inputs is null || inputs.Length == 0)
+        {
+            throw new ArgumentException("At least one proof is required for SIG_ALL.", nameof(inputs));
+        }
+        if (outputs is null || outputs.Length == 0)
+        {
+            throw new ArgumentException("At least one blinded output is required for SIG_ALL.", nameof(outputs));
+        }
         if (!ValidateFirstProof(inputs[0], out var firstSecret))
         {
             throw new ArgumentException("Provided first proof is invalid");
         }
         var msg = new StringBuilder();
         
-        if (inputs.Length > 0)
+        for (var i = 0; i < inputs.Length; i++)
         {
-            for (var i = 0; i < inputs.Length; i++)
-            {
-                var p = inputs[i];
+            var p = inputs[i];
 
-                if (p.Secret is not Nut10Secret nut10)
-                {
-                    throw new ArgumentException($"When signing sig_all, every proof must be sig_all.");
-                }
-                
-                if (!CheckIfEqualToFirst(firstSecret, nut10.ProofSecret))
-                {
-                    throw new ArgumentException($"When signing sig_all, every proof must have identical tags and data.");
-                }
-                // serialize as raw object
-                var secret = JsonSerializer.Serialize((object)p.Secret);
-                msg.Append(secret);
-                msg.Append(p.C);
+            if (p.Secret is not Nut10Secret nut10)
+            {
+                throw new ArgumentException("When signing sig_all, every proof must be a nut 10 secret.");
             }
+                
+            if (!CheckIfEqualToFirst(firstSecret, nut10.ProofSecret))
+            {
+                throw new ArgumentException("When signing sig_all, every proof must have identical tags and data.");
+            }
+            // serialize as raw object
+            var secret = JsonSerializer.Serialize((object)p.Secret);
+            msg.Append(secret);
+            msg.Append(p.C);
         }
 
         foreach (var b in outputs)
@@ -116,8 +130,10 @@ public class SigAllHandler
         P2PKWitness witness,
         string? meltQuoteId = null)
     {
-        if (proofs[0].Secret is Nut10Secret nut10_3)
-            Console.WriteLine($"CP3 ProofSecret: {nut10_3.ProofSecret.GetType()}");
+        if (proofs is null || proofs.Length == 0)
+        {
+            return false;
+        }
         byte[] msg;
         try
         {
@@ -129,7 +145,6 @@ public class SigAllHandler
         }
         catch(Exception ex)
         {
-            Console.WriteLine(ex.Message);
             return false;
         }
         
@@ -146,6 +161,10 @@ public class SigAllHandler
 
     public static bool VerifySigAllWitness(Proof[] proofs, BlindedMessage[] blindedMessages, string? meltQuoteId = null)
     {
+        if (proofs is null || proofs.Length == 0)
+        {
+            return false;
+        }
         var firstProof = proofs.FirstOrDefault();
         if (firstProof?.Secret is not Nut10Secret { ProofSecret: var proofSecret } || firstProof.Witness is null)
             return false;
@@ -170,7 +189,7 @@ public class SigAllHandler
         return witness is not null && VerifySigAllWitness(proofs, blindedMessages, witness, meltQuoteId);
     }
     
-    private static bool ValidateFirstProof(Proof firstProof, out Nut10ProofSecret secret)
+    private static bool ValidateFirstProof(Proof firstProof, out Nut10ProofSecret? secret)
     {
         secret = null;
         
@@ -199,6 +218,8 @@ public class SigAllHandler
     private static bool CheckIfEqualToFirst(Nut10ProofSecret first, Nut10ProofSecret other) =>
         first is { } a && other is { } b &&
         a.Data == b.Data &&
-        ((a.Tags == null && b.Tags == null) ||
-         (a.Tags != null && b.Tags != null && a.Tags.SequenceEqual(b.Tags)));
+        ((a.Tags == null && b.Tags == null) || 
+         (a.Tags != null && b.Tags != null && 
+          a.Tags.Length == b.Tags.Length && 
+          a.Tags.Zip(b.Tags).All(pair => pair.First.SequenceEqual(pair.Second))));
 }

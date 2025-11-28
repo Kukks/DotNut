@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -48,7 +47,7 @@ public class WebsocketService : IWebsocketService
         _connections[normalized] = connection;
         OnConnectionStateChanged(connectionId, WebSocketState.Open);
         
-        _ = Task.Run(async () => await ListenForMessages(connection, ct), ct);
+        _ = Task.Run(async () => await ListenForMessages(connection, CancellationToken.None));
              
         return connection;
     }
@@ -59,7 +58,7 @@ public class WebsocketService : IWebsocketService
         
         if (_connections.TryGetValue(normalized, out var existing))
         {
-            if (existing.State == WebSocketState.Open)
+            if (existing is { State: WebSocketState.Open, WebSocket.State: WebSocketState.Open })
             {
                 return existing;
             }
@@ -93,6 +92,7 @@ public class WebsocketService : IWebsocketService
         }
         finally
         {
+            connection.State = WebSocketState.Closed;
             connection.WebSocket.Dispose();
             _connections.TryRemove(normalized, out _);
             
@@ -172,7 +172,19 @@ public class WebsocketService : IWebsocketService
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             cts.CancelAfter(TimeSpan.FromSeconds(30));
             
-            var result = await tcs.Task.ConfigureAwait(false);
+            var completedTask = await Task.WhenAny(
+                    tcs.Task, 
+                    Task.Delay(Timeout.Infinite, cts.Token)
+                ).ConfigureAwait(false);
+            
+            if (completedTask != tcs.Task)
+            {
+                _subscriptions.TryRemove(subId, out _);
+                await subscription.CloseAsync();
+                throw new TimeoutException("Subscription request timed out");
+            }
+            
+            var result = await tcs.Task;
             
             if (result is RequestResult.Failure failure)
             {
@@ -230,6 +242,16 @@ public class WebsocketService : IWebsocketService
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             cts.CancelAfter(TimeSpan.FromSeconds(30));
             
+            var completed = await Task.WhenAny(
+                tcs.Task,
+                Task.Delay(Timeout.Infinite, cts.Token)
+                ).ConfigureAwait(false);
+
+            if (completed != tcs.Task)
+            {
+                throw new TimeoutException("Unsubscribe request timed out");
+            }
+
             await tcs.Task.ConfigureAwait(false);
         }
         finally
@@ -285,6 +307,7 @@ public class WebsocketService : IWebsocketService
     private async Task ListenForMessages(WebsocketConnection connection, CancellationToken ct)
     {
         var buffer = new byte[4096];
+        var messageBuffer = new MemoryStream();
              
         try
         {
@@ -301,8 +324,13 @@ public class WebsocketService : IWebsocketService
                      
                 if (result.MessageType == WebSocketMessageType.Text)
                 {
-                    var message = Encoding.UTF8.GetString(buffer, 0, result.Count); 
-                    _processMessage(connection, message);
+                    messageBuffer.Write(buffer, 0, result.Count);
+                    if (result.EndOfMessage)
+                    {
+                        var message = Encoding.UTF8.GetString(messageBuffer.ToArray());
+                        messageBuffer.SetLength(0);
+                        _processMessage(connection, message);
+                    }                    
                 }
             }
         }
@@ -324,7 +352,11 @@ public class WebsocketService : IWebsocketService
                 
             foreach (var sub in subscriptionsToClose)
             {
-                sub.CloseAsync();
+                try
+                {
+                    await sub.CloseAsync();
+                } catch {}
+                _subscriptions.TryRemove(sub.Id, out _);
             }
         }
     }

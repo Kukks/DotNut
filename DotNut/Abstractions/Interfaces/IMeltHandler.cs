@@ -4,6 +4,6 @@ public interface IMeltHandler;
 
 public interface IMeltHandler<TQuote, TResponse>: IMeltHandler
 {
-    Task<TQuote> GetQuote(CancellationToken ct = default);
+    TQuote GetQuote();
     Task<TResponse> Melt(List<Proof> inputs, CancellationToken ct = default);
 }

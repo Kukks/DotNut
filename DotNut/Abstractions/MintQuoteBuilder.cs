@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-using System.Reflection.Metadata;
 using System.Security.Cryptography;
 using DotNut.Abstractions.Handlers;
 using DotNut.Api;
@@ -101,7 +99,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
         await this._wallet._maybeSyncKeys(ct);
         if (_amount == null)
         {
-            throw new ArgumentNullException(nameof(_amount), "can't create melt quote without amount!");
+            throw new ArgumentNullException(nameof(_amount), "can't create mint quote without amount!");
         }
 
         var api = await this._wallet.GetMintApi();
@@ -124,7 +122,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
             Amount = this._amount.Value,
             Unit = this._unit,
             Description = this._description,
-            Pubkey = this._pubkey??null,
+            Pubkey = this._pubkey,
         };
         var quoteBolt11 =
             await api.CreateMintQuote<PostMintQuoteBolt11Response, PostMintQuoteBolt11Request>("bolt11", reqBolt11,
@@ -136,9 +134,21 @@ class MintQuoteBuilder : IMintQuoteBuilder
         CancellationToken ct = default)
     {
         await this._wallet._maybeSyncKeys(ct);
+        
+        var api = await this._wallet.GetMintApi();
+        if (api is null)
+        {
+            throw new ArgumentNullException(nameof(ICashuApi), "Can't request mint quote without mint API");
+        }
+        
         if (this._pubkey == null)
         {
             throw new ArgumentNullException(nameof(_pubkey), "Can't request bolt12 mint quote without pubkey!");
+        }
+        if (this._amount == null)
+        {
+            throw new ArgumentNullException(nameof(_amount), "Can't create bolt12 mint quote without amount!");
+            
         }
             
         this._keysetId ??= await this._wallet.GetActiveKeysetId(this._unit, ct) ??
@@ -160,10 +170,8 @@ class MintQuoteBuilder : IMintQuoteBuilder
             Pubkey = this._pubkey,
             Description = this._description,
         };
-        var mintQuote =
-            await (await _wallet.GetMintApi())
-                .CreateMintQuote<PostMintQuoteBolt12Response, PostMintQuoteBolt12Request>("bolt12", req,
-                    ct);
+        var mintQuote = await api.CreateMintQuote<PostMintQuoteBolt12Response, PostMintQuoteBolt12Request>(
+            "bolt12", req, ct);
         return new MintHandlerBolt12(this._wallet, mintQuote, this._keyset, outputs);
 
     }

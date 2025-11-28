@@ -109,6 +109,6 @@ public abstract record RequestResult
 
 internal class PendingRequest
 {
-    public TaskCompletionSource<RequestResult> Tcs { get; set; }
-    public string SubscriptionId { get; set; }
+    public required TaskCompletionSource<RequestResult> Tcs { get; set; }
+    public required string SubscriptionId { get; set; }
 }

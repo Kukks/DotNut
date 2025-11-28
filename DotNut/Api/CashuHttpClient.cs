@@ -12,6 +12,7 @@ public class CashuHttpClient : ICashuApi
     
     public CashuHttpClient(HttpClient httpClient)
     {
+        ArgumentNullException.ThrowIfNull(httpClient);
         ArgumentNullException.ThrowIfNull(httpClient.BaseAddress);
         _httpClient = httpClient;
     }

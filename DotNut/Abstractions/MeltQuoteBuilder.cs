@@ -14,8 +14,6 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
     
     private List<PrivKey>? _privKeys;
     private string? _htlcPreimage;
-
-    private Action<PostMintQuoteBolt11Response>? _callback;
     
     public MeltQuoteBuilder(Wallet wallet)
     {
@@ -51,12 +49,6 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
     public IMeltQuoteBuilder WithHTLCPreimage(string preimage)
     {
         this._htlcPreimage = preimage;
-        return this;
-    }
-
-    public IMeltQuoteBuilder OnQuoteStateChanged(Action<PostMintQuoteBolt11Response> callback)
-    {
-        this._callback = callback;
         return this;
     }
 

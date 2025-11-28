@@ -78,8 +78,4 @@ public static class Nut10Helper
             proof.Witness = JsonSerializer.Serialize(proofWitness);
         }
     }
-
-    
-
-    
 }

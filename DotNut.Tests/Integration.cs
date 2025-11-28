@@ -20,7 +20,16 @@ public class Integration
         {502, "lnbc5020n1p5j3nxasp5qz7utfrp954nxp8049tqzg0t23krdj59thfcrc2g5h6lsemzvyfqpp5ms6xd7grtak0nr8lwytsclmq3d233v7gy7j0kuw32txhjq0f8ngqhp5uwcvgs5clswpfxhm7nyfjmaeysn6us0yvjdexn9yjkv3k7zjhp2sxq9z0rgqcqpnrzjqg587a2yyuqeua9c3j8nw7wwpx709slwl5lzfs0t0vq3kdwemzp67rtwevqq95gqqyqqq5sgqqq9yzqq2q9qxpqysgqgpp0zsetj9fedvr0szpwjfw2weckygmjthhnfpp2cerjtrn8n0pxyvrtc00l0jwzkqhwedcvgqljtwx3a7qplqp43jlxe4mpmw5svlgqfwa9yy"},
         {999, "lnbc9990n1p5j3cf7sp575w4pw93kfrghl2gh68885v76gwjpzuv435t52q846cvx4w7yuvqpp5hdzvm3yf0r3vj99c7esmcv7zuj2fralf2twhl6s9xqcgr8g7nwyqhp5uwcvgs5clswpfxhm7nyfjmaeysn6us0yvjdexn9yjkv3k7zjhp2sxq9z0rgqcqpnrzjqt0mfswatysklf4z358sztscs5t0vdghmd5vfe9c9sa0gy6r5pdugrs7myqqvgqqqyqqqqqqqqqq86qq8s9qxpqysgq5wh9l4fy32ww4770mqm7yqvhwllaqyssvp335gjz6t59ca03gecyvdd9uv0ztrcm2uf2352wvwxcfh7yukucp4p6zu6ll867aj686wsqz0jlmt"},
         {1000, "lnbc10u1p5w6vggsp5gn5xhswgn5299w6elu2z0vzjxhf9hwd6pwjcgfwphaxunyu0dx6spp5a60trrhce2u6tzqjwjczem8rpdesgzkawcqg2xqaesz2kd50z4uqhp5uwcvgs5clswpfxhm7nyfjmaeysn6us0yvjdexn9yjkv3k7zjhp2sxq9z0rgqcqpnrzjqw22kc09xj0dm65ew5h5r003vtn72eyzchdgjag66l0yhwdudfmuzrwvesqq8qgqqgqqqqqqqqqqzhsq2q9qxpqysgq955gcfr95wwz0ehtnk3xraatkyhj88z44ku7yqutnwnt3gkh82jxehvdff7n2js2p54jgpvg6dmwmq8t9d8x05j63mqjrsr4cwd4lpcpnc39ru"},
+        {1150, "lnbc11500n1p5jnmr7sp5u0s2wpuqn4mp0axyzgmsxzf5v8sy3zmzz9a7jyq38luyx9cntazqpp57j3carehwt4tqthxz9z7ea80t0htklh4v6v96dtn4vxuu4kwsershp53mwsvrcmkv743nyfzjp5a5fqrg2yngda3apf7jf9rzsuwt82wt3sxq9z0rgqcqpnrzjqg587a2yyuqeua9c3j8nw7wwpx709slwl5lzfs0t0vq3kdwemzp67rtwevqq95gqqyqqq5sgqqq9yzqq2q9qxpqysgqe97nwd9q74ua0sl9877sdprjcuc6jpyy8c52azpz8au6ur8q3838c0a0upnahs8w3sec8kxh26m3v9rkgqej36652t3sa5t25svacdcq5qwwjp"},
         {2000, "lnbc20u1p5094fksp54vrdcymel5awhrpc0m6z4kvhhyvqlwkshkyt2wr6eyljkz8c798qpp59f2vc8td8tu62gtf4qfwzkrkxedsey7a5ajrd48a25z2kkwg407shp5nklhn663zgwcdnh7pe5jxt6td0cchhre6hxzdxrjdlfwtpq60f5sxq9z0rgqcqpnrzjqw0de9yc0j8n4hpgm269tm7qph4gwcyf5ys02uaapvpugrva87c7zr045uqq4jsqpsqqqqlgqqqqrcgq2q9qxpqysgq6g2pamgjumh6uw5k5rj2ket44wh8nfzs5gzyygl54hu5cefuxdhxp9h5mrg64rh07znktn9x9d5vg6fc0rw7m63x8rg4qk3kw6d8sycpywn48m"},
+    };
+
+    private static readonly Dictionary<int, string> bolt12Invoices = new()
+    {
+        {
+            1200,
+            "lno1zrxq8pjw7qjlm68mtp7e3yvxee4y5xrgjhhyf2fxhlphpckrvevh50u0qwumyhd9aa7p77jkp946nkphl2lutxa3e5zp8yx36pyycqas85txgqsre4qsrhyu2jqk5svgnwe5tng78r24dlwwglluetkdv4a5ppc3wanqqvlfkaqp5hhc6jl8eq0mau6wsdxevary7e0e3rpmma7plggygs7fr4e6dj8vflurnt7ajhgwxfu9hmqmf48wqd6tzuxmwdcgk9p6wspfqer0xj883lysflutn8qvudzakypdv8a7kqqsv0vcrt5w208yr5uzregj7whghy"
+        },
     };
     private static ICounter counter = new InMemoryCounter();
 
@@ -238,6 +247,49 @@ public class Integration
          Assert.NotEmpty(change);
      }
 
+     // [Fact]
+     // public async Task MeltsBolt12Successfully()
+     // {
+     //     var privkeyBob = new PrivKey(RandomNumberGenerator.GetBytes(32));
+     //     
+     //     // mint proofs
+     //     var wallet = Wallet
+     //         .Create()
+     //         .WithMint(MintUrl);
+     //
+     //     var mintQuote = await wallet
+     //         .CreateMintQuote()
+     //         .WithUnit("sat")
+     //         .WithAmount(1337)
+     //         .WithPubkey(privkeyBob.Key.CreatePubKey())
+     //         .ProcessAsyncBolt12();
+     //     
+     //     await Task.Delay(3000);
+     //     
+     //     mintQuote.SignWithPrivkey(privkeyBob);
+     //     var mintedProofs = await mintQuote.Mint();
+     //     Assert.NotEmpty(mintedProofs);
+     //
+     //     var Ids = mintedProofs.Select(proof => proof.Id).Count();
+     //     
+     //     Console.WriteLine($"amounts {Ids}");
+     //     // create melt quote
+     //     var meltQuote = await wallet
+     //         .CreateMeltQuote()
+     //         .WithInvoice(bolt12Invoices[1200])
+     //         .WithUnit("sat")
+     //         .ProcessAsyncBolt12();
+     //
+     //     // select proofs to send 
+     //     var q = await meltQuote.GetQuote();
+     //     var selectedProofs = await wallet.SelectProofsToSend(mintedProofs, q.Amount + (ulong)q.FeeReserve, true);
+     //     
+     //     //melt proofs 
+     //     var change = await meltQuote.Melt(selectedProofs.Send);
+     //     
+     //     Assert.NotEmpty(change);
+     // }
+
      [Fact]
      public async Task InvoiceWithDescription()
      {
@@ -454,6 +506,47 @@ public class Integration
         var change = await meltHandler.Melt(proofs);
         
         Assert.NotEmpty(change);
+     }
+
+     [Fact]
+     public async Task MintMeltHTLCP2Bk()
+     {
+         var wallet = Wallet
+             .Create()
+             .WithMint(MintUrl);
+         
+         var privKeyBob = new PrivKey(RandomNumberGenerator.GetHexString(64, true));
+         var preimage = new string('0', 63) + "1";
+         
+         var builder = new HTLCBuilder()
+         {
+             Pubkeys = [privKeyBob.Key.CreatePubKey()],
+             HashLock = Convert.ToHexString(SHA256.HashData(Convert.FromHexString(preimage))),
+         };
+         
+         var quote = await wallet
+             .CreateMintQuote()
+             .WithAmount(1337)
+             .WithHTLCLock(builder)
+             .BlindPubkeys()
+             .ProcessAsyncBolt11();
+         
+         await PayInvoice();
+         var proofs = await quote.Mint();
+         
+         Assert.NotEmpty(proofs);
+         Assert.NotEmpty(proofs.Select(p=>p.P2PkE));
+         
+         var meltHandler = await wallet
+             .CreateMeltQuote()
+             .WithInvoice(valuesInvoices[1150])
+             .WithPrivKeys([privKeyBob])
+             .WithHTLCPreimage(preimage)
+             .ProcessAsyncBolt11();
+         
+         var change = await meltHandler.Melt(proofs);
+        
+         Assert.NotEmpty(change);
      }
 
      [Fact]

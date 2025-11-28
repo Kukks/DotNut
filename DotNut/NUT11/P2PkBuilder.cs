@@ -3,7 +3,7 @@ using NBitcoin.Secp256k1;
 
 namespace DotNut;
 
-public class P2PKBuilder
+public class P2PkBuilder
 {
     public DateTimeOffset? Lock { get; set; }
     public ECPubKey[]? RefundPubkeys { get; set; }
@@ -151,11 +151,11 @@ public class P2PKBuilder
             var Ri = Cashu.ComputeRi(Zx, i);
             rs.Add(Ri);
         }
-        _blindPubkeys(rs.ToArray());
+        BlindPubkeys(rs.ToArray());
         return Build();
     }
     
-    private void _blindPubkeys(ECPrivKey[] rs)
+    protected void BlindPubkeys(ECPrivKey[] rs)
     {
         var expectedLength = Pubkeys.Length + (RefundPubkeys?.Length ?? 0);
         if (expectedLength != rs.Length)

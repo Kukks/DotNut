@@ -75,7 +75,7 @@ public static class Utils
     
     
     /// <summary>
-    /// Creates outputs for swap/melt fee return. Outputs should have valid amounts. 
+    /// Creates outputs (secrets, proof messages and blinding factors). Outputs should have valid amounts. 
     /// </summary>
     /// <param name="amounts">Amounts for each output (e.g. [1,2,4,8]</param>
     /// <param name="keysetId">ID of keyset we want to receive the proofs</param>
@@ -129,6 +129,14 @@ public static class Utils
         return outputs;
     }
 
+    
+    /// <summary>
+    /// Create P2Pk / HTLC outputs.
+    /// </summary>
+    /// <param name="amount"></param>
+    /// <param name="keysetId"></param>
+    /// <param name="builder"></param>
+    /// <returns></returns>
     public static OutputData CreateNut10Output(
         ulong amount,
         KeysetId keysetId,
@@ -155,6 +163,13 @@ public static class Utils
             Secret = secret
         };
     }
+    /// <summary>
+    /// Creates P2Pk / HTLC Blinded Outputs
+    /// </summary>
+    /// <param name="amount"></param>
+    /// <param name="keysetId"></param>
+    /// <param name="builder"></param>
+    /// <returns></returns>
     public static OutputData CreateNut10BlindedOutput(ulong amount, KeysetId keysetId, P2PkBuilder builder)
     {
         // ugliest hack ever
@@ -181,6 +196,13 @@ public static class Utils
             P2BkE = E
         };
     }
+    /// <summary>
+    /// Creates P2Pk / HTLC Blinded Outputs with specified ephemeral sender keypair. 
+    /// </summary>
+    /// <param name="amount"></param>
+    /// <param name="keysetId"></param>
+    /// <param name="builder"></param>
+    /// <returns></returns>
     public static OutputData CreateNut10BlindedOutput(ulong amount, KeysetId keysetId, P2PkBuilder builder, PrivKey e)
     {
         // ugliest hack ever

@@ -82,7 +82,6 @@ public class HTLCBuilder : P2PkBuilder
     {
         var pubkeys = RefundPubkeys != null ? Pubkeys.Concat(RefundPubkeys).ToArray() : Pubkeys;
         var rs = new List<ECPrivKey>();
-        bool extraByte = false;
         
         var keysetIdBytes = keysetId.GetBytes();
 

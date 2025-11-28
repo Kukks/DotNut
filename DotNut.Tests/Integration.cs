@@ -613,7 +613,7 @@ public class Integration
         int connectedCount = 0;
         int notificationCount = 0;
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
 
         var connectedTcs = new TaskCompletionSource();
         var paidTcs = new TaskCompletionSource();

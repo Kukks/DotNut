@@ -96,7 +96,7 @@ public class Keyset : Dictionary<ulong, PubKey>
         var derived = GetKeysetId(version, unit, inputFeePpk, finalExpiration).ToString();
         var presented = keysetId.ToString();
         if (presented.Length > derived.Length) return false;
-        return string.Equals(derived, presented, StringComparison.Ordinal) ||
-               derived.StartsWith(presented, StringComparison.Ordinal);
+        return string.Equals(derived, presented, StringComparison.InvariantCultureIgnoreCase) ||
+               derived.StartsWith(presented, StringComparison.InvariantCultureIgnoreCase);
     }
 }

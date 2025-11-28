@@ -10,7 +10,7 @@ public class MeltHandlerBolt11(
     string? htlcPreimage = null)
     : IMeltHandler<PostMeltQuoteBolt11Response, List<Proof>>
 {
-    public async Task<PostMeltQuoteBolt11Response> GetQuote(CancellationToken ct = default) => quote;
+    public PostMeltQuoteBolt11Response GetQuote() => quote;
     public async Task<List<Proof>> Melt(List<Proof> inputs, CancellationToken ct = default)
     {
         Nut10Helper.MaybeProcessNut10(privKeys??[], inputs, blankOutputs, htlcPreimage, quote.Quote);
@@ -23,7 +23,7 @@ public class MeltHandlerBolt11(
         };
         
        var res = await  client.Melt<PostMeltQuoteBolt11Response, PostMeltRequest>("bolt11", req, ct);
-       if (res.Change == null)
+       if (res.Change == null || res.Change.Length == 0)
        {
            return [];
        }

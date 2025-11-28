@@ -1,5 +1,7 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using DotNut.ApiModels;
 using DotNut.ApiModels.Info;
 
@@ -23,11 +25,14 @@ public class MintInfo
                 {
                     _protectedEndpoints = new ProtectedEndpoints
                     {
-                        Cache = new Dictionary<string, bool>(),
+                        Cache = new ConcurrentDictionary<string, bool>(),
                         ApiReturn = nut22.ProtectedEndpoints.Select(o => new ProtectedEndpoint
                         {
                             Method = o.Method,
-                            Regex = new System.Text.RegularExpressions.Regex(o.Path)
+                            Regex = new Regex(
+                                o.Path, 
+                                RegexOptions.None, 
+                                TimeSpan.FromMilliseconds(100))
                         }).ToArray()
                     };
                 }
@@ -180,7 +185,7 @@ public class MintInfo
         {
             try
             {
-                var nut = JsonSerializer.Deserialize<MmpInfo>(nutJson.RootElement.GetRawText());
+                var nut = JsonSerializer.Deserialize<MPPInfo>(nutJson.RootElement.GetRawText());
                 if (nut?.Methods != null && nut.Methods.Length > 0)
                 {
                     return new MppSupport 
@@ -269,14 +274,14 @@ public class ProtectedEndpointSpec
 
 internal class ProtectedEndpoints
 {
-    public Dictionary<string, bool> Cache { get; set; } = new();
+    public ConcurrentDictionary<string, bool> Cache { get; set; } = new();
     public ProtectedEndpoint[] ApiReturn { get; set; } = Array.Empty<ProtectedEndpoint>();
 }
 
 internal class ProtectedEndpoint
 {
     public string Method { get; set; } = string.Empty;
-    public System.Text.RegularExpressions.Regex Regex { get; set; } = null!;
+    public System.Text.RegularExpressions.Regex Regex { get; init; }
 }
 
 public class WebSocketSupportResult
@@ -285,7 +290,7 @@ public class WebSocketSupportResult
     public WebSocketSupport[]? Params { get; set; }
 }
 
-public class MppSupport : MmpInfo
+public class MppSupport : MPPInfo
 {
     public bool Supported { get; set; }
 }

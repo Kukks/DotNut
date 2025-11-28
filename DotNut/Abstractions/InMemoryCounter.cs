@@ -1,35 +1,34 @@
+using System.Collections.Concurrent;
+
 namespace DotNut.Abstractions;
 
 public class InMemoryCounter : ICounter
 {
-    private IDictionary<KeysetId, int> _counter;
-
+    private readonly ConcurrentDictionary<KeysetId, int> _counter;
     public InMemoryCounter(IDictionary<KeysetId, int> counter)
     {
-        this._counter = counter;
+        this._counter = new ConcurrentDictionary<KeysetId, int>(counter);
     }
 
     public InMemoryCounter()
     {
-        this._counter = new Dictionary<KeysetId, int>();
+        this._counter = new ConcurrentDictionary<KeysetId, int>();
     }
 
-    public async Task<int> GetCounterForId(KeysetId keysetId, CancellationToken ct = default)
+    public Task<int> GetCounterForId(KeysetId keysetId, CancellationToken ct = default)
     {
-        if (_counter.TryGetValue(keysetId, out var counter))
-            return counter;
-
-        return _counter[keysetId] = 0;
+        return Task.FromResult(_counter.GetOrAdd(keysetId, 0));
     }
 
-    public async Task<int> IncrementCounter(KeysetId keysetId, int bumpBy = 1, CancellationToken ct = default)
+    public Task<int> IncrementCounter(KeysetId keysetId, int bumpBy = 1, CancellationToken ct = default)
     {
-        var current = await GetCounterForId(keysetId, ct);
-        var next = current + bumpBy;
-        _counter[keysetId] = next;
-        return next;
+        var next = _counter.AddOrUpdate(keysetId, bumpBy, (_, current) => current + bumpBy);
+        return Task.FromResult(next);
     }
 
-    public async Task SetCounter(KeysetId keysetId, int counter, CancellationToken ct = default) => _counter[keysetId] = counter;
+    public Task SetCounter(KeysetId keysetId, int counter, CancellationToken ct = default) {
+        _counter[keysetId] = counter;
+        return Task.CompletedTask;
+    }
 
 }

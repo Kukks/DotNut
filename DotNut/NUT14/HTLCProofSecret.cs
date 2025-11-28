@@ -41,9 +41,10 @@ public class HTLCProofSecret : P2PKProofSecret
 
     public HTLCWitness GenerateWitness(ECPrivKey hash, ECPrivKey[] keys, byte[] preimage)
     {
-        // validate hash only if there'
+        // validate hash only if secret is not expired. 
         var builder = Builder;
-        if (!builder.Lock.HasValue || builder.Lock.Value.ToUnixTimeSeconds() > DateTimeOffset.Now.ToUnixTimeSeconds())
+        if (!builder.Lock.HasValue || 
+            builder.Lock.Value.ToUnixTimeSeconds() > DateTimeOffset.Now.ToUnixTimeSeconds())
         {
             if (!VerifyPreimage(preimage))
                 throw new InvalidOperationException("Invalid preimage");

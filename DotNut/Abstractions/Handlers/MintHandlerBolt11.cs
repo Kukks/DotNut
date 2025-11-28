@@ -28,7 +28,7 @@ public class MintHandlerBolt11(
         return this;
     }
     
-    public async Task<PostMintQuoteBolt11Response> GetQuote(CancellationToken ct = default) => postMintQuoteBolt11Response;
+    public PostMintQuoteBolt11Response GetQuote() => postMintQuoteBolt11Response;
 
     public async Task<List<Proof>> Mint(CancellationToken ct = default)
     {
@@ -42,6 +42,7 @@ public class MintHandlerBolt11(
         {
             Outputs = outputs.Select(o=>o.BlindedMessage).ToArray(),
             Quote = postMintQuoteBolt11Response.Quote,
+            Signature = _signature,
         };
         
         var promises=  await client.Mint<PostMintRequest, PostMintResponse>("bolt11", req, ct);

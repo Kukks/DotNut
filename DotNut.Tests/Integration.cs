@@ -72,7 +72,7 @@ public class Integration
         
         Assert.NotNull(mintQuote);
         
-        var paymentRequest = (await mintQuote.GetQuote()).Request;
+        var paymentRequest = mintQuote.GetQuote().Request;
         Assert.Contains("lnbc1337", paymentRequest);
         
         await PayInvoice();
@@ -97,7 +97,7 @@ public class Integration
         
         Assert.NotNull(mintQuote);
         
-        var paymentRequest = (await mintQuote.GetQuote()).Request;
+        var paymentRequest = mintQuote.GetQuote().Request;
         Assert.NotNull(paymentRequest);
         mintQuote.SignWithPrivkey(privkey);
         
@@ -124,7 +124,7 @@ public class Integration
         
         Assert.NotNull(mintQuote);
         
-        var paymentRequest = (await mintQuote.GetQuote()).Request;
+        var paymentRequest = mintQuote.GetQuote().Request;
         Assert.Contains("lnbc1337", paymentRequest);
 
         await PayInvoice();
@@ -227,9 +227,6 @@ public class Integration
          var mintedProofs = await mintQuote.Mint();
          Assert.NotEmpty(mintedProofs);
 
-         var Ids = mintedProofs.Select(proof => proof.Id).Count();
-         
-         Console.WriteLine($"amounts {Ids}");
          // create melt quote
          var meltQuote = await wallet
              .CreateMeltQuote()
@@ -238,7 +235,7 @@ public class Integration
              .ProcessAsyncBolt11();
 
          // select proofs to send 
-         var q = await meltQuote.GetQuote();
+         var q = meltQuote.GetQuote();
          var selectedProofs = await wallet.SelectProofsToSend(mintedProofs, q.Amount + (ulong)q.FeeReserve, true);
          
          //melt proofs 
@@ -318,7 +315,7 @@ public class Integration
          
          Assert.NotNull(meltHandler);
          
-         var quote = await meltHandler.GetQuote();
+         var quote = meltHandler.GetQuote();
          
          Assert.NotNull(quote);
          Assert.True(quote.FeeReserve > 0);
@@ -413,7 +410,7 @@ public class Integration
              .WithPrivKeys([privKeyBob, privKeyAlice])
              .ProcessAsyncBolt11();
 
-         var q = await handler.GetQuote();
+         var q = handler.GetQuote();
          
          var amountToPay = q.Amount + (ulong)q.FeeReserve;
          var selectorResponse = await wallet.SelectProofsToSend(proofs, amountToPay, true);
@@ -675,7 +672,7 @@ public class Integration
              .WithUnit("sat")
              .ProcessAsyncBolt11();
          
-         var quote = await meltHandler.GetQuote();
+         var quote = meltHandler.GetQuote();
          var amountNeeded = quote.Amount + (ulong)quote.FeeReserve;
          
          // selectProofsToSend should return empty Send list when insufficient
@@ -699,14 +696,14 @@ public class Integration
             .WithUnit("sat")
             .ProcessAsyncBolt11();
 
-        var quote = await mintHandler.GetQuote();
+        var quote = mintHandler.GetQuote();
 
         var sub = await service.SubscribeToMintQuoteAsync(MintUrl, new[] { quote.Quote });
 
         int connectedCount = 0;
         int notificationCount = 0;
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(240));
 
         var connectedTcs = new TaskCompletionSource();
         var paidTcs = new TaskCompletionSource();

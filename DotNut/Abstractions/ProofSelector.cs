@@ -84,10 +84,9 @@ public class ProofSelector : IProofSelector
         List<T> ShuffleArray<T>(IEnumerable<T> array)
         {
             var shuffled = array.ToList();
-            var random = new Random();
             for (int i = shuffled.Count - 1; i > 0; i--)
             {
-                int j = random.Next(i + 1);
+                int j = Random.Shared.Next(i + 1);
                 (shuffled[i], shuffled[j]) = (shuffled[j], shuffled[i]);
             }
             return shuffled;
@@ -241,6 +240,7 @@ public class ProofSelector : IProofSelector
          */
         for (int trial = 0; trial < MAX_TRIALS; trial++)
         {
+            ct.ThrowIfCancellationRequested();
             // PHASE 1: Randomized Greedy Selection
             // Add proofs up to amountToSend (after adjusting for fees)
             // for exact match or the first amount over target otherwise

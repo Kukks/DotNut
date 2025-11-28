@@ -68,6 +68,11 @@ public class PaymentRequestEncoder : ICBORToFromConverter<PaymentRequest>
             }
             cbor.Add("nut10", nut10Obj);
         }
+
+        if (paymentRequest.Nut26 is {} nut26)
+        {
+            cbor.Add("nut26", nut26);
+        }
         return cbor;
     }
 
@@ -130,11 +135,10 @@ public class PaymentRequestEncoder : ICBORToFromConverter<PaymentRequest>
                     }).ToArray();
                     break;
                 case "nut10":
-                    var nut10Obj = value["nut10"];
                     var lockingCondition = new Nut10LockingCondition();
-                    foreach (var nut10Key in nut10Obj.Keys)
+                    foreach (var nut10Key in value.Keys)
                     {
-                        var nut10Value = nut10Obj[nut10Key];
+                        var nut10Value = value[nut10Key];
                         switch (nut10Key.AsString())
                         {
                             case "k":
@@ -155,6 +159,9 @@ public class PaymentRequestEncoder : ICBORToFromConverter<PaymentRequest>
                         }
                     }
                     paymentRequest.Nut10 = lockingCondition;
+                    break;
+                case "nut26":
+                    paymentRequest.Nut26 = value.AsBoolean();
                     break;
             }
         }

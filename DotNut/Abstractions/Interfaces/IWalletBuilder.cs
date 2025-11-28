@@ -1,7 +1,5 @@
-using DotNut.Abstractions.Websockets;
 using DotNut.Api;
 using DotNut.ApiModels;
-using DotNut.ApiModels.Mint.bolt12;
 using DotNut.NBitcoin.BIP39;
 
 namespace DotNut.Abstractions;
@@ -72,9 +70,9 @@ public interface IWalletBuilder
     /// with first operation requiring keysets. (I'd go for like, 60 minutes)
     /// </summary>
     /// <param name="syncKeyset"></param>
-    /// <param name="syncThreesold"></param>
+    /// <param name="syncThreshold"></param>
     /// <returns></returns>
-    IWalletBuilder WithKeysetSync(bool syncKeyset, TimeSpan syncThreesold);
+    IWalletBuilder WithKeysetSync(bool syncKeyset, TimeSpan syncThreshold);
     
     /// <summary>
     /// Optional. Proof selecting algorithm. If not set, defaults to RGLI proof selector.
@@ -129,10 +127,10 @@ public interface IWalletBuilder
     /// <summary>
     /// Get Mints info, supported methods etc. 
     /// </summary>
-    /// <param name="forceReferesh">Refetch flag</param>
+    /// <param name="forceRefresh">Refetch flag</param>
     /// <param name="ct"></param>
     /// <returns>MintInfo object</returns>
-    Task<MintInfo> GetInfo(bool forceReferesh = false, CancellationToken ct = default);
+    Task<MintInfo> GetInfo(bool forceRefresh = false, CancellationToken ct = default);
     
     /// <summary>
     /// Create Outputs (BlindedMessags, Blinding Factors, Secrets), for given keysetId.
@@ -208,6 +206,9 @@ public interface IWalletBuilder
         CancellationToken ct = default);
     
     Task<IWebsocketService> GetWebsocketService(CancellationToken ct = default);
+
+    Task<IProofSelector> GetSelector(CancellationToken ct = default);
+
     
     /// <summary>
     /// Create swap transaction builder.
@@ -228,7 +229,7 @@ public interface IWalletBuilder
     IMintQuoteBuilder CreateMintQuote();
     
     /// <summary>
-    /// Can restoree proofs if mnemonic provided.
+    /// Can restore proofs if mnemonic provided.
     /// </summary>
     /// <returns></returns>
     IRestoreBuilder Restore();

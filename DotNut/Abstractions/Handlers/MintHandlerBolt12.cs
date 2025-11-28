@@ -3,7 +3,7 @@ using DotNut.ApiModels.Mint.bolt12;
 namespace DotNut.Abstractions.Handlers;
 
 public class MintHandlerBolt12(
-    Wallet wallet,
+    IWalletBuilder wallet,
     PostMintQuoteBolt12Response quote,
     GetKeysResponse.KeysetItemResponse keyset,
     List<OutputData> outputs)
@@ -29,7 +29,7 @@ public class MintHandlerBolt12(
         return this;
     }
     
-    public async Task<PostMintQuoteBolt12Response> GetQuote(CancellationToken ct = default) => quote;
+    public PostMintQuoteBolt12Response GetQuote() => quote;
     
     public async Task<List<Proof>> Mint(CancellationToken ct = default)
     {

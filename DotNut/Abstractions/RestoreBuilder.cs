@@ -16,7 +16,7 @@ public class RestoreBuilder : IRestoreBuilder
         this._wallet = wallet;
     }
     
-    public RestoreBuilder ForKeysetIds(IEnumerable<KeysetId> keysetIds)
+    public IRestoreBuilder ForKeysetIds(IEnumerable<KeysetId> keysetIds)
     {
         this._specifiedKeysets = keysetIds.ToList();
         return this;
@@ -30,18 +30,18 @@ public class RestoreBuilder : IRestoreBuilder
 
     public async Task<IEnumerable<Proof>> ProcessAsync(CancellationToken ct = default)
     {
-        var api = await _wallet.GetMintApi();
+        var api = await _wallet.GetMintApi(ct);
         await _wallet._maybeSyncKeys(ct);
         
         var mnemonic = _wallet.GetMnemonic()??
-                       throw new ArgumentNullException("Can't restore wallet without Mnemonic");
+                       throw new ArgumentNullException(nameof(Mnemonic), "Can't restore wallet without Mnemonic");
         
         _specifiedKeysets ??= 
             (await _wallet.GetKeysets(ct: ct)).Select(k => k.Id).ToList();
 
         if (_specifiedKeysets == null || _specifiedKeysets.Count == 0)
         {
-            throw new ArgumentNullException(nameof(_specifiedKeysets));
+            throw new InvalidOperationException("No keysets available for restoration. Ensure the mint has at least one keyset or specify keysets explicitly.");
         }
         
         var counter = _wallet.GetCounter();
@@ -62,12 +62,12 @@ public class RestoreBuilder : IRestoreBuilder
             while (emptyBatchesRemaining > 0)
             {
                 var outputs = await _createBatch(mnemonic, keysetId, batchNumber, ct);
-                await counter!.IncrementCounter(keysetId, batchNumber * 100);
                 var req = new PostRestoreRequest
                 {
                     Outputs = outputs.Select(o=>o.BlindedMessage).ToArray()
                 };
                 var res = await api.Restore(req, ct);
+                await counter!.IncrementCounter(keysetId, 100, ct);
 
                 if (!res.Signatures.Any())
                 {
@@ -87,8 +87,23 @@ public class RestoreBuilder : IRestoreBuilder
         }
         
         var freshProofs = new List<Proof>();
-        var activeUnits = await this._wallet.GetActiveKeysetIdsWithUnits(ct);
         
+        // create hash table for every KeysetId : unit. 
+        var allKeysetsUnits = await _wallet.GetKeysetIdsWithUnits(ct);
+        var unitsForKeysets = new Dictionary<KeysetId, string>();
+        if (allKeysetsUnits == null)
+        {
+            throw new InvalidOperationException("No keysets available for restoration.");
+        }
+        foreach (var unit in allKeysetsUnits)
+        {
+            foreach (var keysetId in unit.Value)
+            {
+                unitsForKeysets.Add(keysetId, unit.Key);
+            }
+        }
+        
+        var activeUnits = await this._wallet.GetActiveKeysetIdsWithUnits(ct);
         if (activeUnits == null || !activeUnits.Any())
         {
             throw new InvalidOperationException("Could not restore wallet without active keysets");
@@ -97,7 +112,14 @@ public class RestoreBuilder : IRestoreBuilder
         foreach (var unitKeyset in activeUnits)
         {
             var correspondingKeys = await _wallet.GetKeys(unitKeyset.Value, false, ct);
-            var totalAmount = recoveredProofs.Select(p=>p.Amount).Aggregate((a,c) => a + c);
+            
+            var unit = unitKeyset.Key;
+            var proofsForUnit = recoveredProofs
+                .Where(p => unitsForKeysets.TryGetValue(p.Id, out var proofUnit) && proofUnit == unit)
+                .ToList();
+            if (!proofsForUnit.Any()) continue;
+            var totalAmount = proofsForUnit.Select(p => p.Amount).Sum();
+            
             var amounts = Utils.SplitToProofsAmounts(totalAmount, correspondingKeys.Keys);
             var ctr = await counter!.GetCounterForId(unitKeyset.Value, ct);
             var newOutputs = Utils.CreateOutputs(amounts, unitKeyset.Value, correspondingKeys.Keys, mnemonic, ctr);
@@ -105,7 +127,7 @@ public class RestoreBuilder : IRestoreBuilder
             
             var swapRequest = new PostSwapRequest
             {
-                Inputs = recoveredProofs.ToArray(),
+                Inputs = proofsForUnit.ToArray(),
                 Outputs = newOutputs.Select(o=>o.BlindedMessage).ToArray(),
             };
         
@@ -117,11 +139,9 @@ public class RestoreBuilder : IRestoreBuilder
         return freshProofs;
     }
 
-    private async Task<List<OutputData>> _createBatch(Mnemonic mnemonic, KeysetId keysetId, int batchNubmber, CancellationToken ct)
+    private async Task<List<OutputData>> _createBatch(Mnemonic mnemonic, KeysetId keysetId, int batchNumber, CancellationToken ct)
     {
         var amounts = Enumerable.Repeat((ulong)1, 100).ToList();
-        Console.WriteLine(batchNubmber);
-        Console.WriteLine($"Where does batch start: {batchNubmber*100}");
-        return mnemonic.DeriveOutputs(amounts, keysetId, batchNubmber*100);
+        return mnemonic.DeriveOutputs(amounts, keysetId, batchNumber*100);
     }
 }

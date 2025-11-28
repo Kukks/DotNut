@@ -76,14 +76,6 @@ public class CashuTokenV4Encoder : ICashuTokenEncoder, ICBORToFromConverter<Cash
 
     public CashuToken FromCBORObject(CBORObject obj)
     {
-        var peValue = obj.GetOrDefault("pe", null);
-        Console.WriteLine($"pe exists: {peValue != null}");
-        if (peValue != null)
-        {
-            Console.WriteLine($"pe type: {peValue.Type}");
-            Console.WriteLine($"pe bytes length: {peValue.GetByteString()?.Length}");
-        }
-        
         return new CashuToken
         {
             Unit = obj["u"].AsString(),

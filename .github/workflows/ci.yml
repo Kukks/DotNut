@@ -25,7 +25,7 @@ jobs:
           -e CDK_MINTD_LISTEN_PORT=3338 \
           -e CDK_MINTD_FAKE_WALLET_MIN_DELAY=0 \
           -e CDK_MINTD_MNEMONIC='abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about' \
-          cashubtc/mintd:latest-amd64 \
+          cashubtc/mintd:latest-amd64
 
       - name: Wait for mint to be ready
         run: |

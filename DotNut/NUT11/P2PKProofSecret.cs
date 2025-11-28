@@ -10,7 +10,7 @@ public class P2PKProofSecret : Nut10ProofSecret
 {
     public const string Key = "P2PK";
 
-    [JsonIgnore] P2PkBuilder Builder => P2PkBuilder.Load(this);
+    [JsonIgnore] public virtual P2PkBuilder Builder => P2PkBuilder.Load(this);
 
     public virtual ECPubKey[] GetAllowedPubkeys(out int requiredSignatures)
     {

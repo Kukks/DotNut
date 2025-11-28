@@ -62,7 +62,7 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
 
     public async Task<IMeltHandler<PostMeltQuoteBolt11Response, List<Proof>>> ProcessAsyncBolt11(CancellationToken ct = default)
     {
-        var mintApi = await _wallet.GetMintApi();
+        var mintApi = await _wallet.GetMintApi(ct);
         await _wallet._maybeSyncKeys(ct);
         ArgumentNullException.ThrowIfNull(this._invoice);
         
@@ -88,7 +88,7 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
     public async Task<IMeltHandler<PostMeltQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(
         CancellationToken ct = default)
     {
-        var mintApi = await _wallet.GetMintApi();
+        var mintApi = await _wallet.GetMintApi(ct);
         await _wallet._maybeSyncKeys(ct);
         ArgumentNullException.ThrowIfNull(this._invoice);
 
@@ -110,7 +110,5 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         }
         return new MeltHandlerBolt12(_wallet, quote, _blankOutputs, _privKeys, _htlcPreimage);
     }
-    
-    
 }
 

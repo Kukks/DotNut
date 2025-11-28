@@ -8,8 +8,7 @@ namespace DotNut;
 public class HTLCProofSecret : P2PKProofSecret
 {
     public const string Key = "HTLC";
-
-    [JsonIgnore] public HTLCBuilder Builder => HTLCBuilder.Load(this);
+    [JsonIgnore] public override HTLCBuilder Builder => HTLCBuilder.Load(this);
 
     public override ECPubKey[] GetAllowedPubkeys(out int requiredSignatures)
     {
@@ -61,28 +60,41 @@ public class HTLCProofSecret : P2PKProofSecret
 
     public HTLCWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, string preimage)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(proof.P2PkE);
+        return GenerateBlindWitness(proof, keys, preimage, proof.P2PkE);
     }
     public HTLCWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, string preimage, ECPubKey P2PkE)
     {
-        throw new NotImplementedException();
+        return GenerateBlindWitness(proof.Secret.GetBytes(), keys, Convert.FromHexString(preimage), proof.Id, P2PkE);
     }
 
     public HTLCWitness GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, string preimage, ECPubKey P2PkE)
     {
-        throw new NotImplementedException();
+        return GenerateBlindWitness(message.B_.Key.ToBytes(), keys, Convert.FromHexString(preimage), message.Id, P2PkE);
     }
 
     public HTLCWitness GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId,
         ECPubKey P2PkE)
     {
-        throw new NotImplementedException();
+        var hash = SHA256.HashData(msg);
+        return GenerateBlindWitness(ECPrivKey.Create(hash), keys, preimage, keysetId, P2PkE);
     }
     
     public HTLCWitness GenerateBlindWitness(ECPrivKey hash, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId,
         ECPubKey P2PkE)
     {
-        throw new NotImplementedException();
+        var builder = Builder;
+        if (!builder.Lock.HasValue || builder.Lock.Value.ToUnixTimeSeconds() > DateTimeOffset.Now.ToUnixTimeSeconds())
+        {
+            if (!VerifyPreimage(preimage))
+                throw new InvalidOperationException("Invalid preimage");
+        }
+        var witness = base.GenerateBlindWitness(hash, keys, keysetId, P2PkE);
+        return new HTLCWitness()
+        {
+            Signatures = witness.Signatures,
+            Preimage = Convert.ToHexString(preimage)
+        };
     }
     
     

@@ -1,4 +1,5 @@
-﻿using NBitcoin.Secp256k1;
+﻿using System.Security.Cryptography;
+using NBitcoin.Secp256k1;
 
 namespace DotNut;
 
@@ -72,12 +73,29 @@ public class HTLCBuilder : P2PkBuilder
 
     public new HTLCProofSecret BuildBlinded(KeysetId keysetId, out ECPubKey p2pkE)
     {
-        throw new NotImplementedException();
+        var e = new PrivKey(RandomNumberGenerator.GetHexString(64));
+        p2pkE = e.Key.CreatePubKey();
+        return BuildBlinded(keysetId, e);
     }
 
-    public HTLCProofSecret BuildBlinded(KeysetId keysetId, ECPrivKey p2pke)
+    public new HTLCProofSecret BuildBlinded(KeysetId keysetId, ECPrivKey p2pke)
     {
-        throw new NotImplementedException();
+        var pubkeys = RefundPubkeys != null ? Pubkeys.Concat(RefundPubkeys).ToArray() : Pubkeys;
+        var rs = new List<ECPrivKey>();
+        bool extraByte = false;
+        
+        var keysetIdBytes = keysetId.GetBytes();
+
+        var e = p2pke;
+        
+        for (int i = 0; i < pubkeys.Length; i++)
+        {
+            var Zx = Cashu.ComputeZx(e, pubkeys[i]);
+            var Ri = Cashu.ComputeRi(Zx, keysetIdBytes, i);
+            rs.Add(Ri);
+        }
+        BlindPubkeys(rs.ToArray());
+        return Build();
     }
     
     public override HTLCBuilder Clone()

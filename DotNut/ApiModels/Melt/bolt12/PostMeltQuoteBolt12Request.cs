@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace DotNut.ApiModels.Melt.bolt12;
@@ -11,6 +12,7 @@ public class PostMeltQuoteBolt12Request
     [JsonPropertyName("unit")]
     public string Unit { get; set; }
     
-    public JsonDocument? Options { get; set; }
+    [JsonPropertyName("options")]
+    public JsonNode? Options { get; set; }
 }
 

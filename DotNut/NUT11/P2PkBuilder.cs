@@ -129,11 +129,11 @@ public class P2PkBuilder
             var Ri = Cashu.ComputeRi(Zx, keysetIdBytes, i);
             rs.Add(Ri);
         }
-        _blindPubkeys(rs.ToArray());
+        BlindPubkeys(rs.ToArray());
         return Build();
     }
     
-    private void _blindPubkeys(ECPrivKey[] rs)
+    protected void BlindPubkeys(ECPrivKey[] rs)
     {
         var expectedLength = Pubkeys.Length + (RefundPubkeys?.Length ?? 0);
         if (expectedLength != rs.Length)

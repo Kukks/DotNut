@@ -14,6 +14,9 @@ public class MeltHandlerBolt11(
     public async Task<List<Proof>> Melt(List<Proof> inputs, CancellationToken ct = default)
     {
         Nut10Helper.MaybeProcessNut10(privKeys??[], inputs, blankOutputs, htlcPreimage, quote.Quote);
+        //since nut10 (with p2bk) is processed, now it's safe to strip P2PkE
+        inputs.ForEach(i=>i.StripFingerprints());
+        
         var client = await wallet.GetMintApi(ct);
         var req = new PostMeltRequest
         {

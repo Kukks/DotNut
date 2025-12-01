@@ -178,13 +178,14 @@ class SwapBuilder : ISwapBuilder
         // Swap received proofs to our keyset
         var outputs = await this._getOutputs(keysForCurrentId.Keys, ct);
         
+        Nut10Helper.MaybeProcessNut10(_privKeys??[], swapInputs, outputs, _htlcPreimage);
+        swapInputs.ForEach(i=>i.StripFingerprints());
         var request = new PostSwapRequest()
         {
             Inputs = swapInputs.ToArray(),
             Outputs = outputs.Select(o=>o.BlindedMessage).ToArray(),
         };
-
-        Nut10Helper.MaybeProcessNut10(_privKeys??[], swapInputs, outputs, _htlcPreimage);
+        
         var swapResponse = await mintApi.Swap(request, ct);
 
         var swappedProofs =
@@ -209,7 +210,6 @@ class SwapBuilder : ISwapBuilder
             ValidateSingleMint(_token);
             this._proofsToSwap.AddRange(_token.Tokens.SelectMany(t=>t.Proofs));
         }
-        
         
         return _proofsToSwap;
     }

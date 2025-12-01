@@ -247,25 +247,32 @@ public static class Utils
         var C = Cashu.ComputeC(promise.C_, r, amountPubkey);
 
         DLEQProof? dleq = null;
-        if (promise.DLEQ is not null)
-        {
-            dleq = new DLEQProof
-            {
-                E = promise.DLEQ.E,
-                S = promise.DLEQ.S,
-                R = r
-            };
-        }
-
-        return new Proof
+        
+        var proof = new Proof
         {
             Id = promise.Id,
             Amount = promise.Amount,
             Secret = secret,
             C = C,
-            DLEQ = dleq,
             P2PkE = P2PkE
         };
+
+        if (promise.DLEQ is null)
+        {
+            return proof;
+        }
+        
+        proof.DLEQ = new DLEQProof
+        {
+            E = promise.DLEQ.E,
+            S = promise.DLEQ.S,
+            R = r
+        };
+        if (!proof.Verify(amountPubkey))
+        {
+            throw new InvalidOperationException($"Could not verify mint signature on proof");
+        }
+        return proof;
     }
 
     public static List<Proof> ConstructProofsFromPromises(

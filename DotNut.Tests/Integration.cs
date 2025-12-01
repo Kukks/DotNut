@@ -8,6 +8,7 @@ namespace DotNut.Tests;
 public class Integration
 {
     private static string MintUrl = "http://localhost:3338";
+    // private static string MintUrl = "https://testnut.cashu.space";
 
     private static string seed =
         "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
@@ -145,10 +146,9 @@ public class Integration
             .WithMnemonic(seed);
         var restoredProofs = await wallet
             .Restore()
-            .WithSwap(false)
             .ProcessAsync();
          var keyset = (await wallet.GetKeys()).First().Keys;
-         var expectedAmount = Utils.SplitToProofsAmounts(1337UL, keyset).Count;
+         var expectedAmount = Utils.SplitToProofsAmounts(1336UL, keyset).Count; // (one for fee)
          Assert.Equal(expectedAmount, restoredProofs.Count());
     }
     

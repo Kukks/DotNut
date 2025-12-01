@@ -16,11 +16,11 @@ class SwapBuilder : ISwapBuilder
     
     private List<OutputData>? _outputs;
     private List<ulong>? _amounts;
-    private KeysetId? _keysetId;
+    private KeysetId? _targetKeysetId;
     
     
     private string _unit = "sat";
-    private bool _verifyDLEQ = true;
+    private bool _verifyDleq = true;
 
     private bool _includeFees = true;
 
@@ -65,7 +65,7 @@ class SwapBuilder : ISwapBuilder
 
     public ISwapBuilder WithDLEQVerification(bool verify = true)
     {
-        _verifyDLEQ = verify;
+        _verifyDleq = verify;
         return this;
     }
 
@@ -83,7 +83,7 @@ class SwapBuilder : ISwapBuilder
     
     public ISwapBuilder ForKeyset(KeysetId keysetId)
     {
-        _keysetId = keysetId;
+        _targetKeysetId = keysetId;
         return this;
     }
 
@@ -123,28 +123,35 @@ class SwapBuilder : ISwapBuilder
     {
         var mintApi = await _wallet.GetMintApi(ct);
         
-        var swapInputs = _getSwapProofs(ct);
+        var swapInputs = _getSwapProofs();
         if (swapInputs == null || swapInputs.Count == 0)
         {
             throw new ArgumentException("Nothing to swap!");
         }
         
         // if there's no keysetId specified - let's choose it. 
-        if (_keysetId == null)
+        if (_targetKeysetId == null)
         {
-            _keysetId = await _wallet.GetActiveKeysetId(this._unit, ct) ??
+            _targetKeysetId = await _wallet.GetActiveKeysetId(this._unit, ct) ??
                         throw new InvalidOperationException("Could not fetch Keyset ID");
         }
-        var keys = await _wallet.GetKeys(false, ct);
-        var keysForCurrentId = keys.SingleOrDefault(k => k.Id == _keysetId) 
-            ?? throw new InvalidOperationException($"Keys for id: {_keysetId} not found in wallet keys");
-        
-        if (_verifyDLEQ)
+        var keysForCurrentId = await 
+            _wallet.GetKeys(_targetKeysetId, true, false, ct);
+
+        if (keysForCurrentId == null)
         {
-            foreach (var proof in swapInputs!)
+            throw new InvalidOperationException($"Can't find keys for keyset {_targetKeysetId}");
+        }
+        if (_verifyDleq)
+        {
+            foreach (var proof in swapInputs)
             {
-               var keyset = keys.SingleOrDefault(k => k.Id == proof.Id)
-                            ?? throw new InvalidOperationException($"Keyset with ID {proof.Id} not found for proof verification.");
+                // proof may be already inactive - make sure to fetch
+               var keyset = await _wallet.GetKeys(proof.Id, true, false, ct);
+               if (keyset == null)
+               {
+                   throw new InvalidOperationException($"Can't find keys for keyset id ${proof.Id}");
+               }
                if (!keyset.Keys.TryGetValue(proof.Amount, out var key))
                {
                    throw new InvalidOperationException($"Can't find key for amount {proof.Amount} in keyset {keyset.Id}");
@@ -186,7 +193,7 @@ class SwapBuilder : ISwapBuilder
         return swappedProofs;
     }
     
-    private List<Proof> _getSwapProofs(CancellationToken ct = default)
+    private List<Proof> _getSwapProofs()
     {
         _proofsToSwap ??= new();
         
@@ -207,7 +214,7 @@ class SwapBuilder : ISwapBuilder
         return _proofsToSwap;
     }
 
-    async Task<List<OutputData>> _getOutputs(Keyset keys, CancellationToken ct = default)
+    private async Task<List<OutputData>> _getOutputs(Keyset keys, CancellationToken ct = default)
     {
         if (this._outputs != null)
         {
@@ -234,14 +241,14 @@ class SwapBuilder : ISwapBuilder
                     foreach (var amount in _amounts)
                     {
                         var builder = _builder.Clone();
-                        outputs.Add(Utils.CreateNut10BlindedOutput(amount, this._keysetId!, builder, e));
+                        outputs.Add(Utils.CreateNut10BlindedOutput(amount, this._targetKeysetId!, builder, e));
                     }
                     return outputs;
                 }
                 foreach (var amount in _amounts)
                 {
                     var builder = _builder.Clone();
-                    outputs.Add(Utils.CreateNut10BlindedOutput(amount, this._keysetId!, builder));
+                    outputs.Add(Utils.CreateNut10BlindedOutput(amount, this._targetKeysetId!, builder));
                 }
                 return outputs;
             }
@@ -249,12 +256,12 @@ class SwapBuilder : ISwapBuilder
             foreach (var amount in _amounts)
             {
                 var builder = _builder.Clone();
-                outputs.Add(Utils.CreateNut10Output(amount, this._keysetId!, builder));
+                outputs.Add(Utils.CreateNut10Output(amount, this._targetKeysetId!, builder));
             }
             return outputs;
         }
         
-        return await _wallet.CreateOutputs(_amounts, this._keysetId!, ct);
+        return await _wallet.CreateOutputs(_amounts, this._targetKeysetId!, ct);
     }
 
     private List<ulong> _getAmounts(ulong total, ulong fee, Keyset keys)

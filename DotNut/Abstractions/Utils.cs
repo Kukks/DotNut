@@ -297,7 +297,6 @@ public static class Utils
     {
         return proofs.Aggregate(0UL, (current, proof) => current + proof.Amount);
     }
-
     
     public static ISecret RandomSecret()
     {

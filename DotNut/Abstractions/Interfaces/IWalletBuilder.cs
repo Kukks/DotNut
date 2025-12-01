@@ -1,6 +1,7 @@
 using DotNut.Api;
 using DotNut.ApiModels;
 using DotNut.NBitcoin.BIP39;
+using NBitcoin.Secp256k1;
 
 namespace DotNut.Abstractions;
 
@@ -239,7 +240,9 @@ public interface IWalletBuilder
     /// Check state of proofs
     /// </summary>
     /// <returns></returns>
-    Task<PostCheckStateResponse> CheckState(IEnumerable<Proof> proofs);
+    Task<PostCheckStateResponse> CheckState(IEnumerable<Proof> proofs, CancellationToken ct = default);
+
+    Task<PostCheckStateResponse> CheckState(IEnumerable<PubKey> Ys, CancellationToken ct = default);
 
 }
 

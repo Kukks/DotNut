@@ -150,19 +150,19 @@ public class Wallet : IWalletBuilder
         return new MeltQuoteBuilder(this);
     }
 
-    public async Task<PostCheckStateResponse> CheckState(IEnumerable<Proof> proofs)
+    public async Task<PostCheckStateResponse> CheckState(IEnumerable<Proof> proofs, CancellationToken ct = default)
     {
-        return await CheckState(proofs.Select(p => p.Secret.ToCurve()));
+        return await CheckState(proofs.Select(p => (PubKey) p.Secret.ToCurve()), ct);
     }
 
-    public async Task<PostCheckStateResponse> CheckState(IEnumerable<ECPubKey> Ys)
+    public async Task<PostCheckStateResponse> CheckState(IEnumerable<PubKey> Ys, CancellationToken ct = default)
     {
         _ensureApiConnected();
         var req = new PostCheckStateRequest()
         {
             Ys = Ys.Select(y=>y.ToString()).ToArray(),
         };
-        return await _mintApi!.CheckState(req);
+        return await _mintApi!.CheckState(req, ct);
     }
     
     public IRestoreBuilder Restore()

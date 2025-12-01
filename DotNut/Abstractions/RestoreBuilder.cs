@@ -57,7 +57,21 @@ public class RestoreBuilder : IRestoreBuilder
             int batchNumber = 0;
             int emptyBatchesRemaining = 3;
 
-            var keyset = await _wallet.GetKeys(keysetId, false, ct);
+            GetKeysResponse.KeysetItemResponse? keyset;
+
+            try
+            {
+                keyset = await _wallet.GetKeys(keysetId, true, false, ct);
+            }
+            catch (Exception e)
+            {
+                continue;
+            }
+
+            if (keyset == null)
+            {
+                continue;
+            }
             
             while (emptyBatchesRemaining > 0)
             {
@@ -111,7 +125,7 @@ public class RestoreBuilder : IRestoreBuilder
 
         foreach (var unitKeyset in activeUnits)
         {
-            var correspondingKeys = await _wallet.GetKeys(unitKeyset.Value, false, ct);
+            var correspondingKeys = await _wallet.GetKeys(unitKeyset.Value, true, false, ct);
             
             var unit = unitKeyset.Key;
             var proofsForUnit = recoveredProofs

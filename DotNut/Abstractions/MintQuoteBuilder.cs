@@ -102,7 +102,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
             throw new ArgumentNullException(nameof(_amount), "can't create mint quote without amount!");
         }
 
-        var api = await this._wallet.GetMintApi();
+        var api = await this._wallet.GetMintApi(ct);
         if (api is null)
         {
             throw new ArgumentNullException(nameof(ICashuApi), "Can't request mint quote without mint API");
@@ -111,7 +111,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
         this._keysetId ??= await this._wallet.GetActiveKeysetId(this._unit, ct) ??
                            throw new ArgumentException($"Can't get active keyset ID for unit: {_unit}");
 
-        this._keyset ??= await this._wallet.GetKeys(this._keysetId, false, ct) ??
+        this._keyset ??= await this._wallet.GetKeys(this._keysetId, true, false, ct) ??
                          throw new ArgumentException($"Cant get keys for keysetId: {_keysetId}");
 
         var outputs = await this._createOutputs();
@@ -156,7 +156,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
         
         if (this._keyset == null)
         {
-            this._keyset = await this._wallet.GetKeys(this._keysetId, false, ct) ??
+            this._keyset = await this._wallet.GetKeys(this._keysetId, true, false, ct) ??
                            throw new ArgumentException($"Cant fetch keys for keysetId: {_keysetId}");
         }
             

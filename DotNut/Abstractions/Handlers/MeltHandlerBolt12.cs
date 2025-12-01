@@ -29,7 +29,7 @@ public class MeltHandlerBolt12(
             return [];
         }
 
-        var keyset = await wallet.GetKeys(res.Change.First().Id, false, ct);
+        var keyset = await wallet.GetKeys(res.Change.First().Id, true, false, ct);
         return Utils.ConstructProofsFromPromises(res.Change.ToList(), blankOutputs, keyset.Keys);
     }
 }

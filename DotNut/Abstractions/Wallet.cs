@@ -29,7 +29,6 @@ public class Wallet : IWalletBuilder
     private TimeSpan? _syncThreshold; // if null sync only once 
     
     private bool _shouldBumpCounter = true;
-    private bool _allowInvalidKeysetIds = false;
 
     
     /*
@@ -224,19 +223,29 @@ public class Wallet : IWalletBuilder
         return this._keys ?? [];
     }
 
-    public async Task<GetKeysResponse.KeysetItemResponse> GetKeys(KeysetId id, bool forceRefresh = false, CancellationToken ct = default)
+    public async Task<GetKeysResponse.KeysetItemResponse?> GetKeys(KeysetId id, bool allowFetch = true, bool forceRefresh = false, CancellationToken ct = default)
     {
         if (forceRefresh)
         {
             return await _fetchKeys(id, ct);
         }
-        if (this._keys == null)
+        
+        var localKeyset = this._keys?.SingleOrDefault(k => k.Id == id);
+        if (localKeyset != null)
         {
-            throw new ArgumentNullException(nameof(this._keys), "Wallet doesn't contain keys for this keyset!");
+            return localKeyset;
         }
 
-        return this._keys.SingleOrDefault(k => k.Id == id)
-               ?? throw new InvalidOperationException($"Keys for keyset ID {id} not found in wallet");
+        if (allowFetch)
+        {
+            var keyset =  await _fetchKeys(id, ct);
+            if (keyset != null && _keys != null)
+            {
+                _keys.Add(keyset);
+            }
+        }
+        
+        throw new ArgumentException("No keys found for this keyset!");
     }
     
     public async Task<List<GetKeysetsResponse.KeysetItemResponse>> GetKeysets(bool forceRefresh = false, CancellationToken ct = default)
@@ -311,7 +320,7 @@ public class Wallet : IWalletBuilder
     public async Task<ICashuApi> GetMintApi(CancellationToken ct = default)
     {
         _ensureApiConnected();
-        return _mintApi;
+        return _mintApi!;
     }
     public async Task<IProofSelector> GetSelector(CancellationToken ct = default)
     {
@@ -396,17 +405,19 @@ public class Wallet : IWalletBuilder
     /// <returns>Keys</returns>
     /// <exception cref="ArgumentException">May be thrown if mint returns invalid keysetId for at least one Keyset</exception>
     /// <exception cref="ArgumentNullException">May be thrown if mint is not set.</exception>
-    private async Task<GetKeysResponse.KeysetItemResponse> _fetchKeys(KeysetId id, CancellationToken cts = default)
+    private async Task<GetKeysResponse.KeysetItemResponse?> _fetchKeys(KeysetId id, CancellationToken cts = default)
     {
         _ensureApiConnected("Can't fetch keys without mint api!");
-        var keysRaw = (await _mintApi!.GetKeys(id, cts)).Keysets.Single();
-        
+        var keysRaw = (await _mintApi!.GetKeys(id, cts)).Keysets.SingleOrDefault();
+        if (keysRaw == null)
+        {
+            return null;
+        }
         var isKeysetIdValid = keysRaw.Keys.VerifyKeysetId(keysRaw.Id, keysRaw.Unit, keysRaw.FinalExpiry);
         if (!isKeysetIdValid)
         {
             throw new ArgumentException($"Mint provided invalid keysetId. Provided: {keysRaw.Id}, derived: {keysRaw.Keys.GetKeysetId()} ");
         }
-
         return keysRaw;
     }
     
@@ -461,8 +472,7 @@ public class Wallet : IWalletBuilder
         }
         
         var knownIds = _keys.Select(key => key.Id).ToHashSet();
-        var unknownKeysets = _keysets.Where(k => !knownIds.Contains(k.Id)).ToList();
-
+        var unknownKeysets = _keysets.Where(k => !knownIds.Contains(k.Id) && k.Active).ToList();
         if (unknownKeysets.Count > 2) // just make a single request. May override stored keys.
         {
             this._keys = await _fetchKeys(cts);
@@ -473,11 +483,13 @@ public class Wallet : IWalletBuilder
         {
             var keyset = await this._fetchKeys(unknownKeyset.Id, cts); 
             _lastSync = DateTime.UtcNow;
-            this._keys.Add(keyset);
+            if (keyset != null)
+            {
+                _keys.Add(keyset);
+            }
         }
         
         _lastSync = DateTime.UtcNow;
     }
-
 }
 

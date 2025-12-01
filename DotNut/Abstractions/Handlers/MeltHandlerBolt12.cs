@@ -15,6 +15,8 @@ public class MeltHandlerBolt12(
     public async Task<List<Proof>> Melt(List<Proof> inputs, CancellationToken ct = default)
     {
         Nut10Helper.MaybeProcessNut10(privKeys??[], inputs, blankOutputs, htlcPreimage, quote.Quote);
+        inputs.ForEach(i=>i.StripFingerprints());
+        
         var client = await wallet.GetMintApi(ct);
         var req = new PostMeltRequest
         {

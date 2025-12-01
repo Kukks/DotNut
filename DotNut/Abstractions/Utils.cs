@@ -281,6 +281,7 @@ public static class Utils
             {
                 throw new ArgumentException($"Provided keyset doesn't contain PubKey for amount {promises[i].Amount}" );
             }
+
             var proof = ConstructProofFromPromise(
                 promises[i],
                 outputs[i].BlindingFactor,
@@ -308,5 +309,19 @@ public static class Utils
     {
         var bytes = RandomNumberGenerator.GetBytes(32);
         return new PrivKey(Convert.ToHexString(bytes));
+    }
+
+    /// <summary>
+    /// Should be called before every interaction with mint. Strips info that could fingerprint user.
+    /// It musn't be called before sending token to someone - may make it unspendable.
+    /// </summary>
+    /// <param name="proof">Proofs to clean</param>
+    public static void StripFingerprints(this Proof proof)
+    {
+        if (proof.DLEQ != null)
+        {
+            proof.DLEQ.R = null;
+        }
+        proof.P2PkE = null;
     }
 }

@@ -186,11 +186,12 @@ public interface IWalletBuilder
     /// Get Keys for given KeysetID
     /// </summary>
     /// <param name="id">KeysetId</param>
+    /// <param name="allowFetch">If keyset not present not in db, it can be fetched</param>
     /// <param name="forceRefresh">Refetch flag</param>
     /// <param name="ct"></param>
     /// <returns>Keys for given keyset</returns>
     /// <exception cref="ArgumentNullException">If wallet doesn't contain keysets for given keysetId</exception>
-    Task<GetKeysResponse.KeysetItemResponse> GetKeys(KeysetId id, bool forceRefresh = false,
+    Task<GetKeysResponse.KeysetItemResponse?> GetKeys(KeysetId id, bool allowFetch, bool forceRefresh = false,
         CancellationToken ct = default);
 
     /// <summary>

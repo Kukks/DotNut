@@ -278,7 +278,7 @@ public class Integration
      //         .ProcessAsyncBolt12();
      //
      //     // select proofs to send 
-     //     var q = await meltQuote.GetQuote();
+     //     var q = meltQuote.GetQuote();
      //     var selectedProofs = await wallet.SelectProofsToSend(mintedProofs, q.Amount + (ulong)q.FeeReserve, true);
      //     
      //     //melt proofs 

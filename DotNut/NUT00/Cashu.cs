@@ -117,25 +117,51 @@ public static class Cashu
     /// Verify DLEQ proof of Cashu proof.
     /// </summary>
     /// <param name="proof">Cashu Proof</param>
-    /// <param name="A"></param>
+    /// <param name="A">Amount Pubkey</param>
     /// <returns></returns>
     public static bool Verify(this Proof proof, ECPubKey A)
     {
         return VerifyProof(proof.Secret.ToCurve(),proof.DLEQ.R, proof.C, proof.DLEQ.E, proof.DLEQ.S, A);
     }
+    
+    /// <summary>
+    /// Verify DLEQ proof of Blinded signature
+    /// </summary>
+    /// <param name="blindSig">Blind Signature</param>
+    /// <param name="A">Amount Pubkey</param>
+    /// <param name="B_">Blinded Message</param>
+    /// <returns></returns>
     public static bool Verify(this BlindSignature blindSig, ECPubKey A, ECPubKey B_)
     {
         return  Cashu.VerifyProof(B_, blindSig.C_, blindSig.DLEQ.E, blindSig.DLEQ.S, A);
     }
     
+    /// <summary>
+    /// Verify DLEQ proof
+    /// </summary>
+    /// <param name="B_">Blinded Message</param>
+    /// <param name="C_">Blinded Signature</param>
+    /// <param name="e">Dleq.E returned by mint</param>
+    /// <param name="s">Dleq.S returned by mint</param>
+    /// <param name="A">Amount pubkey</param>
+    /// <returns></returns>
     public static bool VerifyProof(ECPubKey B_, ECPubKey C_, ECPrivKey e, ECPrivKey s, ECPubKey A)
     {
-
         var r1 = s.CreatePubKey().Q.ToGroupElementJacobian().Add((A.Q * e.sec.Negate()).ToGroupElement()).ToPubkey();
         var r2 = (B_.Q * s.sec).Add((C_.Q * e.sec.Negate()).ToGroupElement()).ToPubkey();
         var e_ = ComputeE(r1, r2, A, C_);
         return e.sec.Equals(e_);
     }
+    /// <summary>
+    /// Verify DLEQ proof
+    /// </summary>
+    /// <param name="Y">Hash to curve result</param>
+    /// <param name="r">Blinidng Factor</param>
+    /// <param name="C">Amount Pubkey</param>
+    /// <param name="e">Dleq.E returned by mint</param>
+    /// <param name="s">Dleq.S returned by mint</param>
+    /// <param name="A">Amount pubkey</param>
+    /// <returns></returns>
 
     public static bool VerifyProof(ECPubKey Y, ECPrivKey r, ECPubKey C, ECPrivKey e, ECPrivKey s, ECPubKey A)
     {
@@ -172,6 +198,13 @@ public static class Cashu
         return new ECPubKey(ge, Context.Instance);
     }
 
+    /// <summary>
+    /// Compute shared secret for P2Bk (ECDH)
+    /// </summary>
+    /// <param name="e">Privkey of Alice</param>
+    /// <param name="P">Pubkey of Bob</param>
+    /// <returns>Zx = x(e·P) or x(p·E)</returns>
+    /// <exception cref="InvalidOperationException">If can't create xOnly pubkey with derived shared secret</exception>
     public static byte[] ComputeZx(ECPrivKey e, ECPubKey P)
     {
         var x = (e.sec * P.Q).ToGroupElement().x;
@@ -183,6 +216,13 @@ public static class Cashu
         return xOnly.ToBytes();
     }
     
+    /// <summary>
+    /// Compute deterministic blinding scalar for P2Bk
+    /// </summary>
+    /// <param name="Zx">Shared secret</param>
+    /// <param name="keysetId"></param>
+    /// <param name="i">blinded pubkey indice</param>
+    /// <returns></returns>
     public static ECPrivKey ComputeRi(byte[] Zx, byte[] keysetId, int i)
     {
         byte[] hash;

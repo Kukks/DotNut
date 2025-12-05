@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using DotNut.NUT13;
 
 namespace DotNut.Abstractions;
@@ -266,7 +267,7 @@ public static class Utils
         {
             E = promise.DLEQ.E,
             S = promise.DLEQ.S,
-            R = r
+            R = r.Key.Clone()
         };
         if (!proof.Verify(amountPubkey))
         {
@@ -320,15 +321,39 @@ public static class Utils
 
     /// <summary>
     /// Should be called before every interaction with mint. Strips info that could fingerprint user.
-    /// It musn't be called before sending token to someone - may make it unspendable.
+    /// It mustn't be called before sending token to someone - may make it unspendable.
     /// </summary>
     /// <param name="proof">Proofs to clean</param>
     public static void StripFingerprints(this Proof proof)
     {
         if (proof.DLEQ != null)
         {
-            proof.DLEQ.R = null;
+            proof.DLEQ = null;
         }
         proof.P2PkE = null;
+    }
+    
+    /// <summary>
+    /// Create deep copy of the object, so original one won't get mutated by reference.
+    /// </summary>
+    /// <param name="obj">Object to clone</param>
+    /// <typeparam name="T">Object type</typeparam>
+    /// <returns>Deep copy of the object</returns>
+    public static T DeepCopy<T>(this T obj) where T : class
+    {
+        return JsonSerializer.Deserialize<T>(
+            JsonSerializer.Serialize(obj)
+        )!;
+    }
+    
+    /// <summary>
+    /// Create deep copy of the list
+    /// </summary>
+    /// <param name="list"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
+    public static List<T> DeepCopyList<T>(this IEnumerable<T> list) where T : class
+    {
+        return list.Select(item => item.DeepCopy()).ToList();
     }
 }

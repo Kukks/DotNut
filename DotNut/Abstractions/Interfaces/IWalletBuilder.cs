@@ -184,14 +184,14 @@ public interface IWalletBuilder
     Task<List<GetKeysResponse.KeysetItemResponse>> GetKeys(bool forceRefresh = false, CancellationToken ct = default);
     
     /// <summary>
-    /// Get Keys for given KeysetID
+    /// Get Keys for given KeysetID. At first it tries to find corresponding keys, if allowFetch is true, will try to
+    /// fetch keys if not present in wallet.
     /// </summary>
     /// <param name="id">KeysetId</param>
     /// <param name="allowFetch">If keyset not present not in db, it can be fetched</param>
     /// <param name="forceRefresh">Refetch flag</param>
     /// <param name="ct"></param>
     /// <returns>Keys for given keyset</returns>
-    /// <exception cref="ArgumentNullException">If wallet doesn't contain keysets for given keysetId</exception>
     Task<GetKeysResponse.KeysetItemResponse?> GetKeys(KeysetId id, bool allowFetch, bool forceRefresh = false,
         CancellationToken ct = default);
 
@@ -203,13 +203,34 @@ public interface IWalletBuilder
     /// <returns>List of Keysets</returns>
     Task<List<GetKeysetsResponse.KeysetItemResponse>> GetKeysets(bool forceRefresh = false,
         CancellationToken ct = default);
+    
+    /// <summary>
+    /// Select proofs for sending purposes. By default uses RGLI algorithm, unless another one provided.
+    /// </summary>
+    /// <param name="proofs"></param>
+    /// <param name="amount"></param>
+    /// <param name="includeFees"></param>
+    /// <param name="ct"></param>
+    /// <returns></returns>
 
     Task<SendResponse> SelectProofsToSend(List<Proof> proofs, ulong amount, bool includeFees,
         CancellationToken ct = default);
     
+    /// <summary>
+    /// Getter for proof selector. If not set, returns RGLI algorithm by default.
+    /// </summary>
+    /// <param name="ct"></param>
+    /// <returns></returns>
+    Task<IProofSelector> GetSelector(CancellationToken ct = default);
+    
+    /// <summary>
+    /// Returns websocket service, that can be shared between multiple wallets.
+    /// </summary>
+    /// <param name="ct"></param>
+    /// <returns></returns>
     Task<IWebsocketService> GetWebsocketService(CancellationToken ct = default);
 
-    Task<IProofSelector> GetSelector(CancellationToken ct = default);
+    
 
     
     /// <summary>
@@ -237,11 +258,15 @@ public interface IWalletBuilder
     IRestoreBuilder Restore();
 
     /// <summary>
-    /// Check state of proofs
+    /// Check state of provided proofs. 
     /// </summary>
     /// <returns></returns>
     Task<PostCheckStateResponse> CheckState(IEnumerable<Proof> proofs, CancellationToken ct = default);
-
+    
+    /// <summary>
+    /// Check state of provided proofs. 
+    /// </summary>
+    /// <returns></returns>
     Task<PostCheckStateResponse> CheckState(IEnumerable<PubKey> Ys, CancellationToken ct = default);
 
 }

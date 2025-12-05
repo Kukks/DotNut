@@ -16,9 +16,9 @@ public class SigAllHandler
     private Nut10ProofSecret? _firstProofSecret; 
     
     
-    public bool TrySign(out P2PKWitness? p2pkwitness)
+    public bool TrySign(out string? witness)
     {
-        p2pkwitness = null;
+        witness = null;
         
         if ( BlindedMessages is null || Proofs is null || PrivKeys is null ||
             BlindedMessages.Count == 0 || Proofs.Count == 0 || PrivKeys.Count == 0)
@@ -42,37 +42,42 @@ public class SigAllHandler
             return false;
         }
         
-        if (_firstProofSecret is not P2PKProofSecret ps)
+        if (_firstProofSecret is not P2PKProofSecret fps)
         {
             return false;
         }
         
-        if (ps is HTLCProofSecret s && HTLCPreimage is {} preimage)
+        P2PKWitness witnessObj;
+        if (fps is HTLCProofSecret s && HTLCPreimage is {} preimage)
         {
             if (Proofs.First().P2PkE is { } E)
             {
-                p2pkwitness = s.GenerateBlindWitness(msg,
+                witnessObj = s.GenerateBlindWitness(msg,
                     PrivKeys.Select(pk => (ECPrivKey)pk).ToArray(),
-                    Encoding.UTF8.GetBytes(preimage),
+                    Convert.FromHexString(preimage),
                     Proofs[0].Id,
                     E
                 );
+                witness = JsonSerializer.Serialize((HTLCWitness)witnessObj);
                 return true;
             }
-            p2pkwitness = 
+            witnessObj = 
                 s.GenerateWitness(msg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray(), 
-                    Encoding.UTF8.GetBytes(preimage)
+                    Convert.FromHexString(preimage)
                     );
+            witness = JsonSerializer.Serialize((HTLCWitness)witnessObj);
             return true;
         }
 
         
         if (Proofs.First().P2PkE is { } e2)
         {
-            p2pkwitness = ps.GenerateBlindWitness(msg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray(), Proofs[0].Id, e2);
+            witnessObj = fps.GenerateBlindWitness(msg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray(), Proofs[0].Id, e2);
+            witness = JsonSerializer.Serialize(witnessObj);
             return true;
         }
-        p2pkwitness = ps.GenerateWitness(msg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray());
+        witnessObj = fps.GenerateWitness(msg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray());
+        witness = JsonSerializer.Serialize(witnessObj);
         return true;
     }
 

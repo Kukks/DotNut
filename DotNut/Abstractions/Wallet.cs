@@ -152,6 +152,7 @@ public class Wallet : IWalletBuilder
 
     public async Task<PostCheckStateResponse> CheckState(IEnumerable<Proof> proofs, CancellationToken ct = default)
     {
+        // no need for striping DLEQ r, or p2pkE, since only Ys are being sent.
         return await CheckState(proofs.Select(p => (PubKey) p.Secret.ToCurve()), ct);
     }
 
@@ -443,7 +444,8 @@ public class Wallet : IWalletBuilder
     }
     
     /// <summary>
-    /// Local Keys sync. 
+    /// Local Keys sync. Will fetch _all_ keys if more than 2 unknown keysets are returned.
+    /// Doesn't sync fetch non-active keys. If you want to fetch keys for inactive keyset, you will need to use GetKeys.
     /// </summary>
     /// <param name="cts"></param>
     /// <exception cref="ArgumentNullException"></exception>

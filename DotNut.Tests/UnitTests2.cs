@@ -13,6 +13,24 @@ public class UnitTests2
     private static string MintUrl = "http://localhost:3338";
 
     [Fact]
+    public void CreatesWalletSuccesfully()
+    {
+        var wallet = Wallet.Create();
+        Assert.NotNull(wallet);
+    }
+    
+    [Fact]
+    public async Task ThrowsWhenMintNotFound()
+    {
+        var wallet = Wallet.Create();
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await wallet.GetInfo());
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => wallet.Restore());
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => wallet.Swap());
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => wallet.CreateMeltQuote());
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => wallet.CreateMintQuote());
+    }
+    
+    [Fact]
     public void BuilderChainingPreservesAllSettings()
     {
         var counter = new InMemoryCounter();

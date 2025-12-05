@@ -14,14 +14,17 @@ public class MeltHandlerBolt12(
     public PostMeltQuoteBolt12Response GetQuote() => quote;
     public async Task<List<Proof>> Melt(List<Proof> inputs, CancellationToken ct = default)
     {
-        Nut10Helper.MaybeProcessNut10(privKeys??[], inputs, blankOutputs, htlcPreimage, quote.Quote);
-        inputs.ForEach(i=>i.StripFingerprints());
+        //we're operating on copy here since later the proof state is mutated in stripFingerprints
+        var proofs = inputs.DeepCopyList();
+        
+        Nut10Helper.MaybeProcessNut10(privKeys??[], proofs, blankOutputs, htlcPreimage, quote.Quote);
+        proofs.ForEach(i=>i.StripFingerprints());
         
         var client = await wallet.GetMintApi(ct);
         var req = new PostMeltRequest
         {
             Quote = quote.Quote,
-            Inputs = inputs.ToArray(),
+            Inputs = proofs.ToArray(),
             Outputs = blankOutputs.Select(bo=>bo.BlindedMessage).ToArray(),
         };
         

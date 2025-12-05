@@ -53,7 +53,7 @@ class SwapBuilder : ISwapBuilder
 
     public ISwapBuilder FromInputs(IEnumerable<Proof> proofs)
     {
-        this._proofsToSwap = proofs.ToList();
+        this._proofsToSwap = proofs.DeepCopyList();
         return this;
     }
 
@@ -167,6 +167,7 @@ class SwapBuilder : ISwapBuilder
         var fee = 0UL;
         if (_includeFees)
         {
+            // returns also non-active keysets.
             var keysetsFees = (await _wallet.GetKeysets(false, ct)).ToDictionary(k=>k.Id, k=>k.InputFee??0);
             fee = swapInputs.ComputeFee(keysetsFees);
         }

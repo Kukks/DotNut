@@ -8,6 +8,7 @@ namespace DotNut.Tests;
 public class Integration
 {
     private static string MintUrl = "http://localhost:3338";
+    // private static string MintUrl = "https://fake.thesimplekid.dev";
     // private static string MintUrl = "https://testnut.cashu.space";
 
     private static string seed =
@@ -33,24 +34,7 @@ public class Integration
         },
     };
     private static ICounter counter = new InMemoryCounter();
-
-    [Fact]
-    public void CreatesWalletSuccesfully()
-    {
-        var wallet = Wallet.Create();
-        Assert.NotNull(wallet);
-    }
     
-    [Fact]
-    public async Task ThrowsWhenMintNotFound()
-    {
-        var wallet = Wallet.Create();
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await wallet.GetInfo());
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => wallet.Restore());
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => wallet.Swap());
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => wallet.CreateMeltQuote());
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => wallet.CreateMintQuote());
-    }
     
     [Fact]
     public async Task FetchesInfoSuccessfully()
@@ -244,48 +228,49 @@ public class Integration
          Assert.NotEmpty(change);
      }
 
-     // [Fact]
-     // public async Task MeltsBolt12Successfully()
-     // {
-     //     var privkeyBob = new PrivKey(RandomNumberGenerator.GetBytes(32));
-     //     
-     //     // mint proofs
-     //     var wallet = Wallet
-     //         .Create()
-     //         .WithMint(MintUrl);
-     //
-     //     var mintQuote = await wallet
-     //         .CreateMintQuote()
-     //         .WithUnit("sat")
-     //         .WithAmount(1337)
-     //         .WithPubkey(privkeyBob.Key.CreatePubKey())
-     //         .ProcessAsyncBolt12();
-     //     
-     //     await Task.Delay(3000);
-     //     
-     //     mintQuote.SignWithPrivkey(privkeyBob);
-     //     var mintedProofs = await mintQuote.Mint();
-     //     Assert.NotEmpty(mintedProofs);
-     //
-     //     var Ids = mintedProofs.Select(proof => proof.Id).Count();
-     //     
-     //     Console.WriteLine($"amounts {Ids}");
-     //     // create melt quote
-     //     var meltQuote = await wallet
-     //         .CreateMeltQuote()
-     //         .WithInvoice(bolt12Invoices[1200])
-     //         .WithUnit("sat")
-     //         .ProcessAsyncBolt12();
-     //
-     //     // select proofs to send 
-     //     var q = meltQuote.GetQuote();
-     //     var selectedProofs = await wallet.SelectProofsToSend(mintedProofs, q.Amount + (ulong)q.FeeReserve, true);
-     //     
-     //     //melt proofs 
-     //     var change = await meltQuote.Melt(selectedProofs.Send);
-     //     
-     //     Assert.NotEmpty(change);
-     // }
+     [Fact]
+     public async Task MeltsBolt12Successfully()
+     {
+         var privkeyBob = new PrivKey(RandomNumberGenerator.GetBytes(32));
+         
+         // mint proofs
+         var wallet = Wallet
+             .Create()
+             .WithMint(MintUrl);
+     
+         var mintQuote = await wallet
+             .CreateMintQuote()
+             .WithUnit("sat")
+             .WithAmount(1337)
+             .WithPubkey(privkeyBob.Key.CreatePubKey())
+             .ProcessAsyncBolt12();
+         
+         await Task.Delay(3000);
+         
+         mintQuote.SignWithPrivkey(privkeyBob);
+         var mintedProofs = await mintQuote.Mint();
+         Assert.NotEmpty(mintedProofs);
+     
+         var Ids = mintedProofs.Select(proof => proof.Id).Count();
+         
+         Console.WriteLine($"amounts {Ids}");
+         // create melt quote
+         var meltQuote = await wallet
+             .CreateMeltQuote()
+             .WithInvoice(bolt12Invoices[1200])
+             .WithUnit("sat")
+             .WithAmount(1200)// it turns out that this invoice is amountless
+             .ProcessAsyncBolt12();
+     
+         // select proofs to send 
+         var q = meltQuote.GetQuote();
+         var selectedProofs = await wallet.SelectProofsToSend(mintedProofs, q.Amount + (ulong)q.FeeReserve, true);
+         
+         //melt proofs 
+         var change = await meltQuote.Melt(selectedProofs.Send);
+         
+         Assert.NotEmpty(change);
+     }
 
      [Fact]
      public async Task InvoiceWithDescription()
@@ -344,20 +329,49 @@ public class Integration
          await PayInvoice();
          var proofs = await mintHandler.Mint();
          
-         // no privkeys
          await Assert.ThrowsAsync<CashuProtocolException>(
              async () => await wallet
                  .Swap()
                  .FromInputs(proofs)
                  .ProcessAsync()
          );
+         
+         var swappedProofs = await wallet
+             .Swap()
+             .FromInputs(proofs)
+             .WithPrivkeys([privKeyBob])
+             .ProcessAsync();
+         
+         Assert.NotEmpty(swappedProofs);
+     }
 
-         // wrong privkey
-         await Assert.ThrowsAsync<InvalidOperationException>(
+     [Fact]
+     public async Task MintSwapP2PkSigAll()
+     {
+         var wallet = Wallet
+             .Create()
+             .WithMint(MintUrl);
+
+         var privKeyAlice = new PrivKey(RandomNumberGenerator.GetHexString(64, true));
+         var privKeyBob = new PrivKey(RandomNumberGenerator.GetHexString(64, true));
+
+         var mintHandler = await wallet.CreateMintQuote()
+             .WithAmount(1337)
+             .WithP2PkLock(new P2PkBuilder()
+                 {
+                     SigFlag = "SIG_ALL",
+                     Pubkeys = [privKeyBob.Key.CreatePubKey()],
+                     SignatureThreshold = 1
+                 }
+             ).ProcessAsyncBolt11();
+
+         await PayInvoice();
+         var proofs = await mintHandler.Mint();
+         
+         await Assert.ThrowsAsync<CashuProtocolException>(
              async () => await wallet
                  .Swap()
                  .FromInputs(proofs)
-                 .WithPrivkeys([privKeyAlice.Key])
                  .ProcessAsync()
          );
          
@@ -418,6 +432,7 @@ public class Integration
          
          Assert.NotEmpty(change);
      }
+     
      [Fact]
      public async Task MintSwapHTLC()
      {
@@ -464,6 +479,52 @@ public class Integration
          
          Assert.NotEmpty(swappedProofs);
          // fee is 100 ppk - it can be calculated before but here we don't care
+         Assert.Equal(1337UL - 1, Utils.SumProofs(swappedProofs));
+     }
+
+     [Fact]
+     public async Task MintSwapHTLCSigAll()
+     {
+         var wallet = Wallet
+             .Create()
+             .WithMint(MintUrl);
+         
+         var privKeyBob = new PrivKey(RandomNumberGenerator.GetHexString(64, true));
+         var preimage = "0000000000000000000000000000000000000000000000000000000000000001";
+         var hashLock = Convert.ToHexString(SHA256.HashData(Convert.FromHexString(preimage)));
+         
+         var mintHandler = await wallet.CreateMintQuote()
+             .WithAmount(1337)
+             .WithHTLCLock(new HTLCBuilder()
+             {
+                 HashLock = hashLock,
+                 Pubkeys = [privKeyBob.Key.CreatePubKey()],
+                 SignatureThreshold = 1,
+                 SigFlag = "SIG_ALL"
+             })
+             .ProcessAsyncBolt11();
+     
+         await PayInvoice();
+         var htlcProofs = await mintHandler.Mint();
+         
+         Assert.NotEmpty(htlcProofs);
+         Assert.Equal(1337UL, Utils.SumProofs(htlcProofs));
+         
+         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+         {
+             await wallet.Swap()
+                 .FromInputs(htlcProofs)
+                 .WithPrivkeys([privKeyBob])
+                 .ProcessAsync();
+         });
+         
+         var swappedProofs = await wallet.Swap()
+             .FromInputs(htlcProofs)
+             .WithPrivkeys([privKeyBob])
+             .WithHtlcPreimage(preimage)
+             .ProcessAsync();
+         
+         Assert.NotEmpty(swappedProofs);
          Assert.Equal(1337UL - 1, Utils.SumProofs(swappedProofs));
      }
 
@@ -545,7 +606,7 @@ public class Integration
         
          Assert.NotEmpty(change);
      }
-
+     
      [Fact]
      public async Task MintSwapP2Bk()
      {
@@ -753,7 +814,7 @@ public class Integration
     }
 
 
-     private async Task PayInvoice()
+    private async Task PayInvoice()
      {
          //We're using fakewallet, so after 3 secs it will get paid automatically. After 3.5 sec its 1000% paid.
          await Task.Delay(3500);

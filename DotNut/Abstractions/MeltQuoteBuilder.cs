@@ -1,5 +1,6 @@
 using DotNut.Abstractions.Handlers;
 using DotNut.ApiModels;
+using DotNut.ApiModels.Melt;
 using DotNut.ApiModels.Melt.bolt12;
 
 namespace DotNut.Abstractions;
@@ -7,10 +8,11 @@ namespace DotNut.Abstractions;
 class MeltQuoteBuilder : IMeltQuoteBuilder
 {
     private readonly Wallet _wallet;
-    private List<Proof>? _proofs;
     private string? _invoice;
     private List<OutputData>? _blankOutputs;
     private string _unit = "sat";
+
+    private ulong? _amount;
     
     private List<PrivKey>? _privKeys;
     private string? _htlcPreimage;
@@ -52,6 +54,12 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         return this;
     }
 
+    public IMeltQuoteBuilder WithAmount(ulong msat)
+    {
+        this._amount = msat;
+        return this;
+    }
+
     public async Task<IMeltHandler<PostMeltQuoteBolt11Response, List<Proof>>> ProcessAsyncBolt11(CancellationToken ct = default)
     {
         var mintApi = await _wallet.GetMintApi(ct);
@@ -63,6 +71,17 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
             Request = this._invoice,
             Unit = this._unit,
         };
+
+        if (this._amount != null)
+        {
+            req.Options = new MeltQuoteRequestOptions
+            {
+                Amountless = new AmountlessMeltQuoteOptions
+                {
+                    AmountMsat = this._amount.Value,
+                }
+            };
+        }
 
         var quote =
             await mintApi.CreateMeltQuote<PostMeltQuoteBolt11Response, PostMeltQuoteBolt11Request>("bolt11", req, ct);
@@ -88,8 +107,19 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         {
             Request = this._invoice,
             Unit = this._unit,
-            // todo melt quote bolt12 options
         };
+        
+        if (this._amount != null)
+        {
+            req.Options = new MeltQuoteRequestOptions
+            {
+                Amountless = new AmountlessMeltQuoteOptions
+                {
+                    AmountMsat = this._amount.Value,
+                }
+            };
+        }
+        
         var quote =
             await mintApi.CreateMeltQuote<PostMeltQuoteBolt12Response, PostMeltQuoteBolt12Request>("bolt12", req, ct);
         

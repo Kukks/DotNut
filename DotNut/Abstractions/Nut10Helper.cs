@@ -28,7 +28,7 @@ public static class Nut10Helper
             MeltQuoteId = meltQuoteId
         };
         
-        if (sigAllHandler.TrySign(out P2PKWitness? witness))
+        if (sigAllHandler.TrySign(out string? witness))
         {
             if (witness == null)
             {
@@ -36,7 +36,7 @@ public static class Nut10Helper
                     "sig_all input was correct, but couldn't create a witness signature!");
             }
 
-            proofs[0].Witness = JsonSerializer.Serialize(witness);
+            proofs[0].Witness = witness;
             return;
         }
 
@@ -44,11 +44,11 @@ public static class Nut10Helper
 
         foreach (var proof in proofs)
         {
-            handleWitnessCreation(proof, keys, htlcPreimage);
+            HandleWitnessCreation(proof, keys, htlcPreimage);
         }
     }
 
-    private static void handleWitnessCreation(Proof proof, ECPrivKey[] keys, string? htlcPreimage)
+    private static void HandleWitnessCreation(Proof proof, ECPrivKey[] keys, string? htlcPreimage)
     {
         if (proof.Secret is Nut10Secret { ProofSecret: HTLCProofSecret htlc })
         {

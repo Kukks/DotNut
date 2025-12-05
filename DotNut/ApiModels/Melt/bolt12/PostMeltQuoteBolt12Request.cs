@@ -13,6 +13,7 @@ public class PostMeltQuoteBolt12Request
     public string Unit { get; set; }
     
     [JsonPropertyName("options")]
-    public JsonNode? Options { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public MeltQuoteRequestOptions? Options { get; set; }
 }
 

@@ -29,6 +29,13 @@ public interface IMeltQuoteBuilder
     IMeltQuoteBuilder WithPrivKeys(IEnumerable<PrivKey> privKeys);
 
     /// <summary>
+    /// Optional and mandatory if amountless invoice provided.
+    /// </summary>
+    /// <param name="msat">Melt quote amount in millisatoshis</param>
+    /// <returns></returns>
+    IMeltQuoteBuilder WithAmount(ulong msat);
+
+    /// <summary>
     /// Optional. Supply HTLC preimage to sign HTLC-based proofs.
     /// </summary>
     IMeltQuoteBuilder WithHTLCPreimage(string preimage);

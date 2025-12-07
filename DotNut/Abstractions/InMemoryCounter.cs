@@ -31,7 +31,7 @@ public class InMemoryCounter : ICounter
         return Task.CompletedTask;
     }
     
-    public IReadOnlyDictionary<KeysetId, int> Export()
+    public async Task<IReadOnlyDictionary<KeysetId, int>> Export()
     {
         return new Dictionary<KeysetId, int>(_counter);
     }

@@ -230,8 +230,11 @@ public interface IWalletBuilder
     /// <returns></returns>
     Task<IWebsocketService> GetWebsocketService(CancellationToken ct = default);
 
-    
-
+    /// <summary>
+    /// Returns current Counter instance.
+    /// </summary>
+    /// <returns></returns>
+    ICounter? GetCounter();
     
     /// <summary>
     /// Create swap transaction builder.
@@ -268,6 +271,7 @@ public interface IWalletBuilder
     /// </summary>
     /// <returns></returns>
     Task<PostCheckStateResponse> CheckState(IEnumerable<PubKey> Ys, CancellationToken ct = default);
+    
 
 }
 

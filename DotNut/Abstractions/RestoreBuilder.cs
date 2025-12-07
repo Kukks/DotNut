@@ -10,17 +10,25 @@ public class RestoreBuilder : IRestoreBuilder
     private List<KeysetId>? _specifiedKeysets;
     private static int BATCH_SIZE = 100;
 
+    private ICounter? _counter;
+
     public RestoreBuilder(Wallet wallet)
     {
         this._wallet = wallet;
     }
     
-    public IRestoreBuilder ForKeysetIds(IEnumerable<KeysetId> keysetIds)
+    public IRestoreBuilder FromKeysetIds(IEnumerable<KeysetId> keysetIds)
     {
         this._specifiedKeysets = keysetIds.ToList();
         return this;
     }
 
+    public IRestoreBuilder WithCounter(ICounter counter)
+    {
+        this._counter = counter;
+        return this;
+    }
+    
 
     public async Task<IEnumerable<Proof>> ProcessAsync(CancellationToken ct = default)
     {
@@ -36,11 +44,8 @@ public class RestoreBuilder : IRestoreBuilder
         {
             throw new InvalidOperationException("No keysets available for restoration. Ensure the mint has at least one active keyset or specify keysets explicitly.");
         }
-        
-        // init brand new counter
-        _wallet.WithCounter(new InMemoryCounter());
-        var counter = _wallet.GetCounter();
 
+        _counter ??= new InMemoryCounter();
         // fetch all batches
         List<Proof> recoveredProofs = new List<Proof>();
         foreach (var keysetId in _specifiedKeysets)
@@ -72,7 +77,7 @@ public class RestoreBuilder : IRestoreBuilder
                     Outputs = outputs.Select(o=>o.BlindedMessage).ToArray()
                 };
                 var res = await api.Restore(req, ct);
-                await counter!.IncrementCounter(keysetId, BATCH_SIZE, ct);
+                await _counter!.IncrementCounter(keysetId, BATCH_SIZE, ct);
                 batchNumber++;
                 if (res.Signatures.Length == 0)
                 {

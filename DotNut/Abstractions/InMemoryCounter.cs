@@ -30,5 +30,10 @@ public class InMemoryCounter : ICounter
         _counter[keysetId] = counter;
         return Task.CompletedTask;
     }
+    
+    public IReadOnlyDictionary<KeysetId, int> Export()
+    {
+        return new Dictionary<KeysetId, int>(_counter);
+    }
 
 }

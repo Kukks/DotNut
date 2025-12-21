@@ -2,7 +2,7 @@
 
 namespace DotNut.Api;
 
-public interface ICashuApi
+public interface ICashuApi: IDisposable
 {
     string GetBaseUrl();
     Task<GetKeysResponse> GetKeys(CancellationToken cancellationToken = default);

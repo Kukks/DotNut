@@ -27,9 +27,7 @@ public class Wallet : IWalletBuilder
     private bool _shouldSyncKeyset = true;
     private DateTime? _lastSync = DateTime.MinValue;
     private TimeSpan? _syncThreshold; // if null sync only once 
-    
     private bool _shouldBumpCounter = true;
-
     
     /*
      * Fluent Builder Methods 
@@ -45,7 +43,7 @@ public class Wallet : IWalletBuilder
     public IWalletBuilder WithMint(string mintUrl)
     {
         var httpClient = new HttpClient{ BaseAddress = new Uri(mintUrl)};
-        _mintApi = new CashuHttpClient(httpClient);
+        _mintApi = new CashuHttpClient(httpClient, true);
         return this;
     }
     
@@ -335,9 +333,10 @@ public class Wallet : IWalletBuilder
     }
 
     public async Task<IWebsocketService> GetWebsocketService(CancellationToken ct = default)
-    {
+    { 
         return this._wsService ??= new WebsocketService();
     }
+    
     public Mnemonic? GetMnemonic() => _mnemonic;
     public ICounter? GetCounter() => _counter;
     
@@ -492,6 +491,11 @@ public class Wallet : IWalletBuilder
         }
         
         _lastSync = DateTime.UtcNow;
+    }
+
+    public void Dispose()
+    {
+        _mintApi?.Dispose();
     }
 }
 

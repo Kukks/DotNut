@@ -8,7 +8,7 @@ namespace DotNut.Abstractions;
 /// <summary>
 /// Fluent builder interface for Cashu Wallet operations
 /// </summary>
-public interface IWalletBuilder
+public interface IWalletBuilder : IDisposable
 {
     /// <summary>
     /// Mandatory. Sets a mint in a wallet object

@@ -46,6 +46,13 @@ public class Wallet : IWalletBuilder
         _mintApi = new CashuHttpClient(httpClient, true);
         return this;
     }
+
+    public IWalletBuilder WithMint(Uri mintUri)
+    {
+        var httpClient = new HttpClient { BaseAddress = mintUri };
+        _mintApi = new CashuHttpClient(httpClient, true);
+        return this;
+    }
     
     public IWalletBuilder WithInfo(MintInfo info)
     {

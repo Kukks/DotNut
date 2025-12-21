@@ -21,6 +21,12 @@ public interface IWalletBuilder : IDisposable
     /// </summary>
     /// <param name="mintApi">Mint URL string.</param>
     IWalletBuilder WithMint(string mintUrl);
+
+    /// <summary>
+    /// Mandatory. Sets a mint in a wallet object (with default CashuHttpClient)
+    /// </summary>
+    /// <param name="mintApi">Mint URI.</param>
+    IWalletBuilder WithMint(Uri mintUri);
     
     /// <summary>
     /// Optional. Import Mint Info to CashuWallet. Otherwise, it will be fetched from /v1/info endpoint.

@@ -9,12 +9,14 @@ namespace DotNut.Api;
 public class CashuHttpClient : ICashuApi
 {
     private readonly HttpClient _httpClient;
+    private readonly bool _ownsHttpClient;
     
-    public CashuHttpClient(HttpClient httpClient)
+    public CashuHttpClient(HttpClient httpClient, bool ownsHttpClient = false)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         ArgumentNullException.ThrowIfNull(httpClient.BaseAddress);
         _httpClient = httpClient;
+        _ownsHttpClient = ownsHttpClient;
     }
 
     public string GetBaseUrl()
@@ -137,5 +139,13 @@ public class CashuHttpClient : ICashuApi
         }
 
         return result!;
+    }
+
+    public void Dispose()
+    {
+        if (_ownsHttpClient)
+        {
+            _httpClient.Dispose();
+        }
     }
 }

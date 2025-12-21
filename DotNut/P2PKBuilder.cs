@@ -3,7 +3,7 @@ using NBitcoin.Secp256k1;
 
 namespace DotNut;
 
-public class P2PkBuilder
+public class P2PKBuilder
 {
     public DateTimeOffset? Lock { get; set; }
     public ECPubKey[]? RefundPubkeys { get; set; }
@@ -14,6 +14,7 @@ public class P2PkBuilder
     //SIG_INPUTS, SIG_ALL 
     public string? SigFlag { get; set; }
     public string? Nonce { get; set; }
+    public int? RefundSignatureThreshold { get; set; }
     
     public P2PKProofSecret Build()
     {
@@ -36,14 +37,19 @@ public class P2PkBuilder
                 tags.Add(new[] { "refund" }.Concat(RefundPubkeys.Select(p => p.ToHex()))
                     .ToArray());
             }
+            if (RefundSignatureThreshold is { } refundSignatureThreshold 
+                && RefundPubkeys is {} refundKeys 
+                && refundKeys.Length >= refundSignatureThreshold)
+            {
+                tags.Add(new[] {"n_sigs_refund", refundSignatureThreshold.ToString() });
+            }
         }
 
         if (SignatureThreshold > 1 && Pubkeys.Length >= SignatureThreshold)
         {
             tags.Add(new[] { "n_sigs", SignatureThreshold.ToString() });
         }
-
-
+        
         return new P2PKProofSecret()
         {
             Data = Pubkeys.First().ToHex(),
@@ -52,9 +58,9 @@ public class P2PkBuilder
         };
     }
 
-    public static P2PkBuilder Load(P2PKProofSecret proofSecret)
+    public static P2PKBuilder Load(P2PKProofSecret proofSecret)
     {
-        var builder = new P2PkBuilder();
+        var builder = new P2PKBuilder();
         var primaryPubkey = proofSecret.Data.ToPubKey();
         var pubkeys = proofSecret.Tags?.FirstOrDefault(strings => strings.FirstOrDefault() == "pubkeys");
         if (pubkeys is not null && pubkeys.Length > 1)
@@ -76,6 +82,13 @@ public class P2PkBuilder
         if (refund is not null && refund.Length > 1)
         {
             builder.RefundPubkeys = refund.Skip(1).Select(s => s.ToPubKey()).ToArray();
+        }
+        
+        var nSigsRefund = proofSecret.Tags?.FirstOrDefault(strings => strings.FirstOrDefault() == "n_sigs_refund")?
+            .Skip(1)?.FirstOrDefault();
+        if (!string.IsNullOrEmpty(nSigsRefund) && int.TryParse(nSigsRefund, out var nSigsRefundValue))
+        {
+            builder.RefundSignatureThreshold = nSigsRefundValue;
         }
 
         var sigFlag = proofSecret.Tags?.FirstOrDefault(strings => strings.FirstOrDefault() == "sigflag")?.Skip(1)

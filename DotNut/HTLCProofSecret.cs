@@ -14,14 +14,26 @@ public class HTLCProofSecret : P2PKProofSecret
     public override ECPubKey[] GetAllowedPubkeys(out int requiredSignatures)
     {
         var builder = Builder;
-        if (builder.Lock.HasValue && builder.Lock.Value.ToUnixTimeSeconds() < DateTimeOffset.Now.ToUnixTimeSeconds())
-        {
-            requiredSignatures = Math.Min(builder.RefundPubkeys?.Length ?? 0, 1);
-            return builder.RefundPubkeys ?? Array.Empty<ECPubKey>();
-        }
-
         requiredSignatures = builder.SignatureThreshold;
         return builder.Pubkeys;
+    }
+    
+    public override ECPubKey[] GetAllowedRefundPubkeys(out int? requiredSignatures)
+    {
+        var builder = Builder;
+        if (builder.Lock.HasValue && builder.Lock.Value.ToUnixTimeSeconds() < DateTimeOffset.Now.ToUnixTimeSeconds())
+        {
+            if (builder.RefundPubkeys == null)
+            {
+                requiredSignatures = 0; // proof is spendable without any signature
+                return [];
+            }
+            requiredSignatures = builder.RefundSignatureThreshold ?? 1;
+            return [..builder.RefundPubkeys??[]];
+        }
+
+        requiredSignatures = null; // there's no refund condition :/
+        return [];
     }
 
     

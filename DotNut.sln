@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNut.Nostr", "DotNut.Nost
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNut.Demo", "DotNut.Demo\DotNut.Demo.csproj", "{305097F3-A4E5-4511-8E4E-0C4C12A953C6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp1", "ConsoleApp1\ConsoleApp1.csproj", "{6D20E7A3-784A-4394-AD7C-703AEF5A44CB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -66,6 +68,18 @@ Global
 		{305097F3-A4E5-4511-8E4E-0C4C12A953C6}.Release|x64.Build.0 = Release|Any CPU
 		{305097F3-A4E5-4511-8E4E-0C4C12A953C6}.Release|x86.ActiveCfg = Release|Any CPU
 		{305097F3-A4E5-4511-8E4E-0C4C12A953C6}.Release|x86.Build.0 = Release|Any CPU
+		{6D20E7A3-784A-4394-AD7C-703AEF5A44CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6D20E7A3-784A-4394-AD7C-703AEF5A44CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6D20E7A3-784A-4394-AD7C-703AEF5A44CB}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6D20E7A3-784A-4394-AD7C-703AEF5A44CB}.Debug|x64.Build.0 = Debug|Any CPU
+		{6D20E7A3-784A-4394-AD7C-703AEF5A44CB}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6D20E7A3-784A-4394-AD7C-703AEF5A44CB}.Debug|x86.Build.0 = Debug|Any CPU
+		{6D20E7A3-784A-4394-AD7C-703AEF5A44CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6D20E7A3-784A-4394-AD7C-703AEF5A44CB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6D20E7A3-784A-4394-AD7C-703AEF5A44CB}.Release|x64.ActiveCfg = Release|Any CPU
+		{6D20E7A3-784A-4394-AD7C-703AEF5A44CB}.Release|x64.Build.0 = Release|Any CPU
+		{6D20E7A3-784A-4394-AD7C-703AEF5A44CB}.Release|x86.ActiveCfg = Release|Any CPU
+		{6D20E7A3-784A-4394-AD7C-703AEF5A44CB}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

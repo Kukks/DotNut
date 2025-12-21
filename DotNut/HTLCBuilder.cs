@@ -2,13 +2,13 @@
 
 namespace DotNut;
 
-public class HTLCBuilder : P2PkBuilder
+public class HTLCBuilder : P2PKBuilder
 {
     public string HashLock { get; set; }
 
     /*
-     * ugly hack to reuse P2PkBuilder for HTLCs.
-     * P2PkBuilder expects a pubkey in `data` field, but we need to store a hashlock instead
+     * ugly hack to reuse P2PKBuilder for HTLCs.
+     * P2PKBuilder expects a pubkey in `data` field, but we need to store a hashlock instead
      * 
      * we inject a dummy pubkey so the loader doesn’t break, then remove it after load/build.
      */
@@ -29,7 +29,7 @@ public class HTLCBuilder : P2PkBuilder
             Tags = proofSecret.Tags 
         };
         
-        var innerbuilder = P2PkBuilder.Load(tempProof);
+        var innerbuilder = P2PKBuilder.Load(tempProof);
         innerbuilder.Pubkeys = innerbuilder.Pubkeys.Except([_dummy.Key]).ToArray();
         return new HTLCBuilder()
         {
@@ -50,7 +50,7 @@ public class HTLCBuilder : P2PkBuilder
         {
             throw new ArgumentException("HashLock must be 32 bytes (64 chars hex)", nameof(HashLock));
         }
-        var innerBuilder = new P2PkBuilder()
+        var innerBuilder = new P2PKBuilder()
         {
             Lock = Lock,
             Pubkeys = Pubkeys.ToArray(),

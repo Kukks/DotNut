@@ -8,7 +8,6 @@ public class Proof
 {
     [JsonPropertyName("amount")] public ulong Amount { get; set; }
 
-    [JsonConverter(typeof(KeysetIdJsonConverter))]
     [JsonPropertyName("id")]
     public KeysetId Id { get; set; }
 

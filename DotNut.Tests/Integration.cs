@@ -148,6 +148,9 @@ public class Integration
             Assert.Equal(await counter.GetCounterForId(keyset.Id) + expectedAmount, await phreshCounter.GetCounterForId(keyset.Id));
          }
          Assert.Equal(expectedAmount, restoredProofs.Count());
+         
+         // assign restored counter to previous one, so next tests can use it safely
+         counter = phreshCounter;
     }
     
     [Fact]
@@ -285,6 +288,80 @@ public class Integration
          
          Assert.NotEmpty(change);
      }
+     
+     [Fact]
+    public async Task SubscribeToMintMeltQuoteUpdates()
+    {
+        await using var service = new WebsocketService();
+        var connection = await service.ConnectAsync(MintUrl);
+        Assert.NotNull(connection);
+
+        var wallet = Wallet
+            .Create()
+            .WithMint(MintUrl)
+            .WithWebsocketService(service);
+
+        var mintHandler = await wallet
+            .CreateMintQuote()
+            .WithAmount(3338)
+            .WithUnit("sat")
+            .ProcessAsyncBolt11();
+
+        var quote = mintHandler.GetQuote();
+
+        var sub = await service.SubscribeToMintQuoteAsync(MintUrl, new[] { quote.Quote });
+
+        int connectedCount = 0;
+        int notificationCount = 0;
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(240));
+
+        var connectedTcs = new TaskCompletionSource();
+        var paidTcs = new TaskCompletionSource();
+
+        _ = Task.Run(async () =>
+        {
+            await connectedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await Task.Delay(1000, cts.Token);
+            await PayInvoice();
+        }, cts.Token);
+
+        await foreach (var msg in sub.NotificationChannel.Reader.ReadAllAsync(cts.Token))
+        {
+            switch (msg)
+            {
+                case WsMessage.Response:
+                    connectedCount++;
+                    connectedTcs.TrySetResult();
+                    break;
+
+                case WsMessage.Notification notification:
+                    notificationCount++;
+
+                    if (notificationCount >= 2)
+                        paidTcs.TrySetResult();
+
+                    break;
+
+                case WsMessage.Error error:
+                    Assert.Fail($"WebSocket error: {error}");
+                    break;
+
+                default:
+                    Assert.Fail($"Unexpected message type: {msg.GetType().Name}");
+                    break;
+            }
+
+            if (paidTcs.Task.IsCompleted)
+                break;
+        }
+    
+        Assert.Equal(1, connectedCount);
+        Assert.True(notificationCount >= 2, $"Expected >=2 notifications, got {notificationCount}");
+
+        var proofs = await mintHandler.Mint();
+        Assert.NotEmpty(proofs);
+    }
 
      [Fact]
      public async Task InvoiceWithDescription()
@@ -927,77 +1004,7 @@ public class Integration
          Assert.Empty(selection.Send);
          Assert.NotEmpty(selection.Keep);
      }
-     
-    [Fact]
-    public async Task SubscribeToMintMeltQuoteUpdates()
-    {
-        await using var service = new WebsocketService();
-        var connection = await service.ConnectAsync(MintUrl);
-        Assert.NotNull(connection);
-
-        var wallet = Wallet.Create().WithMint(MintUrl);
-
-        var mintHandler = await wallet
-            .CreateMintQuote()
-            .WithAmount(3338)
-            .WithUnit("sat")
-            .ProcessAsyncBolt11();
-
-        var quote = mintHandler.GetQuote();
-
-        var sub = await service.SubscribeToMintQuoteAsync(MintUrl, new[] { quote.Quote });
-
-        int connectedCount = 0;
-        int notificationCount = 0;
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(240));
-
-        var connectedTcs = new TaskCompletionSource();
-        var paidTcs = new TaskCompletionSource();
-
-        _ = Task.Run(async () =>
-        {
-            await connectedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
-            await Task.Delay(1000, cts.Token);
-            await PayInvoice();
-        }, cts.Token);
-
-        await foreach (var msg in sub.NotificationChannel.Reader.ReadAllAsync(cts.Token))
-        {
-            switch (msg)
-            {
-                case WsMessage.Response:
-                    connectedCount++;
-                    connectedTcs.TrySetResult();
-                    break;
-
-                case WsMessage.Notification notification:
-                    notificationCount++;
-
-                    if (notificationCount >= 2)
-                        paidTcs.TrySetResult();
-
-                    break;
-
-                case WsMessage.Error error:
-                    Assert.Fail($"WebSocket error: {error}");
-                    break;
-
-                default:
-                    Assert.Fail($"Unexpected message type: {msg.GetType().Name}");
-                    break;
-            }
-
-            if (paidTcs.Task.IsCompleted)
-                break;
-        }
     
-        Assert.Equal(1, connectedCount);
-        Assert.True(notificationCount >= 2, $"Expected >=2 notifications, got {notificationCount}");
-
-        var proofs = await mintHandler.Mint();
-        Assert.NotEmpty(proofs);
-    }
 
 
     private async Task PayInvoice()

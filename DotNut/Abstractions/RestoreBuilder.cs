@@ -9,8 +9,7 @@ public class RestoreBuilder : IRestoreBuilder
     private readonly Wallet _wallet;
     private List<KeysetId>? _specifiedKeysets;
     private static int BATCH_SIZE = 100;
-
-    private ICounter? _counter;
+    private static int EMPTY_BATCHES_ALLOWED = 3;
 
     public RestoreBuilder(Wallet wallet)
     {
@@ -20,12 +19,6 @@ public class RestoreBuilder : IRestoreBuilder
     public IRestoreBuilder FromKeysetIds(IEnumerable<KeysetId> keysetIds)
     {
         this._specifiedKeysets = keysetIds.ToList();
-        return this;
-    }
-
-    public IRestoreBuilder WithCounter(ICounter counter)
-    {
-        this._counter = counter;
         return this;
     }
     
@@ -45,13 +38,20 @@ public class RestoreBuilder : IRestoreBuilder
             throw new InvalidOperationException("No keysets available for restoration. Ensure the mint has at least one active keyset or specify keysets explicitly.");
         }
 
-        _counter ??= new InMemoryCounter();
+        var counter = _wallet.GetCounter();
+        if (counter == null)
+        {
+            throw new ArgumentNullException(nameof(counter), "Counter cannot be null.");
+        }
+        
         // fetch all batches
         List<Proof> recoveredProofs = new List<Proof>();
         foreach (var keysetId in _specifiedKeysets)
         {
             int batchNumber = 0;
-            int emptyBatchesRemaining = 3;
+            int emptyBatchesRemaining = EMPTY_BATCHES_ALLOWED;
+            int lastUsedCounter = 0;
+            int tempCounter = 0;
             
             // don't care about invalid / non existent source keyset ids. let's fetch what we can
             GetKeysResponse.KeysetItemResponse? keyset;
@@ -59,7 +59,7 @@ public class RestoreBuilder : IRestoreBuilder
             {
                 keyset = await _wallet.GetKeys(keysetId, true, false, ct);
             }
-            catch (Exception e)
+            catch
             {
                 continue;
             }
@@ -71,31 +71,49 @@ public class RestoreBuilder : IRestoreBuilder
             // proofs for keysetid are considered restored after 3 empty batches. 
             while (emptyBatchesRemaining > 0)
             {
+                // create batch of 100, and request restore for whole batch
                 var outputs = await _createBatch(mnemonic, keysetId, batchNumber, ct);
                 var req = new PostRestoreRequest
                 {
                     Outputs = outputs.Select(o=>o.BlindedMessage).ToArray()
                 };
                 var res = await api.Restore(req, ct);
-                await _counter!.IncrementCounter(keysetId, BATCH_SIZE, ct);
-                batchNumber++;
+                
+                
                 if (res.Signatures.Length == 0)
                 {
                     emptyBatchesRemaining--;
+                    batchNumber++;
                     continue;
                 }
+                
+                // find last restored index of batch
+                var lastUsedIndexInBatch = outputs.Select((o, i) => new { o, i })
+                    .Where(x => res.Outputs.Any(r => Equals(r.B_, x.o.BlindedMessage.B_)))
+                    .MaxBy(x => x.i)!.i;
+                
+                // set last used counter value for this batch
+                lastUsedCounter = BATCH_SIZE * batchNumber + lastUsedIndexInBatch;
+                
+                // bump batch number after calculating last used counter
+                batchNumber++;
+                
+                // if anything found, reset batches counter
+                emptyBatchesRemaining = EMPTY_BATCHES_ALLOWED;
 
                 var returnedOutputs = new List<OutputData>();
-
                 foreach (var output in res.Outputs)
                 {
+                    // there can't be any dupes here
                     returnedOutputs.Add(outputs.Single(o=>Equals(o.BlindedMessage.B_, output.B_)));
                 }
                 
                 var proofs = Utils.ConstructProofsFromPromises(res.Signatures.ToList(), returnedOutputs , keyset.Keys);
                 recoveredProofs.AddRange(proofs);
             }
-            
+
+            // 1 is added so we'll be consistent with counter usage. it will be ready for next use
+            await counter.SetCounter(keysetId, lastUsedCounter + 1, ct);
         }
         
         // if nothing found - return empty collection

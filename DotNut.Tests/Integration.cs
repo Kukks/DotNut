@@ -126,15 +126,27 @@ public class Integration
     [Fact]
     public async Task RestoresSuccessfully()
     {
+        var phreshCounter = new InMemoryCounter();
+        
         var wallet = Wallet
             .Create()
+            .WithCounter(phreshCounter)
             .WithMint(MintUrl)
             .WithMnemonic(seed);
+        
         var restoredProofs = await wallet
             .Restore()
             .ProcessAsync();
-         var keyset = (await wallet.GetKeys()).First().Keys;
-         var expectedAmount = Utils.SplitToProofsAmounts(1336UL, keyset).Count; // (one for fee)
+        
+         var keys = (await wallet.GetKeys()).First().Keys;
+         var expectedAmount = Utils.SplitToProofsAmounts(1336UL, keys).Count; // (one for fee)
+         var keysets = await wallet.GetKeysets();
+
+         foreach (var keyset in keysets)
+         {
+             // new counter will be bumped to newest state
+            Assert.Equal(await counter.GetCounterForId(keyset.Id) + expectedAmount, await phreshCounter.GetCounterForId(keyset.Id));
+         }
          Assert.Equal(expectedAmount, restoredProofs.Count());
     }
     

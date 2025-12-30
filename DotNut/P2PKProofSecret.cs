@@ -21,7 +21,7 @@ public class P2PKProofSecret : Nut10ProofSecret
     public virtual ECPubKey[] GetAllowedRefundPubkeys(out int? requiredSignatures)
     {
         var builder = Builder;
-        if (!builder.Lock.HasValue || builder.Lock.Value.ToUnixTimeSeconds() <= DateTimeOffset.Now.ToUnixTimeSeconds())
+        if (!builder.Lock.HasValue || builder.Lock.Value.ToUnixTimeSeconds() >= DateTimeOffset.Now.ToUnixTimeSeconds())
         {
             requiredSignatures = null; // there's no refund condition, or timelock didn't expire yet :/
             return [];

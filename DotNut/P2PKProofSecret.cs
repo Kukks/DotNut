@@ -21,19 +21,19 @@ public class P2PKProofSecret : Nut10ProofSecret
     public virtual ECPubKey[] GetAllowedRefundPubkeys(out int? requiredSignatures)
     {
         var builder = Builder;
-        if (builder.Lock.HasValue && builder.Lock.Value.ToUnixTimeSeconds() < DateTimeOffset.Now.ToUnixTimeSeconds())
+        if (!builder.Lock.HasValue || builder.Lock.Value.ToUnixTimeSeconds() <= DateTimeOffset.Now.ToUnixTimeSeconds())
         {
-            if (builder.RefundPubkeys == null)
-            {
-                requiredSignatures = 0; // proof is spendable without any signature
-                return [];
-            }
-            requiredSignatures = builder.RefundSignatureThreshold ?? 1;
-            return builder.RefundPubkeys ?? [];
+            requiredSignatures = null; // there's no refund condition, or timelock didn't expire yet :/
+            return [];
         }
-
-        requiredSignatures = null; // there's no refund condition, or timelock didn't expire yet :/
-        return [];
+        
+        if (builder.RefundPubkeys == null)
+        {
+            requiredSignatures = 0; // proof is spendable without any signature
+            return [];
+        }
+        requiredSignatures = builder.RefundSignatureThreshold ?? 1;
+        return builder.RefundPubkeys ?? [];
     }
     
     /* 
@@ -70,17 +70,21 @@ public class P2PKProofSecret : Nut10ProofSecret
             return null;
         }
     
-        // try notmal path
+        // try normal path
         var (isValid, result) = TrySignPath(allowedKeys.ToArray(), requiredSignatures, keys, msg);
         if (isValid)
+        { 
             return result;
+        }
     
         // if it's after locktime - try refund path
         if (requiredRefundSignatures.HasValue && allowedRefundKeys.Any())
         {
             (isValid, result) = TrySignPath(allowedRefundKeys.ToArray(), requiredRefundSignatures.Value, keys, msg);
             if (isValid)
+            {
                 return result;
+            }
         }
     
         throw new InvalidOperationException("Not enough valid keys to sign!");
@@ -158,17 +162,21 @@ public class P2PKProofSecret : Nut10ProofSecret
         var allowedRefundKeys = GetAllowedRefundPubkeys(out var requiredRefundSignatures);
 
         if (requiredRefundSignatures == 0)
-            return new P2PKWitness();
+            return null;
 
         var (isValid, result) = TrySignBlindPath(allowedKeys.ToArray(), requiredSignatures, keys, keysetId, P2PkE, msg);
         if (isValid)
+        {
             return result;
+        }
 
         if (requiredRefundSignatures.HasValue && allowedRefundKeys.Any())
         {
             (isValid, result) = TrySignBlindPath(allowedRefundKeys.ToArray(), requiredRefundSignatures.Value, keys, keysetId, P2PkE, msg);
             if (isValid)
+            {
                 return result;
+            }
         }
 
         throw new InvalidOperationException("Not enough valid keys to sign any blind path");

@@ -112,17 +112,7 @@ public class P2PKProofSecret : Nut10ProofSecret
         return (result.Signatures.Length >= requiredSignatures, result);
     }
     
-    private bool VerifyPath(ECPubKey[] allowedKeys, int requiredSignatures, 
-        SecpSchnorrSignature[] sigs, byte[] hash)
-    {
-        if (sigs.Length < requiredSignatures)
-            return false;
 
-        var xonlyKeys = allowedKeys.Select(k => k.ToXOnlyPubKey()).ToArray();
-        var validCount = sigs.Count(s => xonlyKeys.Any(xonly => xonly.SigVerifyBIP340(s, hash)));
-    
-        return validCount >= requiredSignatures;
-    }
 
 
 
@@ -279,6 +269,31 @@ public class P2PKProofSecret : Nut10ProofSecret
         {
             return false;
         }
+    }
+    
+    private bool VerifyPath(ECPubKey[] allowedKeys, int requiredSignatures, 
+        SecpSchnorrSignature[] sigs, byte[] hash)
+    {
+        if (sigs.Length < requiredSignatures)
+        {
+            return false;
+        }
+        var xonlyKeys = allowedKeys.Select(k => k.ToXOnlyPubKey()).ToArray();
+        var usedKeyIndices = new HashSet<int>();
+        
+        foreach (var sig in sigs)
+        {
+            for (int i = 0; i < xonlyKeys.Length; i++)
+            {
+                if (!usedKeyIndices.Contains(i) && xonlyKeys[i].SigVerifyBIP340(sig, hash))
+                {
+                    usedKeyIndices.Add(i);
+                    break;
+                }
+            }
+        }
+    
+        return usedKeyIndices.Count >= requiredSignatures;
     }
 
 }

@@ -225,7 +225,7 @@ public class MintInfo
     }
 
     
-    public string? Contact => _mintInfo.Contact?.FirstOrDefault()?.ToString();
+    public List<ContactInfo>? Contact => _mintInfo.Contact;
     public string? Description => _mintInfo.Description;
     public string? DescriptionLong => _mintInfo.DescriptionLong;
     public string? Name => _mintInfo.Name;

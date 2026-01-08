@@ -50,9 +50,12 @@ public static class Nut13
     
     public static byte[] DeriveHmac(byte[] seed, KeysetId keysetId, int counter, bool secretOrr)
     {
-        byte[] counterBuffer = BitConverter.GetBytes((long)counter);
+        byte[] counterBuffer = BitConverter.GetBytes((ulong)counter);
         if (BitConverter.IsLittleEndian)
+        {
             Array.Reverse(counterBuffer);
+        }
+        
         var message =  "Cashu_KDF_HMAC_SHA256"u8.ToArray()
             .Concat(Convert.FromHexString(keysetId.ToString()))
             .Concat(counterBuffer)

@@ -1,4 +1,6 @@
-﻿namespace DotNut;
+﻿using DotNut.ApiModels;
+
+namespace DotNut;
 
 public static class CashuTokenHelper
 {
@@ -29,11 +31,9 @@ public static class CashuTokenHelper
             }
             foreach (var proof in token1.Proofs)
             {
-                proof.Id = MaybeShortId(proof.Id);
+                proof.Id = MaybeShortenId(proof.Id);
             }
         }
-        
-        
         
         var encoded = encoder.Encode(token);
 
@@ -47,7 +47,7 @@ public static class CashuTokenHelper
         return result;
     }
 
-    public static CashuToken Decode(string token, out string? version, List<Keyset>? keysets = null)
+    public static CashuToken Decode(string token, out string? version, List<KeysetId>? keysetIds = null)
     {
         version = null;
         if (Uri.IsWellFormedUriString(token, UriKind.Absolute))
@@ -71,43 +71,44 @@ public static class CashuTokenHelper
         token = token.Substring(1);
         var decoded = encoder.Decode(token);
         
-        if (keysets is null)
+        if (keysetIds is null)
         {
             return decoded;
         }
 
         foreach (var innerToken in decoded.Tokens)
         {
-            innerToken.Proofs = MapShortKeysetIds(innerToken.Proofs, keysets);
+            innerToken.Proofs = MapShortKeysetIds(innerToken.Proofs, keysetIds);
         }
         return decoded;
     }
     
-    private static KeysetId MaybeShortId(KeysetId id)
+    private static KeysetId MaybeShortenId(KeysetId id)
     {
         if (id.GetVersion() != 0x01) return id;
         var s = id.ToString(); 
         return s.Length <= 16 ? id : new KeysetId(s.Substring(0, 16));
     }
-    private static List<Proof> MapShortKeysetIds(List<Proof> proofs, List<Keyset>? keysets = null)
+    
+    private static List<Proof> MapShortKeysetIds(List<Proof> proofs, List<KeysetId>? keysetIds = null)
     {
-        if (proofs.Count == 0)
+        if (proofs.Count == 0 || proofs.All(p => p.Id.GetVersion() != 0x01 || p.Id.ToString().Length != 16))
+        {
             return proofs;
-
-        if (proofs.All(p => p.Id.GetVersion() != 0x01 || p.Id.ToString().Length != 16))
-            return proofs;
-
-        if (keysets is null)
-            throw new ArgumentNullException(nameof(keysets),
+        }
+        if (keysetIds is null)
+        {
+            throw new ArgumentNullException(nameof(keysetIds),
                 "Encountered short keyset IDs but no keysets were provided for mapping.");
-
+        }
+        
         return proofs.Select(proof =>
         {
             if (proof.Id.GetVersion() != 0x01)
                 return proof;
 
             var proofShortId = proof.Id.ToString();
-            var match = keysets.FirstOrDefault(ks => ks.GetKeysetId().ToString().StartsWith(proofShortId, StringComparison.OrdinalIgnoreCase));
+            var match = keysetIds.FirstOrDefault(k=> k.ToString().StartsWith(proofShortId, StringComparison.OrdinalIgnoreCase));
             
             if (match is null)
                 throw new Exception($"Couldn't map short keyset ID {proof.Id} to any known keysets of the current Mint");
@@ -119,7 +120,7 @@ public static class CashuTokenHelper
                 C = proof.C,
                 Witness = proof.Witness,
                 DLEQ = proof.DLEQ,
-                Id = new KeysetId(match.GetKeysetId().ToString())
+                Id = match
             };
         }).ToList();
     }

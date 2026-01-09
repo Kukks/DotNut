@@ -1,6 +1,4 @@
-﻿using System.Net.Mime;
-using System.Text;
-using System.Text.Encodings.Web;
+﻿using System.Text;
 using System.Text.Json.Serialization;
 using DotNut.JsonConverters;
 using SHA256 = System.Security.Cryptography.SHA256;
@@ -37,6 +35,8 @@ public class Keyset : Dictionary<ulong, PubKey>
             
             case 0x01:
             {
+                MemoryStream stream = new MemoryStream();
+                
                 // 2 - concatenate each amount and its corresponding public key hex string (as "amount:publickey_hex")
                 // to a single byte array, separating each pair with a comma (",")
                 var sortedBytes = Encoding.UTF8.GetBytes(
@@ -47,30 +47,35 @@ public class Keyset : Dictionary<ulong, PubKey>
                     )
                 );
                 
+                stream.Write(sortedBytes, 0, sortedBytes.Length);
+                
                 // 3 - add the lowercase UTF8-encoded unit string prefixed with "|unit:" to the byte array (e.g. "|unit:sat")
                 if (String.IsNullOrWhiteSpace(unit))
                 { 
                     throw new ArgumentNullException( nameof(unit), $"Unit parameter is required with version: {version}");
                 }
-                sortedBytes = sortedBytes.Concat(Encoding.UTF8.GetBytes($"|unit:{unit.Trim().ToLowerInvariant()}")).ToArray();
+
+                var unitBytes = Encoding.UTF8.GetBytes($"|unit:{unit.Trim().ToLowerInvariant()}");
+                stream.Write(unitBytes, 0, unitBytes.Length);
 
                 // 4 - If input_fee_ppk is specified and non-zero, add the UTF8-encoded string prefixed with
                 // "|input_fee_ppk:" (e.g. "|input_fee_ppk:100").
                 // If input_fee_ppk is omitted, null, or 0, it MUST be omitted from the preimage.
                 if (inputFeePpk.HasValue && inputFeePpk.Value != 0)
                 {
-                    sortedBytes = sortedBytes.Concat(Encoding.UTF8.GetBytes($"|input_fee_ppk:{inputFeePpk.Value}")).ToArray();
+                   var feeBytes = Encoding.UTF8.GetBytes($"|input_fee_ppk:{inputFeePpk.Value}");
+                   stream.Write(feeBytes, 0, feeBytes.Length);
                 }
                 
                 // 5 - If a final expiration is specified, add the UTF8-encoded string prefixed with "|final_expiry:" (e.g. "|final_expiry:1896187313")
                 if (!string.IsNullOrWhiteSpace(finalExpiration))
                 {
-                    sortedBytes = sortedBytes.Concat(Encoding.UTF8.GetBytes($"|final_expiry:{finalExpiration.Trim()}"))
-                        .ToArray();
+                    var expiryBytes = Encoding.UTF8.GetBytes($"|final_expiry:{finalExpiration.Trim()}");
+                    stream.Write(expiryBytes, 0, expiryBytes.Length);
                 }
                 
                 // 6 - HASH_SHA256 the concatenated byte array
-                var hash = sha256.ComputeHash(sortedBytes);
+                var hash = sha256.ComputeHash(stream.ToArray());
                 
                 // 7 - prefix it with a keyset ID version byte "01"
                 return new KeysetId(Convert.ToHexString(new[] { version }) +

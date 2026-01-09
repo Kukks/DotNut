@@ -1,5 +1,4 @@
-﻿using System.Buffers.Binary;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using DotNut.NBitcoin.BIP39;
 using NBip32Fast;
 
@@ -7,15 +6,15 @@ namespace DotNut.NUT13;
 
 public static class Nut13
 {
-    public static byte[] DeriveBlindingFactor(this Mnemonic mnemonic, KeysetId keysetId, int counter) => 
+    public static byte[] DeriveBlindingFactor(this Mnemonic mnemonic, KeysetId keysetId, uint counter) => 
         DeriveBlindingFactor(mnemonic.DeriveSeed(), keysetId, counter);
     
 
-    public static StringSecret DeriveSecret(this Mnemonic mnemonic, KeysetId keysetId, int counter) => 
+    public static StringSecret DeriveSecret(this Mnemonic mnemonic, KeysetId keysetId, uint counter) => 
         DeriveSecret(mnemonic.DeriveSeed(), keysetId, counter);
     
     
-    public static byte[] DeriveBlindingFactor(this byte[] seed, KeysetId keysetId, int counter)
+    public static byte[] DeriveBlindingFactor(this byte[] seed, KeysetId keysetId, uint counter)
     {
         switch (keysetId.GetVersion())
         {
@@ -30,7 +29,7 @@ public static class Nut13
                 throw new ArgumentException("Invalid keyset id prefix");
         }
     }
-    public static StringSecret DeriveSecret(this byte[] seed, KeysetId keysetId, int counter)
+    public static StringSecret DeriveSecret(this byte[] seed, KeysetId keysetId, uint counter)
     {
         switch (keysetId.GetVersion())
         {
@@ -48,7 +47,7 @@ public static class Nut13
                 
     }
     
-    public static byte[] DeriveHmac(byte[] seed, KeysetId keysetId, int counter, bool secretOrr)
+    public static byte[] DeriveHmac(byte[] seed, KeysetId keysetId, uint counter, bool secretOrr)
     {
         byte[] counterBuffer = BitConverter.GetBytes((ulong)counter);
         if (BitConverter.IsLittleEndian)
@@ -66,7 +65,7 @@ public static class Nut13
     }
     
     public const string Purpose = "129372'";
-    public static KeyPath GetNut13DerivationPath(KeysetId keysetId, int counter, bool secretOrr)
+    public static KeyPath GetNut13DerivationPath(KeysetId keysetId, uint counter, bool secretOrr)
     { 
         return (KeyPath) KeyPath.Parse($"m/{Purpose}/0'/{GetKeysetIdInt(keysetId)}'/{counter}'/{(secretOrr?0:1)}")!;
     }

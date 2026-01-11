@@ -10,16 +10,20 @@ public class HttpPaymentRequestInterfaceHandler : PaymentRequestInterfaceHandler
     {
         _httpClient = httpClient ?? new HttpClient();
     }
+
     public bool CanHandle(PaymentRequest request)
     {
         return request.Transports.Any(t => t.Type == "post");
     }
 
-    public async Task SendPayment(PaymentRequest request, PaymentRequestPayload payload,
-        CancellationToken cancellationToken = default)
-    { 
+    public async Task SendPayment(
+        PaymentRequest request,
+        PaymentRequestPayload payload,
+        CancellationToken cancellationToken = default
+    )
+    {
         var endpoint = new Uri(request.Transports.First(t => t.Type == "post").Target);
-        var response = await _httpClient.PostAsJsonAsync(endpoint, payload,cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync(endpoint, payload, cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 }

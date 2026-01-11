@@ -11,10 +11,10 @@ public class P2PkBuilder
 
     public ECPubKey[] Pubkeys { get; set; }
 
-    //SIG_INPUTS, SIG_ALL 
+    //SIG_INPUTS, SIG_ALL
     public string? SigFlag { get; set; }
     public string? Nonce { get; set; }
-    
+
     public P2PKProofSecret Build()
     {
         var tags = new List<string[]>();
@@ -33,8 +33,7 @@ public class P2PkBuilder
             tags.Add(new[] { "locktime", Lock.Value.ToUnixTimeSeconds().ToString() });
             if (RefundPubkeys?.Any() is true)
             {
-                tags.Add(new[] { "refund" }.Concat(RefundPubkeys.Select(p => p.ToHex()))
-                    .ToArray());
+                tags.Add(new[] { "refund" }.Concat(RefundPubkeys.Select(p => p.ToHex())).ToArray());
             }
         }
 
@@ -43,12 +42,11 @@ public class P2PkBuilder
             tags.Add(new[] { "n_sigs", SignatureThreshold.ToString() });
         }
 
-
         return new P2PKProofSecret()
         {
             Data = Pubkeys.First().ToHex(),
             Nonce = Nonce ?? RandomNumberGenerator.GetHexString(32, true),
-            Tags = tags.ToArray()
+            Tags = tags.ToArray(),
         };
     }
 
@@ -56,36 +54,51 @@ public class P2PkBuilder
     {
         var builder = new P2PkBuilder();
         var primaryPubkey = proofSecret.Data.ToPubKey();
-        var pubkeys = proofSecret.Tags?.FirstOrDefault(strings => strings.FirstOrDefault() == "pubkeys");
+        var pubkeys = proofSecret.Tags?.FirstOrDefault(strings =>
+            strings.FirstOrDefault() == "pubkeys"
+        );
         if (pubkeys is not null && pubkeys.Length > 1)
         {
-            builder.Pubkeys = pubkeys.Skip(1).Select(s => s.ToPubKey()).Prepend(primaryPubkey).ToArray();
+            builder.Pubkeys = pubkeys
+                .Skip(1)
+                .Select(s => s.ToPubKey())
+                .Prepend(primaryPubkey)
+                .ToArray();
         }
         else
         {
             builder.Pubkeys = [primaryPubkey];
         }
 
-        var rawUnixTs = proofSecret.Tags?.FirstOrDefault(strings => strings.FirstOrDefault() == "locktime")?.Skip(1)
+        var rawUnixTs = proofSecret
+            .Tags?.FirstOrDefault(strings => strings.FirstOrDefault() == "locktime")
+            ?.Skip(1)
             ?.FirstOrDefault();
-        builder.Lock = rawUnixTs is not null && long.TryParse(rawUnixTs, out var unixTs)
-            ? DateTimeOffset.FromUnixTimeSeconds(unixTs)
-            : null;
+        builder.Lock =
+            rawUnixTs is not null && long.TryParse(rawUnixTs, out var unixTs)
+                ? DateTimeOffset.FromUnixTimeSeconds(unixTs)
+                : null;
 
-        var refund = proofSecret.Tags?.FirstOrDefault(strings => strings.FirstOrDefault() == "refund");
+        var refund = proofSecret.Tags?.FirstOrDefault(strings =>
+            strings.FirstOrDefault() == "refund"
+        );
         if (refund is not null && refund.Length > 1)
         {
             builder.RefundPubkeys = refund.Skip(1).Select(s => s.ToPubKey()).ToArray();
         }
 
-        var sigFlag = proofSecret.Tags?.FirstOrDefault(strings => strings.FirstOrDefault() == "sigflag")?.Skip(1)
+        var sigFlag = proofSecret
+            .Tags?.FirstOrDefault(strings => strings.FirstOrDefault() == "sigflag")
+            ?.Skip(1)
             ?.FirstOrDefault();
         if (!string.IsNullOrEmpty(sigFlag))
         {
             builder.SigFlag = sigFlag;
         }
 
-        var nSigs = proofSecret.Tags?.FirstOrDefault(strings => strings.FirstOrDefault() == "n_sigs")?.Skip(1)
+        var nSigs = proofSecret
+            .Tags?.FirstOrDefault(strings => strings.FirstOrDefault() == "n_sigs")
+            ?.Skip(1)
             ?.FirstOrDefault();
         if (!string.IsNullOrEmpty(nSigs) && int.TryParse(nSigs, out var nSigsValue))
         {
@@ -96,14 +109,13 @@ public class P2PkBuilder
 
         return builder;
     }
-    
-    
+
     /*
      * =========================
      * NUT-XX Pay to blinded key
      * =========================
      */
-    
+
     //For sig_inputs, generates random p2pk_e for each input
     public P2PKProofSecret BuildBlinded(KeysetId keysetId, out ECPubKey p2pkE)
     {
@@ -117,11 +129,11 @@ public class P2PkBuilder
     {
         var pubkeys = RefundPubkeys != null ? Pubkeys.Concat(RefundPubkeys).ToArray() : Pubkeys;
         var rs = new List<ECPrivKey>();
-        
+
         var keysetIdBytes = keysetId.GetBytes();
 
         var e = p2pke;
-        
+
         for (int i = 0; i < pubkeys.Length; i++)
         {
             var Zx = Cashu.ComputeZx(e, pubkeys[i]);
@@ -131,7 +143,7 @@ public class P2PkBuilder
         BlindPubkeys(rs.ToArray());
         return Build();
     }
-    
+
     protected void BlindPubkeys(ECPrivKey[] rs)
     {
         var expectedLength = Pubkeys.Length + (RefundPubkeys?.Length ?? 0);
@@ -150,11 +162,14 @@ public class P2PkBuilder
 
             if (RefundPubkeys != null)
             {
-                RefundPubkeys[i - Pubkeys.Length] = Cashu.ComputeB_(RefundPubkeys[i - Pubkeys.Length], rs[i]);
+                RefundPubkeys[i - Pubkeys.Length] = Cashu.ComputeB_(
+                    RefundPubkeys[i - Pubkeys.Length],
+                    rs[i]
+                );
             }
         }
     }
-    
+
     public virtual P2PkBuilder Clone()
     {
         return new P2PkBuilder()

@@ -6,27 +6,40 @@ public static class WebsocketServiceExtensions
         this IWebsocketService service,
         string mintUrl,
         string[] quoteIds,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         await service.LazyConnectAsync(mintUrl, ct);
-        return await service.SubscribeAsync(mintUrl, SubscriptionKind.bolt11_mint_quote, quoteIds, ct);
+        return await service.SubscribeAsync(
+            mintUrl,
+            SubscriptionKind.bolt11_mint_quote,
+            quoteIds,
+            ct
+        );
     }
 
     public static async Task<Subscription> SubscribeToMeltQuoteAsync(
         this IWebsocketService service,
         string mintUrl,
         string[] quoteIds,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         await service.LazyConnectAsync(mintUrl, ct);
-        return await service.SubscribeAsync(mintUrl, SubscriptionKind.bolt11_melt_quote, quoteIds, ct);
+        return await service.SubscribeAsync(
+            mintUrl,
+            SubscriptionKind.bolt11_melt_quote,
+            quoteIds,
+            ct
+        );
     }
 
     public static async Task<Subscription> SubscribeToProofStateAsync(
         this IWebsocketService service,
         string mintUrl,
         string[] proofYs,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         await service.LazyConnectAsync(mintUrl, ct);
         return await service.SubscribeAsync(mintUrl, SubscriptionKind.proof_state, proofYs, ct);
@@ -36,7 +49,8 @@ public static class WebsocketServiceExtensions
         this IWebsocketService service,
         string mintUrl,
         string proofY,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         await service.LazyConnectAsync(mintUrl, ct);
         return await service.SubscribeToProofStateAsync(mintUrl, new[] { proofY }, ct);
@@ -46,7 +60,8 @@ public static class WebsocketServiceExtensions
         this IWebsocketService service,
         string mintUrl,
         string quoteId,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         await service.LazyConnectAsync(mintUrl, ct);
         return await service.SubscribeToMintQuoteAsync(mintUrl, new[] { quoteId }, ct);
@@ -56,7 +71,8 @@ public static class WebsocketServiceExtensions
         this IWebsocketService service,
         string mintUrl,
         string quoteId,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         await service.LazyConnectAsync(mintUrl, ct);
         return await service.SubscribeToMeltQuoteAsync(mintUrl, new[] { quoteId }, ct);
@@ -71,7 +87,8 @@ public static class WebsocketServiceExtensions
     public static IEnumerable<Subscription> GetSubscriptionsByKind(
         this IWebsocketService service,
         string connectionId,
-        SubscriptionKind kind)
+        SubscriptionKind kind
+    )
     {
         return service.GetSubscriptions(connectionId).Where(s => s.Kind == kind);
     }
@@ -79,7 +96,8 @@ public static class WebsocketServiceExtensions
     public static async Task UnsubscribeAllAsync(
         this IWebsocketService service,
         string connectionId,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         var subscriptions = service.GetSubscriptions(connectionId).ToList();
         foreach (var subscription in subscriptions)
@@ -92,7 +110,8 @@ public static class WebsocketServiceExtensions
         this IWebsocketService service,
         string connectionId,
         SubscriptionKind kind,
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         var subscriptions = service.GetSubscriptionsByKind(connectionId, kind).ToList();
         foreach (var subscription in subscriptions)

@@ -1,27 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Title>DotNut.Nostr</Title>
+    <Authors>Kukks</Authors>
+    <Description>Support Cashu payment requests through Nostr </Description>
+    <Copyright>MIT</Copyright>
+    <PackageProjectUrl>https://github.com/Kukks/DotNut</PackageProjectUrl>
+    <PackageVersion>1.0.0</PackageVersion>
+    <RepositoryUrl>https://github.com/Kukks/DotNut</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>bitcoin cashu ecash secp256k1 nostr</PackageTags>
+    <PackageLicenseUrl>https://github.com/Kukks/DotNut/blob/master/LICENSE</PackageLicenseUrl>
+  </PropertyGroup>
 
-    <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-        <Title>DotNut.Nostr</Title>
-        <Authors>Kukks</Authors>
-        <Description>Support Cashu payment requests through Nostr </Description>
-        <Copyright>MIT</Copyright>
-        <PackageProjectUrl>https://github.com/Kukks/DotNut</PackageProjectUrl>
-        <PackageVersion>1.0.0</PackageVersion>
-        <RepositoryUrl>https://github.com/Kukks/DotNut</RepositoryUrl>
-        <RepositoryType>git</RepositoryType>
-        <PackageTags>bitcoin cashu ecash secp256k1 nostr</PackageTags>
-        <PackageLicenseUrl>https://github.com/Kukks/DotNut/blob/master/LICENSE</PackageLicenseUrl>
-
-    </PropertyGroup>
-
-    <ItemGroup>
-
-      <PackageReference Include="NNostr.Client" Version="0.0.53" />
-      <ProjectReference Include="..\DotNut\DotNut.csproj" />
-    </ItemGroup>
-
+  <ItemGroup>
+    <PackageReference Include="NNostr.Client" Version="0.0.53" />
+    <ProjectReference Include="..\DotNut\DotNut.csproj" />
+  </ItemGroup>
 </Project>

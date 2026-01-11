@@ -2,7 +2,8 @@
 
 namespace DotNut;
 
-public class DLEQProof: DLEQ
+public class DLEQProof : DLEQ
 {
-    [JsonPropertyName("r")] public PrivKey R { get; set; }
+    [JsonPropertyName("r")]
+    public PrivKey R { get; set; }
 }

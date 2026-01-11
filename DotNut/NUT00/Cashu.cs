@@ -10,25 +10,27 @@ public static class Cashu
     private static readonly byte[] DOMAIN_SEPARATOR = "Secp256k1_HashToCurve_Cashu_"u8.ToArray();
 
     private static readonly byte[] P2BK_PREFIX = "Cashu_P2BK_v1"u8.ToArray();
-        
-    internal static readonly BigInteger N =
-        BigInteger.Parse("115792089237316195423570985008687907852837564279074904382605163141518161494337");
+
+    internal static readonly BigInteger N = BigInteger.Parse(
+        "115792089237316195423570985008687907852837564279074904382605163141518161494337"
+    );
+
     public static ECPubKey MessageToCurve(string message)
     {
         var hash = Encoding.UTF8.GetBytes(message);
         return HashToCurve(hash);
-    } 
-    
+    }
+
     public static ECPubKey HexToCurve(string hex)
     {
         var bytes = Convert.FromHexString(hex);
         return HashToCurve(bytes);
     }
-    
+
     public static ECPubKey HashToCurve(byte[] x)
     {
         var msgHash = SHA256.HashData(Concat(DOMAIN_SEPARATOR, x));
-        for (uint counter = 0;; counter++)
+        for (uint counter = 0; ; counter++)
         {
             var counterBytes = BitConverter.GetBytes(counter);
             var publicKeyBytes = Concat([0x02], SHA256.HashData(Concat(msgHash, counterBytes)));
@@ -36,12 +38,10 @@ public static class Cashu
             {
                 return ECPubKey.Create(publicKeyBytes);
             }
-            catch (FormatException)
-            {
-            }
+            catch (FormatException) { }
         }
     }
-    
+
     /// <summary>
     /// Blinding
     /// </summary>
@@ -65,7 +65,7 @@ public static class Cashu
         //C_ = kB_
         return (B_.Q * k.sec).ToPubkey();
     }
-    
+
     /// <summary>
     /// Unblinding
     /// </summary>
@@ -76,9 +76,12 @@ public static class Cashu
     public static ECPubKey ComputeC(ECPubKey C_, ECPrivKey r, ECPubKey A)
     {
         //C_ - rA = C
-        return C_.Q.ToGroupElementJacobian().Add((A.Q * r.sec).ToGroupElement().Negate()).ToPubkey();
+        return C_
+            .Q.ToGroupElementJacobian()
+            .Add((A.Q * r.sec).ToGroupElement().Negate())
+            .ToPubkey();
     }
-    
+
     /// <summary>
     /// Creates DLEQ Proof.
     /// </summary>
@@ -98,7 +101,7 @@ public static class Cashu
         var s = p.TweakAdd(a.TweakMul(e.ToBytes()).ToBytes());
         return (e.ToPrivateKey(), s);
     }
-    
+
     /// <summary>
     /// Computes the challenge scalar 'e' for the DLEQ proof.
     /// </summary>
@@ -109,7 +112,9 @@ public static class Cashu
     /// <returns>The challenge scalar <c>e</c> derived as a SHA256 hash over the concatenation of the uncompressed points.</returns>
     public static Scalar ComputeE(ECPubKey R1, ECPubKey R2, ECPubKey K, ECPubKey C_)
     {
-        byte[] eBytes = Encoding.UTF8.GetBytes(string.Concat(new[] {R1, R2, K, C_}.Select(pk => pk.ToHex(false))));
+        byte[] eBytes = Encoding.UTF8.GetBytes(
+            string.Concat(new[] { R1, R2, K, C_ }.Select(pk => pk.ToHex(false)))
+        );
         return new Scalar(SHA256.HashData(eBytes));
     }
 
@@ -121,9 +126,16 @@ public static class Cashu
     /// <returns></returns>
     public static bool Verify(this Proof proof, ECPubKey A)
     {
-        return VerifyProof(proof.Secret.ToCurve(),proof.DLEQ.R, proof.C, proof.DLEQ.E, proof.DLEQ.S, A);
+        return VerifyProof(
+            proof.Secret.ToCurve(),
+            proof.DLEQ.R,
+            proof.C,
+            proof.DLEQ.E,
+            proof.DLEQ.S,
+            A
+        );
     }
-    
+
     /// <summary>
     /// Verify DLEQ proof of Blinded signature
     /// </summary>
@@ -133,9 +145,9 @@ public static class Cashu
     /// <returns></returns>
     public static bool Verify(this BlindSignature blindSig, ECPubKey A, ECPubKey B_)
     {
-        return  Cashu.VerifyProof(B_, blindSig.C_, blindSig.DLEQ.E, blindSig.DLEQ.S, A);
+        return Cashu.VerifyProof(B_, blindSig.C_, blindSig.DLEQ.E, blindSig.DLEQ.S, A);
     }
-    
+
     /// <summary>
     /// Verify DLEQ proof
     /// </summary>
@@ -147,11 +159,15 @@ public static class Cashu
     /// <returns></returns>
     public static bool VerifyProof(ECPubKey B_, ECPubKey C_, ECPrivKey e, ECPrivKey s, ECPubKey A)
     {
-        var r1 = s.CreatePubKey().Q.ToGroupElementJacobian().Add((A.Q * e.sec.Negate()).ToGroupElement()).ToPubkey();
+        var r1 = s.CreatePubKey()
+            .Q.ToGroupElementJacobian()
+            .Add((A.Q * e.sec.Negate()).ToGroupElement())
+            .ToPubkey();
         var r2 = (B_.Q * s.sec).Add((C_.Q * e.sec.Negate()).ToGroupElement()).ToPubkey();
         var e_ = ComputeE(r1, r2, A, C_);
         return e.sec.Equals(e_);
     }
+
     /// <summary>
     /// Verify DLEQ proof
     /// </summary>
@@ -162,14 +178,19 @@ public static class Cashu
     /// <param name="s">Dleq.S returned by mint</param>
     /// <param name="A">Amount pubkey</param>
     /// <returns></returns>
-
-    public static bool VerifyProof(ECPubKey Y, ECPrivKey r, ECPubKey C, ECPrivKey e, ECPrivKey s, ECPubKey A)
+    public static bool VerifyProof(
+        ECPubKey Y,
+        ECPrivKey r,
+        ECPubKey C,
+        ECPrivKey e,
+        ECPrivKey s,
+        ECPubKey A
+    )
     {
         var C_ = C.Q.ToGroupElementJacobian().Add((A.Q * r.sec).ToGroupElement()).ToPubkey();
         var B_ = Y.Q.ToGroupElementJacobian().Add(r.CreatePubKey().Q).ToPubkey();
         return VerifyProof(B_, C_, e, s, A);
     }
-    
 
     public static GE ToGE(this Scalar scalar)
     {
@@ -185,7 +206,9 @@ public static class Cashu
 
     public static ECPrivKey ToPrivateKey(this Scalar scalar)
     {
-        return ECPrivKey.TryCreate(scalar, out var key) ? key : throw new InvalidOperationException();
+        return ECPrivKey.TryCreate(scalar, out var key)
+            ? key
+            : throw new InvalidOperationException();
     }
 
     public static ECPubKey ToPubkey(this GEJ gej)
@@ -215,7 +238,7 @@ public static class Cashu
         }
         return xOnly.ToBytes();
     }
-    
+
     /// <summary>
     /// Compute deterministic blinding scalar for P2Bk
     /// </summary>
@@ -226,7 +249,7 @@ public static class Cashu
     public static ECPrivKey ComputeRi(byte[] Zx, byte[] keysetId, int i)
     {
         byte[] hash;
-        
+
         hash = SHA256.HashData(Concat(P2BK_PREFIX, Zx, keysetId, [(byte)(i & 0xFF)]));
         var hashValue = new BigInteger(hash);
         if (hashValue == 0 || hashValue.CompareTo(N) != -1)
@@ -235,8 +258,7 @@ public static class Cashu
         }
         return ECPrivKey.Create(hash);
     }
-    
-    
+
     private static byte[] Concat(params byte[][] arrays)
     {
         int totalLength = arrays.Sum(a => a?.Length ?? 0);
@@ -245,41 +267,46 @@ public static class Cashu
 
         foreach (var arr in arrays)
         {
-            if (arr == null || arr.Length == 0) continue;
+            if (arr == null || arr.Length == 0)
+                continue;
             Buffer.BlockCopy(arr, 0, result, offset, arr.Length);
             offset += arr.Length;
         }
 
         return result;
     }
-    
+
     public static string ToHex(this ECPrivKey key)
     {
         return Convert.ToHexString(key.ToBytes()).ToLower();
     }
-    
+
     public static byte[] ToBytes(this ECPrivKey key)
     {
         Span<byte> output = stackalloc byte[32];
         key.WriteToSpan(output);
         return output.ToArray();
     }
-    
- 
+
     public static byte[] ToUncompressedBytes(this ECPubKey key)
     {
         Span<byte> output = stackalloc byte[65];
-        key.WriteToSpan(false, output,  out _);
+        key.WriteToSpan(false, output, out _);
         return output.ToArray();
     }
+
     public static string ToHex(this ECPubKey key, bool compressed = true)
     {
-        return compressed ? Convert.ToHexString(key.ToBytes(true)).ToLower() : Convert.ToHexString(key.ToUncompressedBytes()).ToLower();
+        return compressed
+            ? Convert.ToHexString(key.ToBytes(true)).ToLower()
+            : Convert.ToHexString(key.ToUncompressedBytes()).ToLower();
     }
+
     public static string ToHex(this Scalar scalar)
     {
         return Convert.ToHexString(scalar.ToBytes()).ToLower();
     }
+
     public static string ToHex(this SecpSchnorrSignature sig)
     {
         return Convert.ToHexString(sig.ToBytes()).ToLower();

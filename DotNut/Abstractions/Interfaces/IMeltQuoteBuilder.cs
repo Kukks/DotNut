@@ -43,11 +43,14 @@ public interface IMeltQuoteBuilder
     /// <summary>
     /// Create a bolt11 melt handler.
     /// </summary>
-    Task<IMeltHandler<PostMeltQuoteBolt11Response, List<Proof>>> ProcessAsyncBolt11(CancellationToken ct = default);
+    Task<IMeltHandler<PostMeltQuoteBolt11Response, List<Proof>>> ProcessAsyncBolt11(
+        CancellationToken ct = default
+    );
 
     /// <summary>
     /// Create a bolt12 melt handler.
     /// </summary>
-    Task<IMeltHandler<PostMeltQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(CancellationToken ct = default);
-
+    Task<IMeltHandler<PostMeltQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(
+        CancellationToken ct = default
+    );
 }

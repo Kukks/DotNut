@@ -5,7 +5,11 @@ namespace DotNut.JsonConverters;
 
 public class KeysetJsonConverter : JsonConverter<Keyset>
 {
-    public override Keyset? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override Keyset? Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
     {
         if (reader.TokenType == JsonTokenType.Null)
         {
@@ -21,7 +25,6 @@ public class KeysetJsonConverter : JsonConverter<Keyset>
         {
             if (reader.TokenType == JsonTokenType.EndObject)
             {
-                
                 return keyset;
             }
 
@@ -30,7 +33,7 @@ public class KeysetJsonConverter : JsonConverter<Keyset>
             {
                 amount = reader.GetUInt64();
             }
-            else if (reader.TokenType is  JsonTokenType.String or JsonTokenType.PropertyName)
+            else if (reader.TokenType is JsonTokenType.String or JsonTokenType.PropertyName)
             {
                 var str = reader.GetString();
                 if (string.IsNullOrEmpty(str))
@@ -42,10 +45,9 @@ public class KeysetJsonConverter : JsonConverter<Keyset>
                 throw new JsonException("Expected number or string");
             }
 
-
             reader.Read();
             var pubkey = JsonSerializer.Deserialize<PubKey>(ref reader, options);
-            if(pubkey is null || pubkey.Key.ToBytes().Length != 33)
+            if (pubkey is null || pubkey.Key.ToBytes().Length != 33)
                 throw new JsonException("Invalid public key (not compressed?)");
             keyset.Add(amount, pubkey);
         }

@@ -12,6 +12,6 @@ public interface IRestoreBuilder
     /// <param name="keysetIds"></param>
     /// <returns></returns>
     IRestoreBuilder FromKeysetIds(IEnumerable<KeysetId> keysetIds);
-    
+
     Task<IEnumerable<Proof>> ProcessAsync(CancellationToken ct = default);
 }

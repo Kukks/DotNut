@@ -4,6 +4,9 @@ namespace DotNut;
 
 public class DLEQ
 {
-    [JsonPropertyName("e")] public PrivKey E { get; set; }
-    [JsonPropertyName("s")] public PrivKey S { get; set; }
+    [JsonPropertyName("e")]
+    public PrivKey E { get; set; }
+
+    [JsonPropertyName("s")]
+    public PrivKey S { get; set; }
 }

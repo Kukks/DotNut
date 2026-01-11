@@ -9,11 +9,13 @@ public class WebsocketConnection
     public ClientWebSocket WebSocket { get; set; } = new();
     public WebSocketState State { get; set; }
     public DateTime ConnectedAt { get; set; } = DateTime.UtcNow;
-    
+
     public bool Equals(WebsocketConnection? other)
     {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
+        if (other is null)
+            return false;
+        if (ReferenceEquals(this, other))
+            return true;
         return string.Equals(MintUrl, other.MintUrl, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -37,4 +39,3 @@ public class WebsocketConnection
         return !object.Equals(left, right);
     }
 }
-

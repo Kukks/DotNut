@@ -5,7 +5,11 @@ namespace DotNut.JsonConverters;
 
 public class SecretJsonConverter : JsonConverter<ISecret>
 {
-    public override ISecret? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override ISecret? Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
     {
         if (reader.TokenType == JsonTokenType.Null)
         {
@@ -14,7 +18,7 @@ public class SecretJsonConverter : JsonConverter<ISecret>
 
         if (reader.TokenType == JsonTokenType.StartArray && reader.CurrentDepth == 0)
         {
-            //we are converting a nut10 secret directly 
+            //we are converting a nut10 secret directly
             return JsonSerializer.Deserialize<Nut10Secret>(ref reader, options);
         }
         if (reader.TokenType != JsonTokenType.String)
@@ -33,7 +37,6 @@ public class SecretJsonConverter : JsonConverter<ISecret>
         }
         catch (Exception e)
         {
-           
             return new StringSecret(str);
         }
     }

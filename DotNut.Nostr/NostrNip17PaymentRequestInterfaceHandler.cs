@@ -10,20 +10,33 @@ public class NostrNip17PaymentRequestInterfaceHandler : PaymentRequestInterfaceH
 {
     public static void Register()
     {
-        PaymentRequestTransportInitiator.Handlers.Add(new NostrNip17PaymentRequestInterfaceHandler());
+        PaymentRequestTransportInitiator.Handlers.Add(
+            new NostrNip17PaymentRequestInterfaceHandler()
+        );
     }
 
     public bool CanHandle(PaymentRequest request)
     {
-        return request.Transports.Any(t => t.Type == "nostr" && t.Tags.Any( t => t.Key == "n" && t.Value == "17"));
+        return request.Transports.Any(t =>
+            t.Type == "nostr" && t.Tags.Any(t => t.Key == "n" && t.Value == "17")
+        );
     }
 
-    public async Task SendPayment(PaymentRequest request, PaymentRequestPayload payload,
-        CancellationToken cancellationToken = default)
-    { 
-        var nprofileStr = request.Transports.First(t => t.Type == "nostr" && t.Tags.Any( t => t.Key == "n" && t.Value == "17")).Target;
-        var nprofile = (NIP19.NosteProfileNote) NIP19.FromNIP19Note(nprofileStr);
-        using var client = new CompositeNostrClient(nprofile.Relays.Select(r => new Uri(r)).ToArray());
+    public async Task SendPayment(
+        PaymentRequest request,
+        PaymentRequestPayload payload,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var nprofileStr = request
+            .Transports.First(t =>
+                t.Type == "nostr" && t.Tags.Any(t => t.Key == "n" && t.Value == "17")
+            )
+            .Target;
+        var nprofile = (NIP19.NosteProfileNote)NIP19.FromNIP19Note(nprofileStr);
+        using var client = new CompositeNostrClient(
+            nprofile.Relays.Select(r => new Uri(r)).ToArray()
+        );
         await client.Connect(cancellationToken);
         var ephemeralKey = ECPrivKey.Create(RandomNumberGenerator.GetBytes(32));
         var msg = new NostrEvent()
@@ -35,9 +48,13 @@ public class NostrNip17PaymentRequestInterfaceHandler : PaymentRequestInterfaceH
             Tags = new(),
         };
         msg.Id = msg.ComputeId();
-        
-        var giftWrap = await NIP17.Create(msg, ephemeralKey,ECXOnlyPubKey.Create(Convert.FromHexString(nprofile.PubKey)), null);
-        await client.SendEventsAndWaitUntilReceived(new []{giftWrap}, cancellationToken);
 
+        var giftWrap = await NIP17.Create(
+            msg,
+            ephemeralKey,
+            ECXOnlyPubKey.Create(Convert.FromHexString(nprofile.PubKey)),
+            null
+        );
+        await client.SendEventsAndWaitUntilReceived(new[] { giftWrap }, cancellationToken);
     }
 }

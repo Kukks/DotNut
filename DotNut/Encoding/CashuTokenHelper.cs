@@ -26,7 +26,7 @@ public static class CashuTokenHelper
         foreach (var token1 in token.Tokens)
         {
             if (token1.Mint.EndsWith("/"))
-            { 
+            {
                 token1.Mint = token1.Mint.TrimEnd('/');
             }
             foreach (var proof in token1.Proofs)
@@ -34,7 +34,7 @@ public static class CashuTokenHelper
                 proof.Id = MaybeShortenId(proof.Id);
             }
         }
-        
+
         var encoded = encoder.Encode(token);
 
         var result = $"{CashuPrefix}{version}{encoded}";
@@ -47,7 +47,11 @@ public static class CashuTokenHelper
         return result;
     }
 
-    public static CashuToken Decode(string token, out string? version, List<KeysetId>? keysetIds = null)
+    public static CashuToken Decode(
+        string token,
+        out string? version,
+        List<KeysetId>? keysetIds = null
+    )
     {
         version = null;
         if (Uri.IsWellFormedUriString(token, UriKind.Absolute))
@@ -70,7 +74,7 @@ public static class CashuTokenHelper
 
         token = token.Substring(1);
         var decoded = encoder.Decode(token);
-        
+
         if (keysetIds is null)
         {
             return decoded;
@@ -82,46 +86,61 @@ public static class CashuTokenHelper
         }
         return decoded;
     }
-    
+
     private static KeysetId MaybeShortenId(KeysetId id)
     {
-        if (id.GetVersion() != 0x01) return id;
-        var s = id.ToString(); 
+        if (id.GetVersion() != 0x01)
+            return id;
+        var s = id.ToString();
         return s.Length <= 16 ? id : new KeysetId(s.Substring(0, 16));
     }
-    
-    private static List<Proof> MapShortKeysetIds(List<Proof> proofs, List<KeysetId>? keysetIds = null)
+
+    private static List<Proof> MapShortKeysetIds(
+        List<Proof> proofs,
+        List<KeysetId>? keysetIds = null
+    )
     {
-        if (proofs.Count == 0 || proofs.All(p => p.Id.GetVersion() != 0x01 || p.Id.ToString().Length != 16))
+        if (
+            proofs.Count == 0
+            || proofs.All(p => p.Id.GetVersion() != 0x01 || p.Id.ToString().Length != 16)
+        )
         {
             return proofs;
         }
         if (keysetIds is null)
         {
-            throw new ArgumentNullException(nameof(keysetIds),
-                "Encountered short keyset IDs but no keysets were provided for mapping.");
+            throw new ArgumentNullException(
+                nameof(keysetIds),
+                "Encountered short keyset IDs but no keysets were provided for mapping."
+            );
         }
-        
-        return proofs.Select(proof =>
-        {
-            if (proof.Id.GetVersion() != 0x01)
-                return proof;
 
-            var proofShortId = proof.Id.ToString();
-            var match = keysetIds.FirstOrDefault(k=> k.ToString().StartsWith(proofShortId, StringComparison.OrdinalIgnoreCase));
-            
-            if (match is null)
-                throw new Exception($"Couldn't map short keyset ID {proof.Id} to any known keysets of the current Mint");
-
-            return new Proof
+        return proofs
+            .Select(proof =>
             {
-                Amount = proof.Amount,
-                Secret = proof.Secret,
-                C = proof.C,
-                Witness = proof.Witness,
-                DLEQ = proof.DLEQ,
-                Id = match
-            };
-        }).ToList();
+                if (proof.Id.GetVersion() != 0x01)
+                    return proof;
+
+                var proofShortId = proof.Id.ToString();
+                var match = keysetIds.FirstOrDefault(k =>
+                    k.ToString().StartsWith(proofShortId, StringComparison.OrdinalIgnoreCase)
+                );
+
+                if (match is null)
+                    throw new Exception(
+                        $"Couldn't map short keyset ID {proof.Id} to any known keysets of the current Mint"
+                    );
+
+                return new Proof
+                {
+                    Amount = proof.Amount,
+                    Secret = proof.Secret,
+                    C = proof.C,
+                    Witness = proof.Witness,
+                    DLEQ = proof.DLEQ,
+                    Id = match,
+                };
+            })
+            .ToList();
     }
 }

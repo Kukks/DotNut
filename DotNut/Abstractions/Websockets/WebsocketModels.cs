@@ -4,7 +4,7 @@ namespace DotNut.Abstractions.Websockets;
 
 public class WsRequest
 {
-    [JsonPropertyName("jsonrpc")] 
+    [JsonPropertyName("jsonrpc")]
     public string JsonRpc { get; set; } = "2.0";
 
     [JsonPropertyName("method")]
@@ -45,7 +45,7 @@ public class WsResponse
 
 public class WsResult
 {
-    [JsonPropertyName("status")] 
+    [JsonPropertyName("status")]
     public string Status { get; } = "OK";
 
     [JsonPropertyName("subId")]
@@ -97,13 +97,16 @@ public class WsNotificationParams
 public abstract record WsMessage
 {
     public sealed record Response(WsResponse Value) : WsMessage;
+
     public sealed record Error(WsError Value) : WsMessage;
+
     public sealed record Notification(WsNotification Value) : WsMessage;
 }
 
 public abstract record RequestResult
 {
     public sealed record Success(string SubId, string Status) : RequestResult;
+
     public sealed record Failure(int Code, string Message, int RequestId) : RequestResult;
 }
 

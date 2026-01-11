@@ -8,12 +8,17 @@ namespace DotNut;
 public class HTLCProofSecret : P2PKProofSecret
 {
     public const string Key = "HTLC";
-    [JsonIgnore] public override HTLCBuilder Builder => HTLCBuilder.Load(this);
+
+    [JsonIgnore]
+    public override HTLCBuilder Builder => HTLCBuilder.Load(this);
 
     public override ECPubKey[] GetAllowedPubkeys(out int requiredSignatures)
     {
         var builder = Builder;
-        if (builder.Lock.HasValue && builder.Lock.Value.ToUnixTimeSeconds() < DateTimeOffset.Now.ToUnixTimeSeconds())
+        if (
+            builder.Lock.HasValue
+            && builder.Lock.Value.ToUnixTimeSeconds() < DateTimeOffset.Now.ToUnixTimeSeconds()
+        )
         {
             requiredSignatures = Math.Min(builder.RefundPubkeys?.Length ?? 0, 1);
             return builder.RefundPubkeys ?? Array.Empty<ECPubKey>();
@@ -22,15 +27,23 @@ public class HTLCProofSecret : P2PKProofSecret
         requiredSignatures = builder.SignatureThreshold;
         return builder.Pubkeys;
     }
-    
+
     public HTLCWitness GenerateWitness(Proof proof, ECPrivKey[] keys, string preimage)
     {
         return GenerateWitness(proof.Secret.GetBytes(), keys, Convert.FromHexString(preimage));
     }
 
-    public HTLCWitness GenerateWitness(BlindedMessage blindedMessage, ECPrivKey[] keys, string preimage)
+    public HTLCWitness GenerateWitness(
+        BlindedMessage blindedMessage,
+        ECPrivKey[] keys,
+        string preimage
+    )
     {
-        return GenerateWitness(blindedMessage.B_.Key.ToBytes(), keys, Convert.FromHexString(preimage));
+        return GenerateWitness(
+            blindedMessage.B_.Key.ToBytes(),
+            keys,
+            Convert.FromHexString(preimage)
+        );
     }
 
     public HTLCWitness GenerateWitness(byte[] msg, ECPrivKey[] keys, byte[] preimage)
@@ -41,10 +54,12 @@ public class HTLCProofSecret : P2PKProofSecret
 
     public HTLCWitness GenerateWitness(ECPrivKey hash, ECPrivKey[] keys, byte[] preimage)
     {
-        // validate hash only if secret is not expired. 
+        // validate hash only if secret is not expired.
         var builder = Builder;
-        if (!builder.Lock.HasValue || 
-            builder.Lock.Value.ToUnixTimeSeconds() > DateTimeOffset.Now.ToUnixTimeSeconds())
+        if (
+            !builder.Lock.HasValue
+            || builder.Lock.Value.ToUnixTimeSeconds() > DateTimeOffset.Now.ToUnixTimeSeconds()
+        )
         {
             if (!VerifyPreimage(preimage))
                 throw new InvalidOperationException("Invalid preimage");
@@ -53,39 +68,73 @@ public class HTLCProofSecret : P2PKProofSecret
         return new HTLCWitness()
         {
             Signatures = witness.Signatures,
-            Preimage = Convert.ToHexString(preimage)
+            Preimage = Convert.ToHexString(preimage),
         };
     }
-
-    
 
     public HTLCWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, string preimage)
     {
         ArgumentNullException.ThrowIfNull(proof.P2PkE);
         return GenerateBlindWitness(proof, keys, preimage, proof.P2PkE);
     }
-    public HTLCWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, string preimage, ECPubKey P2PkE)
+
+    public HTLCWitness GenerateBlindWitness(
+        Proof proof,
+        ECPrivKey[] keys,
+        string preimage,
+        ECPubKey P2PkE
+    )
     {
-        return GenerateBlindWitness(proof.Secret.GetBytes(), keys, Convert.FromHexString(preimage), proof.Id, P2PkE);
+        return GenerateBlindWitness(
+            proof.Secret.GetBytes(),
+            keys,
+            Convert.FromHexString(preimage),
+            proof.Id,
+            P2PkE
+        );
     }
 
-    public HTLCWitness GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, string preimage, ECPubKey P2PkE)
+    public HTLCWitness GenerateBlindWitness(
+        BlindedMessage message,
+        ECPrivKey[] keys,
+        string preimage,
+        ECPubKey P2PkE
+    )
     {
-        return GenerateBlindWitness(message.B_.Key.ToBytes(), keys, Convert.FromHexString(preimage), message.Id, P2PkE);
+        return GenerateBlindWitness(
+            message.B_.Key.ToBytes(),
+            keys,
+            Convert.FromHexString(preimage),
+            message.Id,
+            P2PkE
+        );
     }
 
-    public HTLCWitness GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId,
-        ECPubKey P2PkE)
+    public HTLCWitness GenerateBlindWitness(
+        byte[] msg,
+        ECPrivKey[] keys,
+        byte[] preimage,
+        KeysetId keysetId,
+        ECPubKey P2PkE
+    )
     {
         var hash = SHA256.HashData(msg);
         return GenerateBlindWitness(ECPrivKey.Create(hash), keys, preimage, keysetId, P2PkE);
     }
-    
-    public HTLCWitness GenerateBlindWitness(ECPrivKey hash, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId,
-        ECPubKey P2PkE)
+
+    public HTLCWitness GenerateBlindWitness(
+        ECPrivKey hash,
+        ECPrivKey[] keys,
+        byte[] preimage,
+        KeysetId keysetId,
+        ECPubKey P2PkE
+    )
     {
         var builder = Builder;
-        if (!builder.Lock.HasValue || builder.Lock.Value.ToUnixTimeSeconds() > DateTimeOffset.Now.ToUnixTimeSeconds())
+        if (
+            !builder.Lock.HasValue
+            || builder.Lock.Value.ToUnixTimeSeconds() > DateTimeOffset.Now.ToUnixTimeSeconds()
+        )
         {
             if (!VerifyPreimage(preimage))
                 throw new InvalidOperationException("Invalid preimage");
@@ -94,15 +143,15 @@ public class HTLCProofSecret : P2PKProofSecret
         return new HTLCWitness()
         {
             Signatures = witness.Signatures,
-            Preimage = Convert.ToHexString(preimage)
+            Preimage = Convert.ToHexString(preimage),
         };
     }
-    
-    
-    
+
     public bool VerifyPreimage(string preimage)
     {
-        return Convert.FromHexString(Builder.HashLock).SequenceEqual(SHA256.HashData(Convert.FromHexString(preimage)));
+        return Convert
+            .FromHexString(Builder.HashLock)
+            .SequenceEqual(SHA256.HashData(Convert.FromHexString(preimage)));
     }
 
     public bool VerifyPreimage(byte[] preimage)
@@ -118,65 +167,99 @@ public class HTLCProofSecret : P2PKProofSecret
 
     public bool VerifyWitness(ISecret secret, HTLCWitness witness)
     {
-        if (secret is not Nut10Secret {ProofSecret: HTLCProofSecret})
+        if (secret is not Nut10Secret { ProofSecret: HTLCProofSecret })
         {
             return false;
         }
 
         return VerifyWitness(secret.GetBytes(), witness);
     }
-    
 
     [Obsolete("Use GenerateWitness(Proof proof, ECPrivKey[] keys, string preimage)")]
     public override P2PKWitness GenerateWitness(Proof proof, ECPrivKey[] keys)
     {
-        throw new InvalidOperationException("Use GenerateWitness(Proof proof, ECPrivKey[] keys, string preimage)");
+        throw new InvalidOperationException(
+            "Use GenerateWitness(Proof proof, ECPrivKey[] keys, string preimage)"
+        );
     }
 
     [Obsolete("Use GenerateWitness(byte[] msg, ECPrivKey[] keys, byte[] preimage)")]
     public override P2PKWitness GenerateWitness(BlindedMessage message, ECPrivKey[] keys)
     {
-        throw new InvalidOperationException("Use GenerateWitness(BlindedMessage message, ECPrivKey[] keys, string preimage)");
+        throw new InvalidOperationException(
+            "Use GenerateWitness(BlindedMessage message, ECPrivKey[] keys, string preimage)"
+        );
     }
 
     [Obsolete("Use GenerateWitness(byte[] msg, ECPrivKey[] keys, byte[] preimage)")]
     public override P2PKWitness GenerateWitness(byte[] msg, ECPrivKey[] keys)
     {
-        throw new InvalidOperationException("Use GenerateWitness(byte[] msg, ECPrivKey[] keys, byte[] preimage)");
+        throw new InvalidOperationException(
+            "Use GenerateWitness(byte[] msg, ECPrivKey[] keys, byte[] preimage)"
+        );
     }
-    
 
-    [Obsolete("Use GenerateBlindWitness(Proof proof, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId)")]
+    [Obsolete(
+        "Use GenerateBlindWitness(Proof proof, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId)"
+    )]
     public override P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys)
     {
         throw new InvalidOperationException();
     }
-    
-    [Obsolete("Use GenerateBlindWitness(Proof proof, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)")]
+
+    [Obsolete(
+        "Use GenerateBlindWitness(Proof proof, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)"
+    )]
     public override P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, ECPubKey P2PkE)
     {
-        throw new InvalidOperationException("Use GenerateBlindWitness(Proof proof, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)");
-    }
-    
-    [Obsolete("Use GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)")]
-    public override P2PKWitness GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, ECPubKey P2PkE)
-    {
-        throw new InvalidOperationException("Use GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)");
-    }
-    
-    [Obsolete("Use GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)")]
-    public override P2PKWitness GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, KeysetId keysetId, ECPubKey P2PkE)
-    {
-        throw new InvalidOperationException("Use GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)");
-    }
-    
-    [Obsolete("Use GenerateBlindWitness(ECPrivKey hash, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)")]
-    public override P2PKWitness GenerateBlindWitness(ECPrivKey hash, ECPrivKey[] keys, KeysetId keysetId,
-        ECPubKey P2PkE)
-    {
-        throw new InvalidOperationException("Use GenerateBlindWitness(ECPrivKey hash, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)");
+        throw new InvalidOperationException(
+            "Use GenerateBlindWitness(Proof proof, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)"
+        );
     }
 
+    [Obsolete(
+        "Use GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)"
+    )]
+    public override P2PKWitness GenerateBlindWitness(
+        BlindedMessage message,
+        ECPrivKey[] keys,
+        ECPubKey P2PkE
+    )
+    {
+        throw new InvalidOperationException(
+            "Use GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)"
+        );
+    }
+
+    [Obsolete(
+        "Use GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)"
+    )]
+    public override P2PKWitness GenerateBlindWitness(
+        byte[] msg,
+        ECPrivKey[] keys,
+        KeysetId keysetId,
+        ECPubKey P2PkE
+    )
+    {
+        throw new InvalidOperationException(
+            "Use GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)"
+        );
+    }
+
+    [Obsolete(
+        "Use GenerateBlindWitness(ECPrivKey hash, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)"
+    )]
+    public override P2PKWitness GenerateBlindWitness(
+        ECPrivKey hash,
+        ECPrivKey[] keys,
+        KeysetId keysetId,
+        ECPubKey P2PkE
+    )
+    {
+        throw new InvalidOperationException(
+            "Use GenerateBlindWitness(ECPrivKey hash, ECPrivKey[] keys, byte[] preimage, KeysetId keysetId, ECPubKey P2PkE)"
+        );
+    }
 
     public override P2PKWitness GenerateWitness(ECPrivKey hash, ECPrivKey[] keys)
     {
@@ -197,6 +280,7 @@ public class HTLCProofSecret : P2PKProofSecret
     {
         return base.VerifyWitness(message, witness);
     }
+
     public override bool VerifyWitnessHash(byte[] hash, P2PKWitness witness)
     {
         if (witness is not HTLCWitness htlcWitness)
@@ -204,7 +288,10 @@ public class HTLCProofSecret : P2PKProofSecret
             return false;
         }
         var builder = Builder;
-        if (builder.Lock.HasValue && builder.Lock.Value.ToUnixTimeSeconds() <= DateTimeOffset.Now.ToUnixTimeSeconds())
+        if (
+            builder.Lock.HasValue
+            && builder.Lock.Value.ToUnixTimeSeconds() <= DateTimeOffset.Now.ToUnixTimeSeconds()
+        )
         {
             return base.VerifyWitnessHash(hash, witness);
         }

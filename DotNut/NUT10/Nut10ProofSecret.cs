@@ -4,14 +4,13 @@ namespace DotNut;
 
 public class Nut10ProofSecret
 {
-    
     [JsonPropertyName("nonce")]
     public string Nonce { get; set; }
-    
+
     [JsonPropertyName("data")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Data { get; set; }
-    
+
     [JsonPropertyName("tags")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string[][]? Tags { get; set; }

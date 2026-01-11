@@ -2,7 +2,8 @@
 
 namespace DotNut;
 
-public class HTLCWitness: P2PKWitness
+public class HTLCWitness : P2PKWitness
 {
-    [JsonPropertyName("preimage")] public string Preimage { get; set; } 
+    [JsonPropertyName("preimage")]
+    public string Preimage { get; set; }
 }

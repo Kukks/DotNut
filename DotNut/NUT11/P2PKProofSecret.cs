@@ -82,8 +82,17 @@ public class P2PKProofSecret : Nut10ProofSecret
         {
             return false;
         }
-        var witness = JsonSerializer.Deserialize<P2PKWitness>(proof.Witness) ?? new P2PKWitness();
-        return VerifyWitness(proof.Secret, witness);
+
+        try
+        {
+            var witness = JsonSerializer.Deserialize<P2PKWitness>(proof.Witness) ?? new P2PKWitness();
+            return VerifyWitness(proof.Secret, witness);
+        }
+        catch
+        {
+            return false;
+        }
+        
     }
 
     /*

@@ -14,7 +14,7 @@ public interface IWalletBuilder : IDisposable
     /// Mandatory. Sets a mint in a wallet object
     /// </summary>
     /// <param name="mintApi">Mint API object.</param>
-    IWalletBuilder WithMint(ICashuApi mintApi);
+    IWalletBuilder WithMint(ICashuApi mintApi, bool canDispose = false);
 
     /// <summary>
     /// Mandatory. Sets a mint in a wallet object (with default CashuHttpClient)

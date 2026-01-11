@@ -269,7 +269,7 @@ internal class ProtectedEndpoints
 internal class ProtectedEndpoint
 {
     public string Method { get; set; } = string.Empty;
-    public System.Text.RegularExpressions.Regex Regex { get; init; }
+    public System.Text.RegularExpressions.Regex Regex { get; set; }
 }
 
 public class WebSocketSupportResult

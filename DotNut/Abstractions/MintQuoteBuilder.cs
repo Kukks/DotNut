@@ -63,6 +63,10 @@ class MintQuoteBuilder : IMintQuoteBuilder
     public IMintQuoteBuilder WithOutputs(List<OutputData> outputs)
     {
         this._outputs = outputs;
+        if (outputs.Any(o => o.BlindedMessage.Id != outputs[0].BlindedMessage.Id))
+        {
+            throw new ArgumentException("Every output must have the same keyset id!");
+        }
         return this;
     }
 

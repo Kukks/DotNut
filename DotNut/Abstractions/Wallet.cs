@@ -14,8 +14,8 @@ public class Wallet : IWalletBuilder
     private MintInfo? _info;
     private IProofSelector? _selector;
     private ICashuApi? _mintApi;
-    private List<GetKeysetsResponse.KeysetItemResponse>? _keysets;
-    private List<GetKeysResponse.KeysetItemResponse>? _keys;
+    private List<GetKeysetsResponse.KeysetItemResponse> _keysets;
+    private List<GetKeysResponse.KeysetItemResponse> _keys;
     private Dictionary<KeysetId, ulong>? _keysetFees =>
         _keysets?.ToDictionary(k => k.Id, k => k.InputFee ?? 0);
     private Mnemonic? _mnemonic;
@@ -28,15 +28,17 @@ public class Wallet : IWalletBuilder
     private DateTime? _lastSync = DateTime.MinValue;
     private TimeSpan? _syncThreshold; // if null sync only once
     private bool _shouldBumpCounter = true;
+    private bool _ownsHttpClient = false;
 
     /*
      * Fluent Builder Methods
      */
     public static IWalletBuilder Create() => new Wallet();
 
-    public IWalletBuilder WithMint(ICashuApi mintApi)
+    public IWalletBuilder WithMint(ICashuApi mintApi, bool canDispose = false)
     {
         _mintApi = mintApi;
+        _ownsHttpClient = canDispose;
         return this;
     }
 
@@ -44,6 +46,7 @@ public class Wallet : IWalletBuilder
     {
         var httpClient = new HttpClient { BaseAddress = new Uri(mintUrl) };
         _mintApi = new CashuHttpClient(httpClient, true);
+        _ownsHttpClient = true;
         return this;
     }
 
@@ -51,6 +54,7 @@ public class Wallet : IWalletBuilder
     {
         var httpClient = new HttpClient { BaseAddress = mintUri };
         _mintApi = new CashuHttpClient(httpClient, true);
+        _ownsHttpClient = true;
         return this;
     }
 
@@ -257,6 +261,12 @@ public class Wallet : IWalletBuilder
             if (keyset != null && _keys != null)
             {
                 _keys.Add(keyset);
+                return keyset;
+            }
+
+            if (keyset != null)
+            {
+                return keyset;
             }
         }
 
@@ -300,7 +310,11 @@ public class Wallet : IWalletBuilder
                 "No Keys found. Make sure to fetch them!"
             );
         }
-        var keyset = this._keys.Single(k => k.Id == id);
+        var keyset = this._keys.SingleOrDefault(k => k.Id == id);
+        if (keyset == null)
+        {
+            throw new ArgumentNullException(nameof(keyset), $"No matching keys for id {id}");
+        }
         if (this._mnemonic == null)
         {
             return Utils.CreateOutputs(amounts, id, keyset.Keys);
@@ -555,6 +569,9 @@ public class Wallet : IWalletBuilder
 
     public void Dispose()
     {
-        _mintApi?.Dispose();
+        if (_ownsHttpClient)
+        {
+            _mintApi?.Dispose();
+        }
     }
 }

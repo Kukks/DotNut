@@ -24,7 +24,7 @@ public class MeltHandlerBolt11(
             htlcPreimage,
             quote.Quote
         );
-        //since nut10 (with p2bk) is processed, now it's safe to strip P2PkE
+        //since nut10 (with p2bk) is aleady processed, now it's safe to strip P2PkE
         proofs.ForEach(i => i.StripFingerprints());
 
         var client = await wallet.GetMintApi(ct);
@@ -44,7 +44,7 @@ public class MeltHandlerBolt11(
         {
             return [];
         }
-
+        
         var keyset = await wallet.GetKeys(res.Change.First().Id, true, false, ct);
         return Utils.ConstructProofsFromPromises(res.Change.ToList(), blankOutputs, keyset.Keys);
     }

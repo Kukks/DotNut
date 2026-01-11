@@ -1,5 +1,4 @@
-﻿using System.Text.Encodings.Web;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using DotNut.JsonConverters;
 
 namespace DotNut;
@@ -52,14 +51,17 @@ public class KeysetId : IEquatable<KeysetId>,IEqualityComparer<KeysetId>
 
     public KeysetId(string Id)
     {
-        // Legacy support for all keyset formats
-        if (Id.Length != 66 && Id.Length != 16 && Id.Length != 12)
+        if (
+            Id.Length != 66 // full length keysetId v2
+            && Id.Length != 16 // keysetId v1 or keysetId v2 short
+            && Id.Length != 12) // old pre-v1 base64 keysetId
         {
             throw new ArgumentException("KeysetId must be 66, 16 or 12 (legacy) characters long");
         }
         _id = Id;
     }
 
+    [Obsolete("KeysetId v2 can't be derived with this function. Use only for keysetId v1")]
     public KeysetId(Keyset keyset)
     {
         _id = keyset.GetKeysetId().ToString();

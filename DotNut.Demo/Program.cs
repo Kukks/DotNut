@@ -436,7 +436,7 @@ class Program
         Console.WriteLine($"   Keyset ID: {keysetId}");
         
         // Derive multiple secrets
-        for (int i = 0; i < 5; i++)
+        for (uint i = 0; i < 5; i++)
         {
             var secret = mnemonic.DeriveSecret(keysetId, counter: i);
             var blindingFactor = mnemonic.DeriveBlindingFactor(keysetId, counter: i);

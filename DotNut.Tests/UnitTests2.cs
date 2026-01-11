@@ -81,20 +81,20 @@ public class UnitTests2
         Assert.NotNull(ctr);
         var testId1 = new KeysetId("00qwertyuiopasdf");
         var ctrNum = await ctr.GetCounterForId(testId1);
-        Assert.Equal(0, ctrNum);
+        Assert.Equal((uint)0, ctrNum);
         
         await ctr.IncrementCounter(testId1);
-        Assert.Equal(0, ctrNum);
+        Assert.Equal((uint)0, ctrNum);
         ctrNum = await ctr.GetCounterForId(testId1);
-        Assert.Equal(1, ctrNum);
+        Assert.Equal((uint)1, ctrNum);
         
         await ctr.IncrementCounter(testId1, 5);
         ctrNum = await ctr.GetCounterForId(testId1);
-        Assert.Equal(6, ctrNum);
+        Assert.Equal((uint)6, ctrNum);
         
         await ctr.SetCounter(testId1, 1337);
         ctrNum = await ctr.GetCounterForId(testId1);
-        Assert.Equal(1337, ctrNum);
+        Assert.Equal((uint)1337, ctrNum);
     }
     
     [Fact]
@@ -590,7 +590,7 @@ public class UnitTests2
         var unknownKeysetId = new KeysetId("00unknown1234567");
         
         var value = await counter.GetCounterForId(unknownKeysetId);
-        Assert.Equal(0, value);
+        Assert.Equal((uint)0, value);
     }
 
     [Fact]
@@ -603,8 +603,8 @@ public class UnitTests2
         await counter.IncrementCounter(keysetId1, 10);
         await counter.IncrementCounter(keysetId2, 20);
         
-        Assert.Equal(10, await counter.GetCounterForId(keysetId1));
-        Assert.Equal(20, await counter.GetCounterForId(keysetId2));
+        Assert.Equal((uint)10, await counter.GetCounterForId(keysetId1));
+        Assert.Equal((uint)20, await counter.GetCounterForId(keysetId2));
     }
 }
 

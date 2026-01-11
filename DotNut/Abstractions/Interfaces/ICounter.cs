@@ -9,8 +9,8 @@ public interface ICounter
     /// <param name="keysetId"></param>
     /// <param name="ct"></param>
     /// <returns></returns>
-    public Task<int> GetCounterForId(KeysetId keysetId, CancellationToken ct = default);
-    public Task<int> IncrementCounter(KeysetId keysetId, int bumpBy = 1, CancellationToken ct = default);
-    public Task SetCounter(KeysetId keysetId, int counter, CancellationToken ct = default);
-    public Task<IReadOnlyDictionary<KeysetId, int>> Export();
+    public Task<uint> GetCounterForId(KeysetId keysetId, CancellationToken ct = default);
+    public Task<uint> IncrementCounter(KeysetId keysetId, uint bumpBy = 1, CancellationToken ct = default);
+    public Task SetCounter(KeysetId keysetId, uint counter, CancellationToken ct = default);
+    public Task<IReadOnlyDictionary<KeysetId, uint>> Export();
 }

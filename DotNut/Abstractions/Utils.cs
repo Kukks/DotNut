@@ -40,7 +40,7 @@ public static class Utils
     /// <param name="keysetId">Active keyset id which will sign outputs</param>
     /// <param name="keys">Keys for given KeysetId</param>
     /// <returns>Blank Outputs</returns>
-    public static List<OutputData> CreateBlankOutputs(ulong amount, KeysetId keysetId, Keyset keys, NBitcoin.BIP39.Mnemonic? mnemonic = null, int? counter = null)
+    public static List<OutputData> CreateBlankOutputs(ulong amount, KeysetId keysetId, Keyset keys, NBitcoin.BIP39.Mnemonic? mnemonic = null, uint? counter = null)
     {
         if (amount == 0)
         {
@@ -88,7 +88,7 @@ public static class Utils
         KeysetId keysetId,
         Keyset keys,
         NBitcoin.BIP39.Mnemonic? mnemonic = null,
-        int? counter = null)
+        uint? counter = null)
     {
         if (amounts.Any(a => !keys.Keys.Contains(a)))
             throw new ArgumentException("Invalid amounts");
@@ -98,14 +98,14 @@ public static class Utils
 
         if (mnemonic is not null && counter is { } c)
         {
-            for (var i = 0; i < amounts.Count; i++)
+            for (uint i = 0; i < amounts.Count; i++)
             {
                 var secret = mnemonic.DeriveSecret(keysetId, c + i);
                 var r = new PrivKey(mnemonic.DeriveBlindingFactor(keysetId, c + i));
                 var B_ = Cashu.ComputeB_(secret.ToCurve(), r);
                 var output = new OutputData
                 {
-                    BlindedMessage = new BlindedMessage { Amount = amounts[i], B_ = B_, Id = keysetId },
+                    BlindedMessage = new BlindedMessage { Amount = amounts[(int)i], B_ = B_, Id = keysetId },
                     BlindingFactor = r,
                     Secret = secret
                 };

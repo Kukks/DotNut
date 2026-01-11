@@ -110,7 +110,7 @@ public interface IWalletBuilder : IDisposable
     /// </summary>
     /// <param name="counter">Counter dictionary</param>
     /// <returns></returns>
-    public IWalletBuilder WithCounter(IDictionary<KeysetId, int> counter);
+    public IWalletBuilder WithCounter(IDictionary<KeysetId, uint> counter);
     
     /// <summary>
     /// Optional and if not set, always true. Controls automatic counter incrementation for secret generation.

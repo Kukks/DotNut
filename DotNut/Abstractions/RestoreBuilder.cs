@@ -8,8 +8,8 @@ public class RestoreBuilder : IRestoreBuilder
 {
     private readonly Wallet _wallet;
     private List<KeysetId>? _specifiedKeysets;
-    private static int BATCH_SIZE = 100;
-    private static int EMPTY_BATCHES_ALLOWED = 3;
+    private static uint BATCH_SIZE = 100;
+    private static uint EMPTY_BATCHES_ALLOWED = 3;
 
     public RestoreBuilder(Wallet wallet)
     {
@@ -48,10 +48,10 @@ public class RestoreBuilder : IRestoreBuilder
         List<Proof> recoveredProofs = new List<Proof>();
         foreach (var keysetId in _specifiedKeysets)
         {
-            int batchNumber = 0;
-            int emptyBatchesRemaining = EMPTY_BATCHES_ALLOWED;
-            int lastUsedCounter = 0;
-            int tempCounter = 0;
+            uint batchNumber = 0;
+            uint emptyBatchesRemaining = EMPTY_BATCHES_ALLOWED;
+            uint lastUsedCounter = 0;
+            uint tempCounter = 0;
             
             // don't care about invalid / non existent source keyset ids. let's fetch what we can
             GetKeysResponse.KeysetItemResponse? keyset;
@@ -72,7 +72,7 @@ public class RestoreBuilder : IRestoreBuilder
             while (emptyBatchesRemaining > 0)
             {
                 // create batch of 100, and request restore for whole batch
-                var outputs = await _createBatch(mnemonic, keysetId, batchNumber, ct);
+                var outputs = await _createBatch(mnemonic, keysetId, (int)batchNumber, ct);
                 var req = new PostRestoreRequest
                 {
                     Outputs = outputs.Select(o=>o.BlindedMessage).ToArray()
@@ -88,7 +88,7 @@ public class RestoreBuilder : IRestoreBuilder
                 }
                 
                 // find last restored index of batch
-                var lastUsedIndexInBatch = outputs.Select((o, i) => new { o, i })
+                uint lastUsedIndexInBatch = (uint)outputs.Select((o, i) => new { o, i })
                     .Where(x => res.Outputs.Any(r => Equals(r.B_, x.o.BlindedMessage.B_)))
                     .MaxBy(x => x.i)!.i;
                 
@@ -180,7 +180,11 @@ public class RestoreBuilder : IRestoreBuilder
 
     private static async Task<List<OutputData>> _createBatch(Mnemonic mnemonic, KeysetId keysetId, int batchNumber, CancellationToken ct)
     {
-        var amounts = Enumerable.Repeat((ulong)0, BATCH_SIZE).ToList();
-        return mnemonic.DeriveOutputs(amounts, keysetId, batchNumber*BATCH_SIZE);
+        if (batchNumber < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(batchNumber));
+        }
+        var amounts = Enumerable.Repeat((ulong)0, (int)BATCH_SIZE).ToList();
+        return mnemonic.DeriveOutputs(amounts, keysetId, (uint)(batchNumber * BATCH_SIZE));
     }
 }

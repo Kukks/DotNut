@@ -115,7 +115,7 @@ public class Wallet : IWalletBuilder
         return this;
     }
 
-    public IWalletBuilder WithCounter(IDictionary<KeysetId, int> counter)
+    public IWalletBuilder WithCounter(IDictionary<KeysetId, uint> counter)
     {
         this._counter = new InMemoryCounter(counter);
         return this;
@@ -294,10 +294,12 @@ public class Wallet : IWalletBuilder
         }
 
         var counterValue = await this._counter.GetCounterForId(id, ct);
-        if (_shouldBumpCounter)
+        if (!_shouldBumpCounter)
         {
-            await this._counter.IncrementCounter(id, amounts.Count, ct);
+            return Utils.CreateOutputs(amounts, id, keyset.Keys, this._mnemonic, counterValue);
         }
+        
+        await this._counter.IncrementCounter(id, (uint)amounts.Count, ct);
         return Utils.CreateOutputs(amounts, id, keyset.Keys, this._mnemonic, counterValue);
     }
    

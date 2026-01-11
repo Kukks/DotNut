@@ -120,7 +120,7 @@ public class Integration
         var keysetId = mintedProofs.First().Id;
         var currentCounter = await counter.GetCounterForId(keysetId);
         // counter is bumped after every use, so its already one more
-        Assert.Equal(currentCounter, mintedProofs.Count);
+        Assert.Equal(currentCounter, (uint)mintedProofs.Count);
     }
     
     [Fact]

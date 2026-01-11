@@ -5,7 +5,10 @@ namespace DotNut.Abstractions.Websockets;
 
 public static class NotificationParser
 {
-    public static object? ParsePayload(WsNotification notification, SubscriptionKind subscriptionKind)
+    public static object? ParsePayload(
+        WsNotification notification,
+        SubscriptionKind subscriptionKind
+    )
     {
         if (notification.Params.Payload == null)
             return null;
@@ -14,14 +17,17 @@ public static class NotificationParser
 
         return subscriptionKind switch
         {
-            SubscriptionKind.bolt11_mint_quote => jsonElement.Deserialize<PostMintQuoteBolt11Response>(),
-            SubscriptionKind.bolt11_melt_quote => jsonElement.Deserialize<PostMeltQuoteBolt11Response>(),
+            SubscriptionKind.bolt11_mint_quote =>
+                jsonElement.Deserialize<PostMintQuoteBolt11Response>(),
+            SubscriptionKind.bolt11_melt_quote =>
+                jsonElement.Deserialize<PostMeltQuoteBolt11Response>(),
             SubscriptionKind.proof_state => jsonElement.Deserialize<PostCheckStateResponse>(),
-            _ => notification.Params.Payload
+            _ => notification.Params.Payload,
         };
     }
 
-    public static T? ParsePayload<T>(WsNotification notification) where T : class
+    public static T? ParsePayload<T>(WsNotification notification)
+        where T : class
     {
         if (notification.Params.Payload == null)
             return null;
@@ -30,7 +36,8 @@ public static class NotificationParser
         return jsonElement.Deserialize<T>();
     }
 
-    public static bool IsPayloadOfType<T>(WsNotification notification) where T : class
+    public static bool IsPayloadOfType<T>(WsNotification notification)
+        where T : class
     {
         try
         {

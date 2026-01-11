@@ -10,6 +10,7 @@ public class StringSecret : ISecret
     }
 
     public string Secret { get; init; }
+
     public byte[] GetBytes()
     {
         return System.Text.Encoding.UTF8.GetBytes(Secret);

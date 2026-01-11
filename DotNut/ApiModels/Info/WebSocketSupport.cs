@@ -6,8 +6,10 @@ public class WebSocketSupport
 {
     [JsonPropertyName("method")]
     public string Method { get; set; }
+
     [JsonPropertyName("unit")]
-    public string Unit {get; set;}
+    public string Unit { get; set; }
+
     [JsonPropertyName("commands")]
     public string[] Commands { get; set; }
 }

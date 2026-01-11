@@ -11,29 +11,31 @@ public static class Nut10Helper
         List<OutputData>? outputs = null,
         string? htlcPreimage = null,
         string? meltQuoteId = null
-        )
+    )
     {
         if (privKeys.Count == 0 || proofs.Count == 0)
         {
             return;
         }
-        
+
         outputs ??= [];
         var sigAllHandler = new SigAllHandler
         {
             Proofs = proofs,
             PrivKeys = privKeys,
-            BlindedMessages = outputs.Select(o=>o.BlindedMessage).ToList(),
+            BlindedMessages = outputs.Select(o => o.BlindedMessage).ToList(),
             HTLCPreimage = htlcPreimage,
-            MeltQuoteId = meltQuoteId
+            MeltQuoteId = meltQuoteId,
         };
-        
+
         if (sigAllHandler.TrySign(out string? witness))
         {
             if (witness == null)
             {
-                throw new ArgumentNullException(nameof(witness),
-                    "sig_all input was correct, but couldn't create a witness signature!");
+                throw new ArgumentNullException(
+                    nameof(witness),
+                    "sig_all input was correct, but couldn't create a witness signature!"
+                );
             }
 
             proofs[0].Witness = witness;
@@ -52,8 +54,8 @@ public static class Nut10Helper
     {
         if (proof.Secret is Nut10Secret { ProofSecret: HTLCProofSecret htlc })
         {
-            // preimage isn't verified after timelock 
-            var preimage = htlcPreimage??""; 
+            // preimage isn't verified after timelock
+            var preimage = htlcPreimage ?? "";
             if (proof.P2PkE is { } E)
             {
                 var blindwitness = htlc.GenerateBlindWitness(proof, keys, preimage);

@@ -10,7 +10,9 @@ public class NostrNip17PaymentRequestInterfaceHandler : PaymentRequestInterfaceH
 {
     public static void Register()
     {
-        PaymentRequestTransportInitiator.Handlers.Add(new NostrNip17PaymentRequestInterfaceHandler());
+        PaymentRequestTransportInitiator.Handlers.Add(
+            new NostrNip17PaymentRequestInterfaceHandler()
+        );
     }
 
     public bool CanHandle(PaymentRequest request)
@@ -18,13 +20,15 @@ public class NostrNip17PaymentRequestInterfaceHandler : PaymentRequestInterfaceH
         return request.Transports.Any(t =>
             t.Type == "nostr" &&
             t.Tags?.Any(tag => tag.Key == "n" && tag.Value.Any(v => v == "17")) == true);
-
     }
 
-    public async Task SendPayment(PaymentRequest request, PaymentRequestPayload payload,
-        CancellationToken cancellationToken = default)
-    { 
-        var nostrTransport = request.Transports.FirstOrDefault(t => 
+    public async Task SendPayment(
+        PaymentRequest request,
+        PaymentRequestPayload payload,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var nostrTransport = request.Transports.FirstOrDefault(t =>
             t.Type == "nostr" &&
             t.Tags?.Any(tag => tag.Key == "n" && tag.Value.Any(v => v == "17")) == true);
         if (nostrTransport is null)
@@ -32,8 +36,7 @@ public class NostrNip17PaymentRequestInterfaceHandler : PaymentRequestInterfaceH
             throw new InvalidOperationException("No NIP17 nostr transport found.");
         }
         var nprofileStr = nostrTransport.Target;
-        
-        var nprofile = (NIP19.NosteProfileNote) NIP19.FromNIP19Note(nprofileStr);
+        var nprofile = (NIP19.NosteProfileNote)NIP19.FromNIP19Note(nprofileStr);
         using var client = new CompositeNostrClient(nprofile.Relays.Select(r => new Uri(r)).ToArray());
         await client.Connect(cancellationToken);
         var ephemeralKey = ECPrivKey.Create(RandomNumberGenerator.GetBytes(32));
@@ -46,9 +49,13 @@ public class NostrNip17PaymentRequestInterfaceHandler : PaymentRequestInterfaceH
             Tags = new(),
         };
         msg.Id = msg.ComputeId();
-        
-        var giftWrap = await NIP17.Create(msg, ephemeralKey,ECXOnlyPubKey.Create(Convert.FromHexString(nprofile.PubKey)), null);
-        await client.SendEventsAndWaitUntilReceived(new []{giftWrap}, cancellationToken);
 
+        var giftWrap = await NIP17.Create(
+            msg,
+            ephemeralKey,
+            ECXOnlyPubKey.Create(Convert.FromHexString(nprofile.PubKey)),
+            null
+        );
+        await client.SendEventsAndWaitUntilReceived(new[] { giftWrap }, cancellationToken);
     }
 }

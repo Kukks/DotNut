@@ -13,10 +13,10 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
     private string _unit = "sat";
 
     private ulong? _amount;
-    
+
     private List<PrivKey>? _privKeys;
     private string? _htlcPreimage;
-    
+
     public MeltQuoteBuilder(Wallet wallet)
     {
         _wallet = wallet;
@@ -27,19 +27,18 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         this._invoice = invoice;
         return this;
     }
-    
+
     public IMeltQuoteBuilder WithUnit(string unit)
     {
         this._unit = unit;
         return this;
     }
-    
+
     public IMeltQuoteBuilder WithBlankOutputs(List<OutputData> blankOutputs)
     {
         this._blankOutputs = blankOutputs;
         return this;
     }
-    
 
     // when proofs were p2pk
     public IMeltQuoteBuilder WithPrivKeys(IEnumerable<PrivKey> privKeys)
@@ -60,33 +59,29 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         return this;
     }
 
-    public async Task<IMeltHandler<PostMeltQuoteBolt11Response, List<Proof>>> ProcessAsyncBolt11(CancellationToken ct = default)
+    public async Task<IMeltHandler<PostMeltQuoteBolt11Response, List<Proof>>> ProcessAsyncBolt11(
+        CancellationToken ct = default
+    )
     {
         var mintApi = await _wallet.GetMintApi(ct);
         await _wallet._maybeSyncKeys(ct);
         ArgumentNullException.ThrowIfNull(this._invoice);
-        
-        var req = new PostMeltQuoteBolt11Request
-        {
-            Request = this._invoice,
-            Unit = this._unit,
-        };
+
+        var req = new PostMeltQuoteBolt11Request { Request = this._invoice, Unit = this._unit };
 
         if (this._amount != null)
         {
             req.Options = new MeltQuoteRequestOptions
             {
-                Amountless = new AmountlessMeltQuoteOptions
-                {
-                    AmountMsat = this._amount.Value,
-                }
+                Amountless = new AmountlessMeltQuoteOptions { AmountMsat = this._amount.Value },
             };
         }
 
-        var quote =
-            await mintApi.CreateMeltQuote<PostMeltQuoteBolt11Response, PostMeltQuoteBolt11Request>("bolt11", req, ct);
-        
-        
+        var quote = await mintApi.CreateMeltQuote<
+            PostMeltQuoteBolt11Response,
+            PostMeltQuoteBolt11Request
+        >("bolt11", req, ct);
+
         if (_blankOutputs == null)
         {
             var outputsAmount = Utils.CalculateNumberOfBlankOutputs((ulong)quote.FeeReserve);
@@ -95,35 +90,30 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         }
         return new MeltHandlerBolt11(_wallet, quote, _blankOutputs, _privKeys, _htlcPreimage);
     }
-    
+
     public async Task<IMeltHandler<PostMeltQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(
-        CancellationToken ct = default)
+        CancellationToken ct = default
+    )
     {
         var mintApi = await _wallet.GetMintApi(ct);
         await _wallet._maybeSyncKeys(ct);
         ArgumentNullException.ThrowIfNull(this._invoice);
 
-        var req = new PostMeltQuoteBolt12Request()
-        {
-            Request = this._invoice,
-            Unit = this._unit,
-        };
-        
+        var req = new PostMeltQuoteBolt12Request() { Request = this._invoice, Unit = this._unit };
+
         if (this._amount != null)
         {
             req.Options = new MeltQuoteRequestOptions
             {
-                Amountless = new AmountlessMeltQuoteOptions
-                {
-                    AmountMsat = this._amount.Value,
-                }
+                Amountless = new AmountlessMeltQuoteOptions { AmountMsat = this._amount.Value },
             };
         }
-        
-        var quote =
-            await mintApi.CreateMeltQuote<PostMeltQuoteBolt12Response, PostMeltQuoteBolt12Request>("bolt12", req, ct);
-        
-        
+
+        var quote = await mintApi.CreateMeltQuote<
+            PostMeltQuoteBolt12Response,
+            PostMeltQuoteBolt12Request
+        >("bolt12", req, ct);
+
         if (_blankOutputs == null)
         {
             var outputsAmount = Utils.CalculateNumberOfBlankOutputs((ulong)quote.FeeReserve);
@@ -133,4 +123,3 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         return new MeltHandlerBolt12(_wallet, quote, _blankOutputs, _privKeys, _htlcPreimage);
     }
 }
-

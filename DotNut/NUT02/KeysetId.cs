@@ -4,14 +4,18 @@ using DotNut.JsonConverters;
 namespace DotNut;
 
 [JsonConverter(typeof(KeysetIdJsonConverter))]
-public class KeysetId : IEquatable<KeysetId>,IEqualityComparer<KeysetId>
+public class KeysetId : IEquatable<KeysetId>, IEqualityComparer<KeysetId>
 {
     public bool Equals(KeysetId? x, KeysetId? y)
     {
-        if (ReferenceEquals(x, y)) return true;
-        if (ReferenceEquals(x, null)) return false;
-        if (ReferenceEquals(y, null)) return false;
-        if (x.GetType() != y.GetType()) return false;
+        if (ReferenceEquals(x, y))
+            return true;
+        if (ReferenceEquals(x, null))
+            return false;
+        if (ReferenceEquals(y, null))
+            return false;
+        if (x.GetType() != y.GetType())
+            return false;
         return string.Equals(x._id, y._id, StringComparison.InvariantCultureIgnoreCase);
     }
 
@@ -27,7 +31,6 @@ public class KeysetId : IEquatable<KeysetId>,IEqualityComparer<KeysetId>
 
     public override bool Equals(object? obj)
     {
-        
         return Equals(this, obj as KeysetId);
     }
 
@@ -38,14 +41,15 @@ public class KeysetId : IEquatable<KeysetId>,IEqualityComparer<KeysetId>
 
     public static bool operator ==(KeysetId? left, KeysetId? right)
     {
-        return (left is null && right is null) || left?.Equals(right) is true || right?.Equals(left) is true;
+        return (left is null && right is null)
+            || left?.Equals(right) is true
+            || right?.Equals(left) is true;
     }
 
     public static bool operator !=(KeysetId? left, KeysetId? right)
     {
         return !(left == right);
     }
-    
 
     private readonly string _id;
 
@@ -54,7 +58,8 @@ public class KeysetId : IEquatable<KeysetId>,IEqualityComparer<KeysetId>
         if (
             Id.Length != 66 // full length keysetId v2
             && Id.Length != 16 // keysetId v1 or keysetId v2 short
-            && Id.Length != 12) // old pre-v1 base64 keysetId
+            && Id.Length != 12
+        ) // old pre-v1 base64 keysetId
         {
             throw new ArgumentException("KeysetId must be 66, 16 or 12 (legacy) characters long");
         }

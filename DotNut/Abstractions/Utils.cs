@@ -32,7 +32,7 @@ public static class Utils
 
         return outputAmounts;
     }
-    
+
     /// <summary>
     /// Creates blank outputs (see nut-08)
     /// </summary>
@@ -40,7 +40,13 @@ public static class Utils
     /// <param name="keysetId">Active keyset id which will sign outputs</param>
     /// <param name="keys">Keys for given KeysetId</param>
     /// <returns>Blank Outputs</returns>
-    public static List<OutputData> CreateBlankOutputs(ulong amount, KeysetId keysetId, Keyset keys, NBitcoin.BIP39.Mnemonic? mnemonic = null, uint? counter = null)
+    public static List<OutputData> CreateBlankOutputs(
+        ulong amount,
+        KeysetId keysetId,
+        Keyset keys,
+        NBitcoin.BIP39.Mnemonic? mnemonic = null,
+        uint? counter = null
+    )
     {
         if (amount == 0)
         {
@@ -53,7 +59,7 @@ public static class Utils
         var amounts = Enumerable.Repeat((ulong)1, count).ToList();
         return CreateOutputs(amounts, keysetId, keys, mnemonic, counter);
     }
-    
+
     /// <summary>
     /// Calculates amount of blank outputs needed by mint to return overpaid fees
     /// </summary>
@@ -66,17 +72,11 @@ public static class Utils
             return 0;
         }
 
-        return Math.Max(
-            Convert.ToInt32(
-                Math.Ceiling(
-                    Math.Log2(amountToCover)
-                )
-            ), 1);
+        return Math.Max(Convert.ToInt32(Math.Ceiling(Math.Log2(amountToCover))), 1);
     }
-    
-    
+
     /// <summary>
-    /// Creates outputs (secrets, proof messages and blinding factors). Outputs should have valid amounts. 
+    /// Creates outputs (secrets, proof messages and blinding factors). Outputs should have valid amounts.
     /// </summary>
     /// <param name="amounts">Amounts for each output (e.g. [1,2,4,8]</param>
     /// <param name="keysetId">ID of keyset we want to receive the proofs</param>
@@ -88,13 +88,13 @@ public static class Utils
         KeysetId keysetId,
         Keyset keys,
         NBitcoin.BIP39.Mnemonic? mnemonic = null,
-        uint? counter = null)
+        uint? counter = null
+    )
     {
         if (amounts.Any(a => !keys.Keys.Contains(a)))
             throw new ArgumentException("Invalid amounts");
 
         var outputs = new List<OutputData>(amounts.Count);
-        
 
         if (mnemonic is not null && counter is { } c)
         {
@@ -105,15 +105,20 @@ public static class Utils
                 var B_ = Cashu.ComputeB_(secret.ToCurve(), r);
                 var output = new OutputData
                 {
-                    BlindedMessage = new BlindedMessage { Amount = amounts[(int)i], B_ = B_, Id = keysetId },
+                    BlindedMessage = new BlindedMessage
+                    {
+                        Amount = amounts[(int)i],
+                        B_ = B_,
+                        Id = keysetId,
+                    },
                     BlindingFactor = r,
-                    Secret = secret
+                    Secret = secret,
                 };
                 outputs.Add(output);
             }
             return outputs;
         }
-        
+
         foreach (var amount in amounts)
         {
             var secret = RandomSecret();
@@ -121,16 +126,20 @@ public static class Utils
             var B_ = Cashu.ComputeB_(secret.ToCurve(), r);
             var output = new OutputData
             {
-                BlindedMessage = new BlindedMessage { Amount = amount, B_ = B_, Id = keysetId },
+                BlindedMessage = new BlindedMessage
+                {
+                    Amount = amount,
+                    B_ = B_,
+                    Id = keysetId,
+                },
                 BlindingFactor = r,
-                Secret = secret
+                Secret = secret,
             };
             outputs.Add(output);
         }
         return outputs;
     }
 
-    
     /// <summary>
     /// Create P2Pk / HTLC outputs.
     /// </summary>
@@ -138,11 +147,7 @@ public static class Utils
     /// <param name="keysetId"></param>
     /// <param name="builder"></param>
     /// <returns></returns>
-    public static OutputData CreateNut10Output(
-        ulong amount,
-        KeysetId keysetId,
-        P2PkBuilder builder
-    )
+    public static OutputData CreateNut10Output(ulong amount, KeysetId keysetId, P2PkBuilder builder)
     {
         // ugliest hack ever
         Nut10Secret secret;
@@ -159,11 +164,17 @@ public static class Utils
         var B_ = Cashu.ComputeB_(secret.ToCurve(), r);
         return new OutputData
         {
-            BlindedMessage = new BlindedMessage() { Amount = amount, B_ = B_, Id = keysetId },
+            BlindedMessage = new BlindedMessage()
+            {
+                Amount = amount,
+                B_ = B_,
+                Id = keysetId,
+            },
             BlindingFactor = r,
-            Secret = secret
+            Secret = secret,
         };
     }
+
     /// <summary>
     /// Creates P2Pk / HTLC Blinded Outputs
     /// </summary>
@@ -171,7 +182,11 @@ public static class Utils
     /// <param name="keysetId"></param>
     /// <param name="builder"></param>
     /// <returns></returns>
-    public static OutputData CreateNut10BlindedOutput(ulong amount, KeysetId keysetId, P2PkBuilder builder)
+    public static OutputData CreateNut10BlindedOutput(
+        ulong amount,
+        KeysetId keysetId,
+        P2PkBuilder builder
+    )
     {
         // ugliest hack ever
         Nut10Secret secret;
@@ -191,20 +206,31 @@ public static class Utils
         var B_ = Cashu.ComputeB_(secret.ToCurve(), r);
         return new OutputData
         {
-            BlindedMessage = new BlindedMessage() { Amount = amount, B_ = B_, Id = keysetId },
+            BlindedMessage = new BlindedMessage()
+            {
+                Amount = amount,
+                B_ = B_,
+                Id = keysetId,
+            },
             BlindingFactor = r,
             Secret = secret,
-            P2BkE = E
+            P2BkE = E,
         };
     }
+
     /// <summary>
-    /// Creates P2Pk / HTLC Blinded Outputs with specified ephemeral sender keypair. 
+    /// Creates P2Pk / HTLC Blinded Outputs with specified ephemeral sender keypair.
     /// </summary>
     /// <param name="amount"></param>
     /// <param name="keysetId"></param>
     /// <param name="builder"></param>
     /// <returns></returns>
-    public static OutputData CreateNut10BlindedOutput(ulong amount, KeysetId keysetId, P2PkBuilder builder, PrivKey e)
+    public static OutputData CreateNut10BlindedOutput(
+        ulong amount,
+        KeysetId keysetId,
+        P2PkBuilder builder,
+        PrivKey e
+    )
     {
         // ugliest hack ever
         Nut10Secret secret;
@@ -221,13 +247,18 @@ public static class Utils
         var B_ = Cashu.ComputeB_(secret.ToCurve(), r);
         return new OutputData
         {
-            BlindedMessage = new BlindedMessage() { Amount = amount, B_ = B_, Id = keysetId },
+            BlindedMessage = new BlindedMessage()
+            {
+                Amount = amount,
+                B_ = B_,
+                Id = keysetId,
+            },
             BlindingFactor = r,
             Secret = secret,
-            P2BkE = e.Key.CreatePubKey()
+            P2BkE = e.Key.CreatePubKey(),
         };
     }
-    
+
     /// <summary>
     ///  Method creating proofs, from provided promises (blinded signatures)
     /// </summary>
@@ -241,33 +272,33 @@ public static class Utils
         PrivKey r,
         ISecret secret,
         PubKey amountPubkey,
-        PubKey? P2PkE = null)
+        PubKey? P2PkE = null
+    )
     {
-
         //unblind signature
         var C = Cashu.ComputeC(promise.C_, r, amountPubkey);
 
         DLEQProof? dleq = null;
-        
+
         var proof = new Proof
         {
             Id = promise.Id,
             Amount = promise.Amount,
             Secret = secret,
             C = C,
-            P2PkE = P2PkE
+            P2PkE = P2PkE,
         };
 
         if (promise.DLEQ is null)
         {
             return proof;
         }
-        
+
         proof.DLEQ = new DLEQProof
         {
             E = promise.DLEQ.E,
             S = promise.DLEQ.S,
-            R = r.Key.Clone()
+            R = r.Key.Clone(),
         };
         if (!proof.Verify(amountPubkey))
         {
@@ -280,14 +311,16 @@ public static class Utils
         List<BlindSignature> promises,
         List<OutputData> outputs,
         Keyset keys
-        )
+    )
     {
         List<Proof> proofs = new List<Proof>();
         for (int i = 0; i < promises.Count; i++)
         {
             if (!keys.TryGetValue(promises[i].Amount, out var key))
             {
-                throw new ArgumentException($"Provided keyset doesn't contain PubKey for amount {promises[i].Amount}" );
+                throw new ArgumentException(
+                    $"Provided keyset doesn't contain PubKey for amount {promises[i].Amount}"
+                );
             }
 
             var proof = ConstructProofFromPromise(
@@ -306,7 +339,7 @@ public static class Utils
     {
         return proofs.Aggregate(0UL, (current, proof) => current + proof.Amount);
     }
-    
+
     public static ISecret RandomSecret()
     {
         var bytes = RandomNumberGenerator.GetBytes(32);
@@ -332,27 +365,27 @@ public static class Utils
         }
         proof.P2PkE = null;
     }
-    
+
     /// <summary>
     /// Create deep copy of the object, so original one won't get mutated by reference.
     /// </summary>
     /// <param name="obj">Object to clone</param>
     /// <typeparam name="T">Object type</typeparam>
     /// <returns>Deep copy of the object</returns>
-    public static T DeepCopy<T>(this T obj) where T : class
+    public static T DeepCopy<T>(this T obj)
+        where T : class
     {
-        return JsonSerializer.Deserialize<T>(
-            JsonSerializer.Serialize(obj)
-        )!;
+        return JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(obj))!;
     }
-    
+
     /// <summary>
     /// Create deep copy of the list
     /// </summary>
     /// <param name="list"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
-    public static List<T> DeepCopyList<T>(this IEnumerable<T> list) where T : class
+    public static List<T> DeepCopyList<T>(this IEnumerable<T> list)
+        where T : class
     {
         return list.Select(item => item.DeepCopy()).ToList();
     }

@@ -4,8 +4,10 @@ namespace DotNut;
 
 public static class FeeHelper
 {
-
-    public static ulong ComputeFee(this IEnumerable<Proof> proofsToSpend, Dictionary<KeysetId, ulong> keysetFees)
+    public static ulong ComputeFee(
+        this IEnumerable<Proof> proofsToSpend,
+        Dictionary<KeysetId, ulong> keysetFees
+    )
     {
         ulong sum = 0;
         foreach (var proof in proofsToSpend)
@@ -24,5 +26,4 @@ public static class FeeHelper
         ArgumentNullException.ThrowIfNull(values);
         return values.Aggregate<ulong, ulong>(0, (current, v) => current + v);
     }
-
 }

@@ -5,8 +5,12 @@ namespace DotNut;
 
 public static class MintQuoteSigner
 {
-    public static string SignMintQuote(this PrivKey pk, string quote, List<BlindedMessage> blindedMessages)
-    { 
+    public static string SignMintQuote(
+        this PrivKey pk,
+        string quote,
+        List<BlindedMessage> blindedMessages
+    )
+    {
         var sb = new StringBuilder();
         sb.Append(quote);
         foreach (var blindedMessage in blindedMessages)
@@ -14,7 +18,7 @@ public static class MintQuoteSigner
             sb.Append(blindedMessage.B_);
         }
         var bytes = Encoding.UTF8.GetBytes(sb.ToString());
-        var hash = SHA256.HashData(bytes); 
+        var hash = SHA256.HashData(bytes);
         return pk.Key.SignBIP340(hash).ToHex();
     }
 }

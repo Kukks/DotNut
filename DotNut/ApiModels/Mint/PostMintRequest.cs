@@ -9,7 +9,7 @@ public class PostMintRequest
 
     [JsonPropertyName("outputs")]
     public BlindedMessage[] Outputs { get; set; }
-    
+
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("signature")]
     public string? Signature { get; set; }

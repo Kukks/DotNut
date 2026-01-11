@@ -8,15 +8,12 @@ namespace DotNut.NUT13;
 
 public class BIP32 : IHdKeyAlgo
 {
-    
     public static readonly IHdKeyAlgo Instance = new BIP32();
     private static readonly byte[] CurveBytes = "Bitcoin seed"u8.ToArray();
 
     private static readonly BigInteger N = Cashu.N;
 
-    private BIP32()
-    {
-    }
+    private BIP32() { }
 
     public HdKey GetMasterKeyFromSeed(ReadOnlySpan<byte> seed)
     {
@@ -26,7 +23,8 @@ public class BIP32 : IHdKeyAlgo
             HMACSHA512.HashData(CurveBytes, seedCopy, seedCopy);
             var key = seedCopy[..32];
             var keyInt = new BigInteger(key, true, true);
-            if (keyInt > N || keyInt.IsZero) continue;
+            if (keyInt > N || keyInt.IsZero)
+                continue;
             return new HdKey(key, seedCopy[32..]);
         }
     }
@@ -36,15 +34,15 @@ public class BIP32 : IHdKeyAlgo
         Span<byte> hash = index.Hardened
             ? IHdKeyAlgo.Bip32Hash(parent.ChainCode, index, 0x00, parent.PrivateKey)
             : IHdKeyAlgo.Bip32Hash(parent.ChainCode, index, GetPublic(parent.PrivateKey));
-        
-        var parentKey = new BigInteger (parent.PrivateKey, true, true);
+
+        var parentKey = new BigInteger(parent.PrivateKey, true, true);
 
         while (true)
         {
             var key = hash[..32];
             var cc = hash[32..];
             key.Reverse();
-            var keyInt = new BigInteger (key, true);
+            var keyInt = new BigInteger(key, true);
             var res = BigInteger.Add(keyInt, parentKey) % N;
 
             if (keyInt > N || res.IsZero)
@@ -66,6 +64,6 @@ public class BIP32 : IHdKeyAlgo
 
     public byte[] GetPublic(ReadOnlySpan<byte> privateKey)
     {
-        return  ECPrivKey.Create(privateKey).CreatePubKey().ToBytes();
+        return ECPrivKey.Create(privateKey).CreatePubKey().ToBytes();
     }
 }

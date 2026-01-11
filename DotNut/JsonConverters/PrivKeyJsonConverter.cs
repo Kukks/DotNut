@@ -5,16 +5,22 @@ namespace DotNut.JsonConverters;
 
 public class PrivKeyJsonConverter : JsonConverter<PrivKey>
 {
-    public override PrivKey? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override PrivKey? Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
     {
         if (reader.TokenType == JsonTokenType.Null)
         {
             return null;
         }
 
-        if (reader.TokenType != JsonTokenType.String ||
-            reader.GetString() is not { } str ||
-            string.IsNullOrEmpty(str))
+        if (
+            reader.TokenType != JsonTokenType.String
+            || reader.GetString() is not { } str
+            || string.IsNullOrEmpty(str)
+        )
         {
             throw new JsonException("Expected string");
         }

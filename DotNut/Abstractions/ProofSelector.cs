@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace DotNut.Abstractions;
 
-// Borrowed from cashu-ts 
+// Borrowed from cashu-ts
 // see https://github.com/cashubtc/cashu-ts/pull/314
 public class ProofSelector : IProofSelector
 {
@@ -54,7 +54,12 @@ public class ProofSelector : IProofSelector
         return _keysetFees.TryGetValue(proof.Id, out var fee) ? fee : 0;
     }
 
-    public async Task<SendResponse> SelectProofsToSend(List<Proof> proofs, ulong amountToSend, bool includeFees = false, CancellationToken ct = default)
+    public async Task<SendResponse> SelectProofsToSend(
+        List<Proof> proofs,
+        ulong amountToSend,
+        bool includeFees = false,
+        CancellationToken ct = default
+    )
     {
         // Init vars
         const int MAX_TRIALS = 60; // 40-80 is optimal (per RGLI paper)
@@ -63,7 +68,7 @@ public class ProofSelector : IProofSelector
         const long MAX_TIMEMS = 1000; // Halt new trials if over time (in ms)
         const int MAX_P2SWAP = 5000; // Max number of Phase 2 improvement swaps
         const bool exactMatch = false; // Allows close match (> amountToSend + fee)
-        
+
         var timer = new Timer(); // start the clock
         List<ProofWithFee>? bestSubset = null;
         double bestDelta = double.PositiveInfinity;
@@ -73,7 +78,7 @@ public class ProofSelector : IProofSelector
         /*
          * Helper Functions.
          */
-        
+
         // Calculate net amount after fees
         double SumExFees(ulong amount, ulong feePPK)
         {
@@ -97,27 +102,28 @@ public class ProofSelector : IProofSelector
         // If lessOrEqual=false, returns the leftmost index where exFee >= value
         int? BinarySearchIndex(List<ProofWithFee> arr, double value, bool lessOrEqual)
         {
-            int left = 0, right = arr.Count - 1;
+            int left = 0,
+                right = arr.Count - 1;
             int? result = null;
-            
+
             while (left <= right)
             {
                 int mid = (left + right) / 2;
                 double midValue = arr[mid].ExFee;
-                
+
                 if (lessOrEqual ? midValue <= value : midValue >= value)
                 {
                     result = mid;
-                    if (lessOrEqual) 
+                    if (lessOrEqual)
                         left = mid + 1;
-                    else 
+                    else
                         right = mid - 1;
                 }
                 else
                 {
-                    if (lessOrEqual) 
+                    if (lessOrEqual)
                         right = mid - 1;
-                    else 
+                    else
                         left = mid + 1;
                 }
             }
@@ -128,14 +134,15 @@ public class ProofSelector : IProofSelector
         void InsertSorted(List<ProofWithFee> arr, ProofWithFee obj)
         {
             double value = obj.ExFee;
-            int left = 0, right = arr.Count;
-            
+            int left = 0,
+                right = arr.Count;
+
             while (left < right)
             {
                 int mid = (left + right) / 2;
-                if (arr[mid].ExFee < value) 
+                if (arr[mid].ExFee < value)
                     left = mid + 1;
-                else 
+                else
                     right = mid;
             }
             arr.Insert(left, obj);
@@ -147,7 +154,7 @@ public class ProofSelector : IProofSelector
         double CalculateDelta(ulong amount, ulong feePPK)
         {
             double netSum = SumExFees(amount, feePPK);
-            if (netSum < amountToSend) 
+            if (netSum < amountToSend)
                 return double.PositiveInfinity; // no good
             return amount + feePPK / 1000.0 - amountToSend;
         }
@@ -157,20 +164,22 @@ public class ProofSelector : IProofSelector
          */
         ulong totalAmount = 0;
         ulong totalFeePPK = 0;
-        var proofWithFees = proofs.Select(p =>
-        {
-            ulong ppkfee = GetProofFeePPK(p);
-            double exFee = includeFees ? p.Amount - ppkfee / 1000.0 : p.Amount;
-            var obj = new ProofWithFee(p, exFee, ppkfee);
-            
-            // Sum all economical proofs (filtered below)
-            if (!includeFees || exFee > 0)
+        var proofWithFees = proofs
+            .Select(p =>
             {
-                totalAmount += p.Amount;
-                totalFeePPK += ppkfee;
-            }
-            return obj;
-        }).ToList();
+                ulong ppkfee = GetProofFeePPK(p);
+                double exFee = includeFees ? p.Amount - ppkfee / 1000.0 : p.Amount;
+                var obj = new ProofWithFee(p, exFee, ppkfee);
+
+                // Sum all economical proofs (filtered below)
+                if (!includeFees || exFee > 0)
+                {
+                    totalAmount += p.Amount;
+                    totalFeePPK += ppkfee;
+                }
+                return obj;
+            })
+            .ToList();
 
         // Filter uneconomical proofs (totals computed above)
         var spendableProofs = includeFees
@@ -200,7 +209,9 @@ public class ProofSelector : IProofSelector
                     var rightIndex = BinarySearchIndex(spendableProofs, nextBiggerExFee, true);
                     if (rightIndex == null)
                     {
-                        throw new InvalidOperationException("Unexpected null rightIndex in binary search");
+                        throw new InvalidOperationException(
+                            "Unexpected null rightIndex in binary search"
+                        );
                     }
                     endIndex = rightIndex.Value + 1;
                 }
@@ -230,7 +241,8 @@ public class ProofSelector : IProofSelector
         // Max acceptable amount for non-exact matches
         double maxOverAmount = Math.Min(
             Math.Ceiling(amountToSend * (1 + MAX_OVRPCT / 100)),
-            Math.Min(amountToSend + MAX_OVRAMT, totalNetSum));
+            Math.Min(amountToSend + MAX_OVRAMT, totalNetSum)
+        );
 
         /*
          * RGLI algorithm: Runs multiple trials (up to MAX_TRIALS) Each trial starts with randomized
@@ -247,21 +259,21 @@ public class ProofSelector : IProofSelector
             var S = new List<ProofWithFee>();
             ulong amount = 0;
             ulong feePPK = 0;
-            
+
             foreach (var obj in ShuffleArray(spendableProofs))
             {
                 ulong newAmount = amount + obj.Proof.Amount;
                 ulong newFeePPK = feePPK + obj.PpkFee;
                 double netSum = SumExFees(newAmount, newFeePPK);
-                
-                if (exactMatch && netSum > amountToSend) 
+
+                if (exactMatch && netSum > amountToSend)
                     break;
-                    
+
                 S.Add(obj);
                 amount = newAmount;
                 feePPK = newFeePPK;
-                
-                if (netSum >= amountToSend) 
+
+                if (netSum >= amountToSend)
                     break;
             }
 
@@ -275,16 +287,18 @@ public class ProofSelector : IProofSelector
             // Using array.Contains() would be way slower: O(n*m)
             var selectedCs = S.Select(pwf => pwf.Proof.C).ToHashSet();
             var others = spendableProofs.Where(obj => !selectedCs.Contains(obj.Proof.C)).ToList();
-            
+
             // Generate a random order for accessing the trial subset ('S')
             var indices = ShuffleArray(Enumerable.Range(0, S.Count)).Take(MAX_P2SWAP).ToList();
-            
+
             foreach (int i in indices)
             {
                 // Exact or acceptable close match solution found?
                 double netSum = SumExFees(amount, feePPK);
-                if (Math.Abs(netSum - amountToSend) < 0.0001 ||
-                    (!exactMatch && netSum >= amountToSend && netSum <= maxOverAmount))
+                if (
+                    Math.Abs(netSum - amountToSend) < 0.0001
+                    || (!exactMatch && netSum >= amountToSend && netSum <= maxOverAmount)
+                )
                 {
                     break;
                 }
@@ -323,7 +337,6 @@ public class ProofSelector : IProofSelector
             double delta = CalculateDelta(amount, feePPK);
             if (delta < bestDelta)
             {
-                
                 bestSubset = S.OrderByDescending(a => a.ExFee).ToList(); // copy & sort
                 bestDelta = delta;
                 bestAmount = amount;
@@ -338,14 +351,14 @@ public class ProofSelector : IProofSelector
                 {
                     var objP = tempS.Last();
                     tempS.RemoveAt(tempS.Count - 1);
-                    
+
                     ulong tempAmount2 = amount - objP.Proof.Amount;
                     ulong tempFeePPK2 = feePPK - objP.PpkFee;
                     double tempDelta = CalculateDelta(tempAmount2, tempFeePPK2);
-                    
-                    if (double.IsPositiveInfinity(tempDelta)) 
+
+                    if (double.IsPositiveInfinity(tempDelta))
                         break;
-                        
+
                     if (tempDelta < bestDelta)
                     {
                         bestSubset = tempS.ToList();
@@ -362,8 +375,10 @@ public class ProofSelector : IProofSelector
             if (bestSubset != null && !double.IsPositiveInfinity(bestDelta))
             {
                 double bestSum = SumExFees(bestAmount, bestFeePPK);
-                if (Math.Abs(bestSum - amountToSend) < 0.0001 ||
-                    (!exactMatch && bestSum >= amountToSend && bestSum <= maxOverAmount))
+                if (
+                    Math.Abs(bestSum - amountToSend) < 0.0001
+                    || (!exactMatch && bestSum >= amountToSend && bestSum <= maxOverAmount)
+                )
                 {
                     break;
                 }
@@ -374,7 +389,9 @@ public class ProofSelector : IProofSelector
             {
                 if (exactMatch)
                 {
-                    throw new TimeoutException("Proof selection took too long. Try again with a smaller proof set.");
+                    throw new TimeoutException(
+                        "Proof selection took too long. Try again with a smaller proof set."
+                    );
                 }
                 else
                 {
@@ -389,7 +406,7 @@ public class ProofSelector : IProofSelector
             var bestProofs = bestSubset.Select(obj => obj.Proof).ToList();
             var bestProofCs = bestProofs.Select(p => p.C).ToHashSet();
             var keep = proofs.Where(p => !bestProofCs.Contains(p.C)).ToList();
-            
+
             return new SendResponse { Keep = keep, Send = bestProofs };
         }
 

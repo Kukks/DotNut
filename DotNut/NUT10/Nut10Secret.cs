@@ -24,7 +24,6 @@ public class Nut10Secret : ISecret
     public string Key { get; set; }
     public Nut10ProofSecret ProofSecret { get; set; }
 
-
     public byte[] GetBytes()
     {
         return _originalString != null

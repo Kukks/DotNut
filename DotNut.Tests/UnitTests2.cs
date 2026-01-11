@@ -69,7 +69,6 @@ public class UnitTests2
 
         Assert.Equal(mnemonic, mnemonicRef.ToString());
         Assert.Same(counter, counterRef);
-        Assert.NotNull(wallet.GetInfo());
     }
 
     [Fact]

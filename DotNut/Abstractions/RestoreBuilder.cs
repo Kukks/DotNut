@@ -203,7 +203,12 @@ public class RestoreBuilder : IRestoreBuilder
             foreach (var output in res.Outputs)
             {
                 // there can't be any dupes here
-                returnedOutputs.Add(outputs.Single(o => Equals(o.BlindedMessage.B_, output.B_)));
+                var matchingOutputs = outputs.SingleOrDefault(o => Equals(o.BlindedMessage.B_, output.B_));
+                if (matchingOutputs == null)
+                {
+                    throw new InvalidOperationException("Invalid outputs returned by mint!");
+                }
+                returnedOutputs.Add(matchingOutputs);
             }
 
             var proofs = Utils.ConstructProofsFromPromises(

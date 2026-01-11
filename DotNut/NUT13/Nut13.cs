@@ -16,13 +16,13 @@ public static class Nut13
     
 
     public static List<OutputData> DeriveOutputs(this Mnemonic mnemonic, IEnumerable<ulong> amounts, KeysetId keysetId,
-        int counter)
+        uint counter)
     {
         var outputs = new List<OutputData>();
 
         var amountList = amounts.ToList();
 
-        for (int i = 0; i < amountList.Count; i++)
+        for (uint i = 0; i < amountList.Count; i++)
         {
             var secret = DeriveSecret(mnemonic, keysetId, counter + i);
             var r = new PrivKey(
@@ -36,7 +36,7 @@ public static class Nut13
             {
                 BlindedMessage =  new BlindedMessage()
                 {
-                    Amount = amountList[i],
+                    Amount = amountList[(int)i],
                     Id = keysetId,
                     B_ = B_
                 },
@@ -47,7 +47,7 @@ public static class Nut13
 
         return outputs;
     }
-    public static byte[] DeriveBlindingFactor(this byte[] seed, KeysetId keysetId, int counter)
+    public static byte[] DeriveBlindingFactor(this byte[] seed, KeysetId keysetId, uint counter)
     {
         switch (keysetId.GetVersion())
         {

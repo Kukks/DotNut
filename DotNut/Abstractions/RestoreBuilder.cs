@@ -9,8 +9,8 @@ public class RestoreBuilder : IRestoreBuilder
 {
     private readonly Wallet _wallet;
     private List<KeysetId>? _specifiedKeysets;
-    private static uint BATCH_SIZE = 100;
-    private static uint EMPTY_BATCHES_ALLOWED = 3;
+    private const uint BATCH_SIZE = 100;
+    private const uint EMPTY_BATCHES_ALLOWED = 3;
 
     public RestoreBuilder(Wallet wallet)
     {
@@ -124,8 +124,7 @@ public class RestoreBuilder : IRestoreBuilder
     private static List<OutputData> CreateBatch(
         Mnemonic mnemonic,
         KeysetId keysetId,
-        int batchNumber,
-        CancellationToken ct
+        int batchNumber
     )
     {
         if (batchNumber < 0)
@@ -168,7 +167,7 @@ public class RestoreBuilder : IRestoreBuilder
         while (emptyBatchesRemaining > 0)
         {
             // create batch of 100, and request restore for whole batch
-            var outputs = CreateBatch(mnemonic, keysetId, (int)batchNumber, ct);
+            var outputs = CreateBatch(mnemonic, keysetId, (int)batchNumber);
             var req = new PostRestoreRequest
             {
                 Outputs = outputs.Select(o => o.BlindedMessage).ToArray(),
@@ -203,7 +202,9 @@ public class RestoreBuilder : IRestoreBuilder
             foreach (var output in res.Outputs)
             {
                 // there can't be any dupes here
-                var matchingOutputs = outputs.SingleOrDefault(o => Equals(o.BlindedMessage.B_, output.B_));
+                var matchingOutputs = outputs.SingleOrDefault(o =>
+                    Equals(o.BlindedMessage.B_, output.B_)
+                );
                 if (matchingOutputs == null)
                 {
                     throw new InvalidOperationException("Invalid outputs returned by mint!");

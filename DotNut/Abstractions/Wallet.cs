@@ -1,7 +1,6 @@
 using DotNut.Api;
 using DotNut.ApiModels;
 using DotNut.NBitcoin.BIP39;
-using NBitcoin.Secp256k1;
 
 namespace DotNut.Abstractions;
 
@@ -14,10 +13,10 @@ public class Wallet : IWalletBuilder
     private MintInfo? _info;
     private IProofSelector? _selector;
     private ICashuApi? _mintApi;
-    private List<GetKeysetsResponse.KeysetItemResponse> _keysets;
-    private List<GetKeysResponse.KeysetItemResponse> _keys;
-    private Dictionary<KeysetId, ulong>? _keysetFees =>
-        _keysets?.ToDictionary(k => k.Id, k => k.InputFee ?? 0);
+    private List<GetKeysetsResponse.KeysetItemResponse> _keysets = [];
+    private List<GetKeysResponse.KeysetItemResponse> _keys = [];
+    private Dictionary<KeysetId, ulong> _keysetFees =>
+        _keysets.ToDictionary(k => k.Id, k => k.InputFee ?? 0);
     private Mnemonic? _mnemonic;
     private ICounter? _counter;
 
@@ -25,7 +24,7 @@ public class Wallet : IWalletBuilder
 
     //flags
     private bool _shouldSyncKeyset = true;
-    private DateTime? _lastSync = DateTime.MinValue;
+    private DateTime _lastSync = DateTime.MinValue;
     private TimeSpan? _syncThreshold; // if null sync only once
     private bool _shouldBumpCounter = true;
     private bool _ownsHttpClient = false;
@@ -197,28 +196,28 @@ public class Wallet : IWalletBuilder
     {
         await _maybeSyncKeys(ct);
         return _keysets
-            ?.OrderBy(k => k.InputFee)
+            .OrderBy(k => k.InputFee)
             .FirstOrDefault(k => k is { Active: true } && k.Unit == unit, null)
             ?.Id;
     }
 
-    public async Task<Dictionary<string, List<KeysetId>>?> GetKeysetIdsWithUnits(
+    public async Task<Dictionary<string, List<KeysetId>>> GetKeysetIdsWithUnits(
         CancellationToken ct = default
     )
     {
         await _maybeSyncKeys(ct);
         return _keysets
-            ?.GroupBy(k => k.Unit)
+            .GroupBy(k => k.Unit)
             .ToDictionary(g => g.Key, g => g.OrderBy(k => k.InputFee).Select(k => k.Id).ToList());
     }
 
-    public async Task<IDictionary<string, KeysetId>?> GetActiveKeysetIdsWithUnits(
+    public async Task<IDictionary<string, KeysetId>> GetActiveKeysetIdsWithUnits(
         CancellationToken ct = default
     )
     {
         await _maybeSyncKeys(ct);
         return _keysets
-            ?.Where(k => k.Active)
+            .Where(k => k.Active)
             .GroupBy(k => k.Unit)
             .ToDictionary(g => g.Key, g => g.OrderBy(k => k.InputFee).First().Id);
     }
@@ -231,10 +230,10 @@ public class Wallet : IWalletBuilder
         if (forceRefresh)
         {
             this._keys = await _fetchKeys(ct);
-            return this._keys ?? [];
+            return this._keys;
         }
         await _maybeSyncKeys(ct);
-        return this._keys ?? [];
+        return this._keys;
     }
 
     public async Task<GetKeysResponse.KeysetItemResponse?> GetKeys(
@@ -249,28 +248,24 @@ public class Wallet : IWalletBuilder
             return await _fetchKeys(id, ct);
         }
 
-        var localKeyset = this._keys?.SingleOrDefault(k => k.Id == id);
+        var localKeyset = this._keys.SingleOrDefault(k => k.Id == id);
         if (localKeyset != null)
         {
             return localKeyset;
         }
 
-        if (allowFetch)
+        if (!allowFetch)
         {
-            var keyset = await _fetchKeys(id, ct);
-            if (keyset != null && _keys != null)
-            {
-                _keys.Add(keyset);
-                return keyset;
-            }
-
-            if (keyset != null)
-            {
-                return keyset;
-            }
+            return null;
         }
 
-        throw new ArgumentException("No keys found for this keyset!");
+        var keyset = await _fetchKeys(id, ct);
+        if (keyset != null)
+        {
+            _keys.Add(keyset);
+        }
+
+        return keyset;
     }
 
     public async Task<List<GetKeysetsResponse.KeysetItemResponse>> GetKeysets(
@@ -281,10 +276,10 @@ public class Wallet : IWalletBuilder
         if (forceRefresh)
         {
             this._keysets = await _fetchKeysets(ct);
-            return _keysets ?? [];
+            return _keysets;
         }
         await _maybeSyncKeys(ct);
-        return _keysets ?? [];
+        return _keysets;
     }
 
     public async Task<MintInfo> GetInfo(bool forceRefresh = false, CancellationToken ct = default)
@@ -303,11 +298,11 @@ public class Wallet : IWalletBuilder
     )
     {
         await _maybeSyncKeys(ct);
-        if (this._keys == null)
+        if (this._keys.Count == 0)
         {
-            throw new ArgumentNullException(
-                nameof(this._keys),
-                "No Keys found. Make sure to fetch them!"
+            throw new ArgumentException(
+                "No Keys found. Make sure to fetch them!",
+                nameof(this._keys)
             );
         }
         var keyset = this._keys.SingleOrDefault(k => k.Id == id);
@@ -362,7 +357,10 @@ public class Wallet : IWalletBuilder
         if (this._selector == null)
         {
             await _maybeSyncKeys(ct);
-            ArgumentNullException.ThrowIfNull(this._keysetFees);
+            if (this._keysetFees.Count == 0)
+            {
+                throw new ArgumentException("No keyset fees found", nameof(this._keysetFees));
+            }
             this._selector = new ProofSelector(this._keysetFees);
         }
 
@@ -380,7 +378,10 @@ public class Wallet : IWalletBuilder
         if (this._selector == null)
         {
             await _maybeSyncKeys(ct);
-            ArgumentNullException.ThrowIfNull(this._keysetFees);
+            if (this._keysetFees.Count == 0)
+            {
+                throw new ArgumentException("No keyset fees found", nameof(this._keysetFees));
+            }
             this._selector = new ProofSelector(this._keysetFees);
         }
         return this._selector;
@@ -447,6 +448,7 @@ public class Wallet : IWalletBuilder
         var keysRaw = await _mintApi!.GetKeys(ct);
         foreach (var keysetItemResponse in keysRaw.Keysets)
         {
+            //todo new derivation
             var isKeysetIdValid = keysetItemResponse.Keys.VerifyKeysetId(
                 keysetItemResponse.Id,
                 keysetItemResponse.Unit,
@@ -471,15 +473,16 @@ public class Wallet : IWalletBuilder
     /// <exception cref="ArgumentNullException">May be thrown if mint is not set.</exception>
     private async Task<GetKeysResponse.KeysetItemResponse?> _fetchKeys(
         KeysetId id,
-        CancellationToken cts = default
+        CancellationToken ct = default
     )
     {
         _ensureApiConnected("Can't fetch keys without mint api!");
-        var keysRaw = (await _mintApi!.GetKeys(id, cts)).Keysets.SingleOrDefault();
+        var keysRaw = (await _mintApi!.GetKeys(id, ct)).Keysets.SingleOrDefault();
         if (keysRaw == null)
         {
             return null;
         }
+        //todo new keysetId derivation
         var isKeysetIdValid = keysRaw.Keys.VerifyKeysetId(
             keysRaw.Id,
             keysRaw.Unit,
@@ -528,19 +531,18 @@ public class Wallet : IWalletBuilder
         {
             return;
         }
-        // should sync keysets SINGLE time in the lifespan of object. If already synced - return;
-        if (_syncThreshold == null && _lastSync != DateTime.MinValue)
+
+        switch (_syncThreshold)
         {
-            return;
-        }
-        // should sync keysets in some timepsan
-        if (_syncThreshold != null && _lastSync + _syncThreshold >= DateTime.UtcNow)
-        {
-            return;
+            // should sync keysets SINGLE time in the lifespan of object. If already synced - return;
+            case null when _lastSync != DateTime.MinValue:
+            // should sync keysets in some timepsan
+            case { } threshold when _lastSync + threshold >= DateTime.UtcNow:
+                return;
         }
 
         this._keysets = await _fetchKeysets(cts);
-        if (_keys == null)
+        if (_keys.Count == 0)
         {
             this._keys = await _fetchKeys(cts); // we're fetching all keys here, so no need for additional check.
             return;
@@ -557,7 +559,6 @@ public class Wallet : IWalletBuilder
         foreach (var unknownKeyset in unknownKeysets)
         {
             var keyset = await this._fetchKeys(unknownKeyset.Id, cts);
-            _lastSync = DateTime.UtcNow;
             if (keyset != null)
             {
                 _keys.Add(keyset);

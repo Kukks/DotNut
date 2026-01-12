@@ -12,10 +12,10 @@ public interface IWebsocketService : IAsyncDisposable
 
     Task<WebsocketConnection> LazyConnectAsync(string mintUrl, CancellationToken ct = default);
 
-    Task DisconnectAsync(string connectionId, CancellationToken ct = default);
+    Task DisconnectAsync(string mintUrl, CancellationToken ct = default);
 
     Task<Subscription> SubscribeAsync(
-        string connectionId,
+        string mintUrl,
         SubscriptionKind kind,
         string[] filters,
         CancellationToken ct = default
@@ -23,9 +23,9 @@ public interface IWebsocketService : IAsyncDisposable
 
     Task UnsubscribeAsync(string subId, CancellationToken ct = default);
 
-    WebSocketState GetConnectionState(string connectionId);
+    WebSocketState GetConnectionState(string mintUrl);
 
-    IEnumerable<Subscription> GetSubscriptions(string connectionId);
+    IEnumerable<Subscription> GetSubscriptions(string mintUrl);
 
     IEnumerable<WebsocketConnection> GetConnections();
 }

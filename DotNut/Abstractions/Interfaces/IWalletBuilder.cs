@@ -1,7 +1,6 @@
 using DotNut.Api;
 using DotNut.ApiModels;
 using DotNut.NBitcoin.BIP39;
-using NBitcoin.Secp256k1;
 
 namespace DotNut.Abstractions;
 
@@ -182,12 +181,16 @@ public interface IWalletBuilder : IDisposable
     Task<KeysetId?> GetActiveKeysetId(string unit, CancellationToken ct = default);
 
     /// <summary>
+    /// Get all keysets with units
+    /// </summary>
+    /// <returns>Dictionary of (unit, KeysetId)</returns>
+    Task<Dictionary<string, List<KeysetId>>> GetKeysetIdsWithUnits(CancellationToken ct = default);
+
+    /// <summary>
     /// Get active keyset ids for each supported unit
     /// </summary>
     /// <returns>Dictionary of (unit, KeysetId) </returns>
-    Task<IDictionary<string, KeysetId>?> GetActiveKeysetIdsWithUnits(
-        CancellationToken ct = default
-    );
+    Task<IDictionary<string, KeysetId>> GetActiveKeysetIdsWithUnits(CancellationToken ct = default);
 
     Task<ICashuApi> GetMintApi(CancellationToken ct = default);
 

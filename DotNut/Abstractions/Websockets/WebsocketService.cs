@@ -28,12 +28,15 @@ public class WebsocketService : IWebsocketService
         var wsUrl = GetWebSocketUrl(mintUrl);
 
         var clientWebSocket = new ClientWebSocket();
+        var connectionCts = new CancellationTokenSource();
+
         try
         {
             await clientWebSocket.ConnectAsync(new Uri(wsUrl), ct);
         }
         catch (Exception ex)
         {
+            connectionCts.Dispose();
             clientWebSocket.Dispose();
             throw;
         }
@@ -44,12 +47,23 @@ public class WebsocketService : IWebsocketService
             MintUrl = normalized,
             WebSocket = clientWebSocket,
             State = WebSocketState.Open,
+            CancellationTokenSource = connectionCts,
         };
 
         _connections[normalized] = connection;
         OnConnectionStateChanged(connectionId, WebSocketState.Open);
 
-        _ = Task.Run(async () => await ListenForMessages(connection, CancellationToken.None));
+        try
+        {
+            _ = Task.Run(async () => await ListenForMessages(connection, connectionCts.Token));
+        }
+        catch
+        {
+            _connections.TryRemove(normalized, out _);
+            connectionCts.Dispose();
+            clientWebSocket.Dispose();
+            throw;
+        }
 
         return connection;
     }
@@ -68,7 +82,10 @@ public class WebsocketService : IWebsocketService
                 return existing;
             }
         }
-        _connections.TryRemove(normalized, out _);
+        if (_connections.TryRemove(normalized, out var oldConnection))
+        {
+            oldConnection?.Dispose();
+        }
         return await ConnectAsync(mintUrl, ct);
     }
 
@@ -99,6 +116,8 @@ public class WebsocketService : IWebsocketService
         finally
         {
             connection.State = WebSocketState.Closed;
+            connection.CancellationTokenSource?.Cancel();
+            connection.CancellationTokenSource?.Dispose();
             connection.WebSocket.Dispose();
             _connections.TryRemove(normalized, out _);
 
@@ -111,7 +130,7 @@ public class WebsocketService : IWebsocketService
             {
                 if (_subscriptions.TryRemove(subId, out var removedSub))
                 {
-                    await removedSub.CloseAsync();
+                    await removedSub.CloseInternalAsync();
                 }
             }
 
@@ -190,7 +209,7 @@ public class WebsocketService : IWebsocketService
             if (completedTask != tcs.Task)
             {
                 _subscriptions.TryRemove(subId, out _);
-                await subscription.CloseAsync();
+                await subscription.CloseInternalAsync();
                 throw new TimeoutException("Subscription request timed out");
             }
 
@@ -199,11 +218,17 @@ public class WebsocketService : IWebsocketService
             if (result is RequestResult.Failure failure)
             {
                 _subscriptions.TryRemove(subId, out _);
-                await subscription.CloseAsync();
+                await subscription.CloseInternalAsync();
                 throw new InvalidOperationException($"Subscription failed: {failure.Message}");
             }
 
             return subscription;
+        }
+        catch
+        {
+            subscription.NotificationChannel.Writer.TryComplete();
+            _subscriptions.TryRemove(subId, out _);
+            throw;
         }
         finally
         {
@@ -213,16 +238,16 @@ public class WebsocketService : IWebsocketService
 
     public async Task UnsubscribeAsync(string subId, CancellationToken ct = default)
     {
-        if (!_subscriptions.TryGetValue(subId, out var subscription))
-            throw new InvalidOperationException($"Subscription {subId} not found");
+        if (!_subscriptions.TryRemove(subId, out var subscription))
+            return; // Already unsubscribed
+
+        subscription.NotificationChannel.Writer.TryComplete();
 
         var connection = _connections.Values.FirstOrDefault(c => c.Id == subscription.ConnectionId);
-        if (connection is null)
-            throw new InvalidOperationException($"Connection for subscription {subId} not found");
-
-        if (connection.State != WebSocketState.Open)
+        if (connection is null || connection.State != WebSocketState.Open)
         {
-            throw new InvalidOperationException($"Connection is not open");
+            // Connection gone or closed - local cleanup is sufficient
+            return;
         }
 
         var requestId = _getNextRequestId();
@@ -249,7 +274,8 @@ public class WebsocketService : IWebsocketService
 
             if (completed != tcs.Task)
             {
-                throw new TimeoutException("Unsubscribe request timed out");
+                // Timeout - local cleanup already done, just log or ignore
+                return;
             }
 
             await tcs.Task.ConfigureAwait(false);
@@ -257,24 +283,19 @@ public class WebsocketService : IWebsocketService
         finally
         {
             _pendingRequests.TryRemove(requestId, out _);
-            _subscriptions.TryRemove(subId, out _);
         }
     }
 
     public async ValueTask DisposeAsync()
     {
-        foreach (var sub in _subscriptions.Values)
-        {
-            try
-            {
-                await sub.CloseAsync();
-            }
-            catch { }
-        }
         var mintUrls = _connections.Keys.ToList();
         foreach (var mintUrl in mintUrls)
         {
-            await DisconnectAsync(mintUrl);
+            try
+            {
+                await DisconnectAsync(mintUrl);
+            }
+            catch { }
         }
         _subscriptions.Clear();
         _connections.Clear();
@@ -321,6 +342,7 @@ public class WebsocketService : IWebsocketService
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     connection.State = WebSocketState.Closed;
+                    connection.CancellationTokenSource?.Cancel();
                     OnConnectionStateChanged(connection.Id, WebSocketState.Closed);
                     break;
                 }
@@ -344,6 +366,7 @@ public class WebsocketService : IWebsocketService
         catch (Exception ex)
         {
             connection.State = WebSocketState.Aborted;
+            connection.CancellationTokenSource?.Cancel();
             OnConnectionStateChanged(connection.Id, WebSocketState.Aborted);
         }
         finally
@@ -357,7 +380,7 @@ public class WebsocketService : IWebsocketService
             {
                 try
                 {
-                    await sub.CloseAsync();
+                    await sub.CloseInternalAsync();
                 }
                 catch { }
                 _subscriptions.TryRemove(sub.Id, out _);

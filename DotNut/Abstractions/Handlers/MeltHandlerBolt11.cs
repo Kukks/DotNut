@@ -44,8 +44,20 @@ public class MeltHandlerBolt11(
         {
             return [];
         }
-        
-        var keyset = await wallet.GetKeys(res.Change.First().Id, true, false, ct);
-        return Utils.ConstructProofsFromPromises(res.Change.ToList(), blankOutputs, keyset.Keys);
+
+        var keysetIds = res.Change.Select(sig => sig.Id).Distinct().ToList();
+        var changeProofs = new List<Proof>();
+        foreach (var keysetId in keysetIds)
+        {
+            var keyset = await wallet.GetKeys(keysetId, true, false, ct);
+            if (keyset == null)
+            {
+                continue;
+            }
+            changeProofs.AddRange(
+                Utils.ConstructProofsFromPromises(res.Change.ToList(), blankOutputs, keyset.Keys)
+            );
+        }
+        return changeProofs;
     }
 }

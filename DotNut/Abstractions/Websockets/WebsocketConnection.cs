@@ -2,13 +2,14 @@ using System.Net.WebSockets;
 
 namespace DotNut.Abstractions.Websockets;
 
-public class WebsocketConnection
+public class WebsocketConnection : IDisposable
 {
     public string Id { get; set; } = string.Empty;
     public string MintUrl { get; set; } = string.Empty;
     public ClientWebSocket WebSocket { get; set; } = new();
     public WebSocketState State { get; set; }
     public DateTime ConnectedAt { get; set; } = DateTime.UtcNow;
+    public CancellationTokenSource? CancellationTokenSource { get; set; }
 
     public bool Equals(WebsocketConnection? other)
     {
@@ -37,5 +38,12 @@ public class WebsocketConnection
     public static bool operator !=(WebsocketConnection? left, WebsocketConnection? right)
     {
         return !object.Equals(left, right);
+    }
+
+    public void Dispose()
+    {
+        CancellationTokenSource?.Cancel();
+        CancellationTokenSource?.Dispose();
+        WebSocket?.Dispose();
     }
 }

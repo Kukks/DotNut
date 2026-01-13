@@ -51,7 +51,7 @@ public class Nut10ProofSecret
         if (this.Tags == null)
         {
             return hash.ToHashCode();
-        };
+        }
         foreach (var tagArray in this.Tags)
         {
             foreach (var tag in tagArray)

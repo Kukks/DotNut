@@ -106,7 +106,7 @@ public class SigAllHandler
                 throw new ArgumentException("When signing sig_all, every proof must be a nut 10 secret.");
             }
                 
-            if (!CheckIfEqualToFirst(firstSecret, nut10.ProofSecret))
+            if (firstSecret != nut10.ProofSecret)
             {
                 throw new ArgumentException("When signing sig_all, every proof must have identical tags and data.");
             }
@@ -219,12 +219,4 @@ public class SigAllHandler
         secret = nut10.ProofSecret;
         return true;
     }
-    
-    private static bool CheckIfEqualToFirst(Nut10ProofSecret first, Nut10ProofSecret other) =>
-        first is { } a && other is { } b &&
-        a.Data == b.Data &&
-        ((a.Tags == null && b.Tags == null) || 
-         (a.Tags != null && b.Tags != null && 
-          a.Tags.Length == b.Tags.Length && 
-          a.Tags.Zip(b.Tags).All(pair => pair.First.SequenceEqual(pair.Second))));
 }

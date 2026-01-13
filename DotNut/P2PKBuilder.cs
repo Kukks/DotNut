@@ -18,6 +18,7 @@ public class P2PKBuilder
     
     public P2PKProofSecret Build()
     {
+        Validate();
         var tags = new List<string[]>();
         if (Pubkeys.Length > 1)
         {
@@ -36,10 +37,10 @@ public class P2PKBuilder
             {
                 tags.Add(new[] { "refund" }.Concat(RefundPubkeys.Select(p => p.ToHex()))
                     .ToArray());
+                RefundSignatureThreshold ??= 1;
+
             }
-            if (RefundSignatureThreshold is { } refundSignatureThreshold 
-                && RefundPubkeys is {} refundKeys 
-                && refundKeys.Length >= refundSignatureThreshold)
+            if (RefundSignatureThreshold is { } refundSignatureThreshold and > 1)
             {
                 tags.Add(new[] {"n_sigs_refund", refundSignatureThreshold.ToString() });
             }
@@ -108,6 +109,19 @@ public class P2PKBuilder
         builder.Nonce = proofSecret.Nonce;
 
         return builder;
+    }
+    
+    private void Validate()
+    {
+        if (this.Pubkeys.Count() < SignatureThreshold)
+        {
+            throw new ArgumentException("Signature threshold bigger than provided pubkeys count!");
+        }
+        if(this.RefundSignatureThreshold is not null 
+           && (RefundPubkeys is null || RefundPubkeys.Length < RefundSignatureThreshold))
+        {
+            throw new ArgumentException("Signature threshold bigger than provided pubkeys count!");
+        }
     }
     
     

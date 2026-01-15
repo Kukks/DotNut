@@ -31,6 +31,12 @@ public interface ICashuApi : IDisposable
         CancellationToken cancellationToken = default
     );
 
+    public Task<TResponse> CheckMeltQuote<TResponse>(
+        string method,
+        string quoteId,
+        CancellationToken cancellationToken = default
+    );
+
     Task<TResponse> CheckMintQuote<TResponse>(
         string method,
         string quoteId,

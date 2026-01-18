@@ -134,23 +134,20 @@ public static class Cashu
     public static byte[] ComputeZx(ECPrivKey e, ECPubKey P)
     {
         var x = (e.sec * P.Q).ToGroupElement().x;
-        if (!ECXOnlyPubKey.TryCreate(x, Context.Instance, out var xOnly))
-        {
-            // should never happen
-            throw new InvalidOperationException("Could not create xOnly pubkey");
-        }
-        return xOnly.ToBytes();
+        return ECXOnlyPubKey.TryCreate(x, Context.Instance, out var xOnly)
+            ? xOnly.ToBytes()
+            : throw new InvalidOperationException("Could not create xOnly pubkey");
     }
     
-    public static ECPrivKey ComputeRi(byte[] Zx, byte[] keysetId, int i)
+    public static ECPrivKey ComputeRi(byte[] Zx, int i)
     {
         byte[] hash;
         
-        hash = SHA256.HashData(Concat(P2BK_PREFIX, Zx, keysetId, [(byte)(i & 0xFF)]));
+        hash = SHA256.HashData(Concat(P2BK_PREFIX, Zx, [(byte)(i & 0xFF)]));
         var hashValue = new BigInteger(hash);
         if (hashValue == 0 || hashValue.CompareTo(N) != -1)
         {
-            hash = SHA256.HashData(Concat(P2BK_PREFIX, Zx, keysetId, [(byte)(i & 0xFF)], [0xff]));
+            hash = SHA256.HashData(Concat(P2BK_PREFIX, Zx, [(byte)(i & 0xFF)], [0xff]));
         }
         return ECPrivKey.Create(hash);
     }

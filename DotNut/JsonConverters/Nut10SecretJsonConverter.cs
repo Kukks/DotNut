@@ -5,9 +5,6 @@ namespace DotNut.JsonConverters;
 
 public class Nut10SecretJsonConverter : JsonConverter<Nut10Secret>
 {
-    
-    
-    
     public override Nut10Secret? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if(reader.TokenType == JsonTokenType.Null)

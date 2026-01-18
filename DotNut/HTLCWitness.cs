@@ -4,5 +4,8 @@ namespace DotNut;
 
 public class HTLCWitness: P2PKWitness
 {
-    [JsonPropertyName("preimage")] public string Preimage { get; set; } 
+    // this field is nullable now, because after locktime expiry only signatures are needed.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("preimage")] 
+    public string? Preimage { get; set; } 
 }

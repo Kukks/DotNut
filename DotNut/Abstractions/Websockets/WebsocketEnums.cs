@@ -1,0 +1,20 @@
+using System.Text.Json.Serialization;
+
+namespace DotNut.Abstractions.Websockets;
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum SubscriptionKind
+{
+    bolt11_melt_quote,
+    bolt11_mint_quote,
+    bolt12_melt_quote,
+    bolt12_mint_quote,
+    proof_state,
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum WsRequestMethod
+{
+    subscribe,
+    unsubscribe,
+}

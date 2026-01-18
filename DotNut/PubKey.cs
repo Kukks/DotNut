@@ -7,7 +7,8 @@ namespace DotNut;
 [JsonConverter(typeof(PubKeyJsonConverter))]
 public class PubKey
 {
-    [JsonIgnore(Condition = JsonIgnoreCondition.Always)] public readonly ECPubKey Key;
+    [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+    public readonly ECPubKey Key;
 
     public PubKey(string hex, bool onlyAllowCompressed = false)
     {
@@ -27,7 +28,7 @@ public class PubKey
     {
         return Convert.ToHexString(Key.ToBytes()).ToLower();
     }
-    
+
     public static implicit operator PubKey(ECPubKey ecPubKey)
     {
         return new PubKey(ecPubKey);
@@ -37,17 +38,18 @@ public class PubKey
     {
         return pubKey.Key;
     }
-    
+
     public override bool Equals(object? obj)
     {
-        if (ReferenceEquals(this, obj)) return true;
-        if (obj is not PubKey other) return false;
+        if (ReferenceEquals(this, obj))
+            return true;
+        if (obj is not PubKey other)
+            return false;
         return this.Key == other.Key;
     }
-    
+
     public override int GetHashCode()
     {
         return Key.GetHashCode();
     }
- 
 }

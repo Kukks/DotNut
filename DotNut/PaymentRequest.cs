@@ -11,6 +11,7 @@ public class PaymentRequest
     public string[]? Mints { get; set; }
     public string? Memo { get; set; }
     public PaymentRequestTransport[] Transports { get; set; }
+    public Nut10LockingCondition? Nut10 { get; set; }
 
     public override string ToString()
     {
@@ -18,14 +19,24 @@ public class PaymentRequest
         return $"creqA{Base64UrlSafe.Encode(obj.EncodeToBytes())}";
     }
 
-    public static PaymentRequest Parse(string creqA)
+    public string ToBech32String()
     {
-        if (!creqA.StartsWith("creqA", StringComparison.InvariantCultureIgnoreCase))
+        return PaymentRequestBech32Encoder.Encode(this);
+    }
+
+    public static PaymentRequest Parse(string creq)
+    {
+        if (creq.StartsWith("creqA", StringComparison.InvariantCultureIgnoreCase))
         {
-            throw new FormatException("Invalid payment request");
+            var data = Base64UrlSafe.Decode(creq.Substring(5));
+            return PaymentRequestEncoder.Instance.FromCBORObject(CBORObject.DecodeFromBytes(data));
         }
 
-        var data = Base64UrlSafe.Decode(creqA.Substring(5));
-        return PaymentRequestEncoder.Instance.FromCBORObject(CBORObject.DecodeFromBytes(data));
+        if (creq.StartsWith("creqB", StringComparison.InvariantCultureIgnoreCase))
+        {
+            return PaymentRequestBech32Encoder.Decode(creq);
+        }
+
+        throw new FormatException("Invalid payment request");
     }
 }

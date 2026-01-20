@@ -154,7 +154,7 @@ public class P2PKProofSecret : Nut10ProofSecret
         if (requiredRefundSignatures == 0)
             return null;
 
-        var (isValid, result) = TrySignBlindPath(allowedKeys.ToArray(), requiredSignatures, keys, keysetId, P2PkE, msg);
+        var (isValid, result) = TrySignBlindPath(allowedKeys.ToArray(), requiredSignatures, keys, P2PkE, msg);
         if (isValid)
         {
             return result;
@@ -162,7 +162,7 @@ public class P2PKProofSecret : Nut10ProofSecret
 
         if (requiredRefundSignatures.HasValue && allowedRefundKeys.Any())
         {
-            (isValid, result) = TrySignBlindPath(allowedRefundKeys.ToArray(), requiredRefundSignatures.Value, keys, keysetId, P2PkE, msg);
+            (isValid, result) = TrySignBlindPath(allowedRefundKeys.ToArray(), requiredRefundSignatures.Value, keys, P2PkE, msg);
             if (isValid)
             {
                 return result;
@@ -174,11 +174,10 @@ public class P2PKProofSecret : Nut10ProofSecret
 
     
     private (bool IsValid, P2PKWitness Witness) TrySignBlindPath(ECPubKey[] allowedKeys, int requiredSignatures,
-        ECPrivKey[] availableKeys, KeysetId keysetId, ECPubKey P2PkE, byte[] msg)
+        ECPrivKey[] availableKeys, ECPubKey P2PkE, byte[] msg)
     {
         var allowedKeysSet = new HashSet<ECPubKey>(allowedKeys);
         var result = new P2PKWitness();
-        var keysetIdBytes = keysetId.GetBytes();
         var usedSlots = new HashSet<int>();
 
         foreach (var key in availableKeys)
@@ -191,7 +190,7 @@ public class P2PKProofSecret : Nut10ProofSecret
                 if (usedSlots.Contains(i)) continue;
 
                 var Zx = Cashu.ComputeZx(key, P2PkE);
-                var ri = Cashu.ComputeRi(Zx, keysetIdBytes, i);
+                var ri = Cashu.ComputeRi(Zx, i);
                 var tweakedPrivkey = key.TweakAdd(ri.ToBytes());
                 var tweakedPubkey = tweakedPrivkey.CreatePubKey();
 

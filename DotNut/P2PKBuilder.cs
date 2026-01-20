@@ -132,28 +132,23 @@ public class P2PKBuilder
      */
     
     //For sig_inputs, generates random p2pk_e for each input
-    public P2PKProofSecret BuildBlinded(KeysetId keysetId, out ECPubKey p2pkE)
+    public P2PKProofSecret BuildBlinded(out ECPubKey p2pkE)
     {
         var e = new PrivKey(RandomNumberGenerator.GetHexString(64));
         p2pkE = e.Key.CreatePubKey();
-        return BuildBlinded(keysetId, e);
+        return BuildBlinded(e);
     }
 
     //For sig_all, p2pk_e must be provided
-    public P2PKProofSecret BuildBlinded(KeysetId keysetId, ECPrivKey p2pke)
+    public P2PKProofSecret BuildBlinded(ECPrivKey p2pke)
     {
         var pubkeys = RefundPubkeys != null ? Pubkeys.Concat(RefundPubkeys).ToArray() : Pubkeys;
         var rs = new List<ECPrivKey>();
-        bool extraByte = false;
-        
-        var keysetIdBytes = keysetId.GetBytes();
 
-        var e = p2pke;
-        
         for (int i = 0; i < pubkeys.Length; i++)
         {
-            var Zx = Cashu.ComputeZx(e, pubkeys[i]);
-            var Ri = Cashu.ComputeRi(Zx, keysetIdBytes, i);
+            var Zx = Cashu.ComputeZx(p2pke, pubkeys[i]);
+            var Ri = Cashu.ComputeRi(Zx, i);
             rs.Add(Ri);
         }
         _blindPubkeys(rs.ToArray());

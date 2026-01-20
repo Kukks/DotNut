@@ -781,21 +781,20 @@ public class UnitTest1
     private static readonly byte[] P2BK_PREFIX = "Cashu_P2BK_v1"u8.ToArray();
 
     [Fact]
-    public void Nut26Tests()
+    public void Nut28_P2BK_Tests()
     {
         // sender ephemeral keypair
         var e = new PrivKey("1cedb9df0c6872188b560ace9e35fd55c2532d53e19ae65b46159073886482ca");
         var E = new PubKey("02a8cda4cf448bfce9a9e46e588c06ea1780fcb94e3bbdf3277f42995d403a8b0c");
-
-        Assert.Equal(E.Key.ToString()?.ToLowerInvariant(), e.Key.CreatePubKey().ToString().ToLowerInvariant());
+        Assert.Equal(E.Key.ToString()?.ToLowerInvariant(), e.Key.CreatePubKey().ToString()?.ToLowerInvariant());
 
         // receiver keypair
         var p = new PrivKey("ad37e8abd800be3e8272b14045873f4353327eedeb702b72ddcc5c5adff5129c");
         var P = new PubKey("02771fed6cb88aaac38b8b32104a942bf4b8f4696bc361171b3c7d06fa2ebddf06");
 
-        Assert.Equal(P.Key.ToString().ToLowerInvariant(), p.Key.CreatePubKey().ToString().ToLowerInvariant());
+        Assert.Equal(P.Key.ToString()?.ToLowerInvariant(), p.Key.CreatePubKey().ToString()?.ToLowerInvariant());
         
-        var kid = new KeysetId("009a1f293253e41e");
+        // var kid = new KeysetId("009a1f293253e41e");
 
         var zx = "40d6ba4430a6dfa915bb441579b0f4dee032307434e9957a092bbca73151df8b";
         Assert.Equal(zx, Convert.ToHexString(Cashu.ComputeZx(e, P)).ToLowerInvariant());
@@ -803,39 +802,39 @@ public class UnitTest1
 
         string[] rs =
         [
-            "41b5f15975f787bd5bd8d91753cbbe56d0d7aface851b1063e8011f68551862d",
-            "c4d68c79b8676841f767bcd53437af3f43d51b205f351d5cdfe5cb866ec41494",
-            "04ecf53095882f28965f267e46d2c555f15bcd74c3a84f42cf0de8ebfb712c7c",
-            "4163bc31b3087901b8b28249213b0ecc447cee3ea1f0c04e4dd5934e0c3f78ad",
-            "f5d6d20c399887f29bdda771660f87226e3a0d4ef36a90f40d3f717085957b60",
-            "f275404a115cd720ee099f5d6b7d5dc705d1c95ac6ae01c917031b64f7dccc72",
-            "39dffa9f0160bcda63920305fc12f88d824f5b654970dbd579c08367c12fcd78",
-            "3331338e87608c7f36265c9b52bb5ebeac1bb3e2220d2682370f4b7c09dccd4b",
-            "44947bd36c0200fb5d5d05187861364f6b666aac8ce37b368e27f01cea7cf147",
-            "cf4e69842833e0dab8a7302933d648fee98de80284af2d7ead71b420a8f0ebde",
-            "3638eae8a9889bbd96769637526010b34cd1e121805eaaaaa0602405529ca92f"
+            "f43cfecf4d44e109872ed601156a01211c0d9eba0460d5be254a510782a2d4aa",
+            "4a57e6acb9db19344af5632aa45000cd2c643550bc63c7d5732221171ab0f5b3",
+            "d4a8b84b21f2b0ad31654e96eddbc32bfdedae2d05dc179bdd6cc20236b1104d",
+            "ecebf43123d1da3de611a05f5020085d63ca20829242cdc07f7c780e19594798",
+            "5f42d463ead44cbb20e51843d9eb3b8b0e0021566fd89852d23ae85f57d60858",
+            "a8f1c9d336954997ad571e5a5b59fe340c80902b10b9099d44e17abb3070118c",
+            "c39fa43b707215c163593fb8cadc0eddb4fe2f82c0c79c82a6fc2e3b6b051a7e",
+            "b17d6a51396eb926f4a901e20ff760a852563f90fd4b85e193888f34fd2ee523",
+            "4d4af85ea296457155b7ce328cf9accbe232e8ac23a1dfe901a36ab1b72ea04d",
+            "ce311248ea9f42a73fc874b3ce351d55964652840d695382f0018b36bb089dd1",
+            "9de35112d62e6343d02301d8f58fef87958e99bb68cfdfa855e04fe18b95b114",
         ];
 
         for (int i = 0; i <= 10; i++)
         {
-            var ri = (PrivKey)Cashu.ComputeRi(Convert.FromHexString(zx), kid.GetBytes(), i);
+            var ri = (PrivKey)Cashu.ComputeRi(Convert.FromHexString(zx),  i);
             Assert.Equal(rs[i], ri.ToString());
         }
 
 
         string[] blindedPublicKeys =
         [
-            "03f221b62aa21ee45982d14505de2b582716ae95c265168f586dc547f0ea8f135f",
-            "0299692178029fe08c49e8123bb0e84d6e960b27f82c8aed43013526489d46c0d5",
-            "03ae189850bda004f9723e17372c99ff9df9e29750d2147d40efb45ac8ab2cdd2c",
-            "03109838d718fbe02e9458ffa423f25bae0388146542534f8e2a094de6f7b697fa",
-            "0339d5ed7ea93292e60a4211b2daf20dff53f050835614643a43edccc35c8313db",
-            "0237861efcd52fe959bce07c33b5607aeae0929749b8339f68ba4365f2fb5d2d8d",
-            "026d5500988a62cde23096047db61e9fb5ef2fea5c521019e23862108ea4e14d72",
-            "039024fd20b26e73143509537d7c18595cfd101da4b18bb86ddd30e944aac6ef1b",
-            "03017ec4218ca2ed0fbe050e3f1a91221407bf8c896b803a891c3a52d162867ef8",
-            "0380dc0d2c79249e47b5afb61b7d40e37b9b0370ec7c80b50c62111021b886ab31",
-            "0261a8a32e718f5f27610a2b7c2069d6bab05d1ead7da21aa9dd2a3c758bdf6479"
+            "03b7c03eb05a0a539cfc438e81bcf38b65b7bb8685e8790f9b853bfe3d77ad5315",
+            "0352fb6d93360b7c2538eedf3c861f32ea5883fceec9f3e573d9d84377420da838",
+            "03667361ca925065dcafea0a705ba49e75bdd7975751fcc933e05953463c79fff1",
+            "02aca3ed09382151250b38c85087ae0a1436a057b40f824a5569ba353d40347d08",
+            "02cd397bd6e326677128f1b0e5f1d745ad89b933b1b8671e947592778c9fc2301d",
+            "0394140369aae01dbaf74977ccbb09b3a9cf2252c274c791ac734a331716f1f7d4",
+            "03480f28e8f8775d56a4254c7e0dfdd5a6ecd6318c757fcec9e84c1b48ada0666d",
+            "02f8a7be813f7ba2253d09705cc68c703a9fd785a055bf8766057fc6695ec80efc",
+            "03aa5446aaf07ca9730b233f5c404fd024ef92e3787cd1c34c81c0778fe23c59e9",
+            "037f82d4e0a79b0624a58ef7181344b95afad8acf4275dad49bcd39c189b73ece2",
+            "032371fc0eef6885062581a3852494e2eab8f384b7dd196281b85b77f94770fac5",
         ];
         //it's the same blinding as with computeB_
         for (int i = 0; i <= 10; i++)
@@ -845,22 +844,22 @@ public class UnitTest1
 
         string[] skStd =
         [
-            "eeedda054df845fbde4b8a579952fd9a240a2e9ad3c1dc791c4c6e51654698c9",
-            "720e75259068268079da6e1579beee83dc58bd279b5ca893fddfc9547e82e5ef",
-            "b224dddc6d88ed6718d1d7be8c5a0499448e4c62af187ab5acda4546db663f18",
-            "ee9ba4dd8b0937403b25338966c24e0f97af6d2c8d60ebc12ba1efa8ec348b49",
-            "a30ebab8119946311e5058b1ab96c66706bdaf562f921c2b2b396f3e95544cbb",
-            "9fad28f5e95d955f707c509db1049d0b9e556b6202d58d0034fd1933079b9dcd",
-            "e717e34ad9617b18e604b446419a37d0d581da5334e10748578cdfc2a124e014",
-            "e0691c3a5f614abdb8990ddb98429e01ff4e32d00d7d51f514dba7d6e9d1dfe7",
-            "f1cc647f4402bf39dfcfb658bde87592be98e99a7853a6a96bf44c77ca7203e3",
-            "7c86523000349f193b19e169795d884382118a09c0d6b8b5cb6bb1eeb8afbd39",
-            "e370d394818959fc18e9477797e74ff6a004600f6bced61d7e2c80603291bbcb"
+            "a174e77b25459f4809a187415af14065b49140c1408860f543444ed59261a605",
+            "f78fcf5891dbd772cd68146ae9d740107f96b43ea7d3f34850ee7d71faa6084f",
+            "81e0a0f6f9f36eebb3d7ffd733630270967150344203a2d2fb66bfd0466fe1a8",
+            "9a23dcdcfbd2987c6884519f95a747a1fc4dc289ce6a58f79d7675dc291818f3",
+            "0c7abd0fc2d50af9a357c9841f727acfa683c35dac002389f034e62d6794d9b3",
+            "5629b27f0e9607d62fc9cf9aa0e13d78a50432324ce094d462db7889402ee2e7",
+            "70d78ce74872d3ffe5cbf0f910634e224d81d189fcef27b9c4f62c097ac3ebd9",
+            "5eb552fd116f7765771bb322557e9fecead9e19839731118b1828d030cedb67e",
+            "fa82e10a7a9703afd82a7f72d280ec0f3565679a0f120b5bdf6fc70c9723b2e9",
+            "7b68faf4c2a000e5c23b25f413bc5c9a2ec9f48b4990deba0dfb8904cac76f2c",
+            "4b1b39beae2f21825295b3193b172ecc2e123bc2a4f76adf73da4daf9b54826f",
         ];
 
         for (int i = 0; i <= 10; i++)
         {
-            var ri = Cashu.ComputeRi(Convert.FromHexString(zx), kid.GetBytes(), i);
+            var ri = Cashu.ComputeRi(Convert.FromHexString(zx), i);
             var derivedKey = p.Key.TweakAdd(ri.ToBytes());
 
             Assert.Equal(skStd[i], Convert.ToHexString(derivedKey.ToBytes()).ToLowerInvariant());
@@ -868,22 +867,22 @@ public class UnitTest1
 
         string[] skNeg =
         [
-            "947e08ad9df6c97ed96627d70e447f1238540da5ac2a25cf208614287592b4d2",
-            "179ea3cde066aa0374f50b94eeb06ffbf0a29c3273c4f1ea02196f2b8ecf01f8",
-            "57b50c84bd8770ea13ec753e014b861158d82b6d8780c40bb113eb1debb25b21",
-            "942bd385db07bac3363fd108dbb3cf87abf94c3765c935172fdb957ffc80a752",
-            "489ee9606197c9b4196af631208847df1b078e6107fa65812f731515a5a068c4",
-            "453d579e395c18e26b96ee1d25f61e83b29f4a6cdb3dd6563936bf0a17e7b9d6",
-            "8ca811f3295ffe9be11f51c5b68bb948e9cbb95e0d49509e5bc68599b170fc1d",
-            "85f94ae2af5fce40b3b3ab5b0d341f7a139811dae5e59b4b19154dadfa1dfbf0",
-            "975c9327940142bcdaea53d832d9f70ad2e2c8a550bbefff702df24edabe1fec",
-            "221680d85033229c36347ee8ee4f09bb965b6914993f020bcfa557c5c8fbd942",
-            "8901023cd187dd7f1403e4f70cd8d16eb44e3f1a44371f738266263742ddd7d4",
+            "47051623754422cb04bc24c0cfe2c1ddc8db1fcc18f0aa4b477df4aca2adc20e",
+            "9d1ffe00e1da5af5c882b1ea5ec8c18893e09349803c3c9e552823490af22458",
+            "2770cf9f49f1f26eaef29d56a85483e8aabb2f3f1a6bec28ffa065a756bbfdb1",
+            "3fb40b854bd11bff639eef1f0a98c91a1097a194a6d2a24da1b01bb3396434fc",
+            "b20aebb812d38e7c9e7267039463fc46757c7f4f33b10d1bb440ea91481736fd",
+            "fbb9e1275e948b592ae46d1a15d2beef73fcee23d4917e6626e77ced20b14031",
+            "1667bb8f98715782e0e68e788554cf9a61cbb094d557710fc92fd1e08b1007e2",
+            "044581a5616dfae8723650a1ca702164ff23c0a311db5a6eb5bc32da1d39d287",
+            "a0130fb2ca958732d3451cf247726d8749af46a4e77a54b1e3a96ce3a76fcef2",
+            "20f9299d129e8468bd55c37388adde124313d39621f9281012352edbdb138b35",
+            "f0ab6866fe2da5054db05098b008b042fd0af7b42ca8547137e652137bd6dfb9"
         ];
 
         for (int i = 0; i <= 10; i++)
         {
-            var ri = Cashu.ComputeRi(Convert.FromHexString(zx), kid.GetBytes(), i);
+            var ri = Cashu.ComputeRi(Convert.FromHexString(zx), i);
             var derivedKeyNeg = p.Key.sec.Negate().Add(ri.sec).ToPrivateKey();
 
             Assert.Equal(skNeg[i], Convert.ToHexString(derivedKeyNeg.ToBytes()).ToLowerInvariant());
@@ -892,7 +891,7 @@ public class UnitTest1
     }
 
     [Fact]
-    public void Nut26_Flow()
+    public void Nut28_P2BK_Flow()
     {
         // sender generates ephermal keypair
         var e = new PrivKey("1cedb9df0c6872188b560ace9e35fd55c2532d53e19ae65b46159073886482ca");
@@ -918,7 +917,7 @@ public class UnitTest1
             SignatureThreshold = 2,
             SigFlag = "SIG_INPUTS"
         };
-        var p2pkProofSecret = conditions.BuildBlinded(keysetId, e);
+        var p2pkProofSecret = conditions.BuildBlinded(e);
 
         var secret = new Nut10Secret(P2PKProofSecret.Key, p2pkProofSecret);
 
@@ -956,7 +955,7 @@ public class UnitTest1
             SignatureThreshold = 2,
             SigFlag = "SIG_INPUTS"
         };
-        var p2pkProofSecret = conditions.BuildBlinded(keysetId, out var E);
+        var p2pkProofSecret = conditions.BuildBlinded(out var E);
 
         var secret = new Nut10Secret(P2PKProofSecret.Key, p2pkProofSecret);
 

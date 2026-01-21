@@ -1,6 +1,6 @@
 using System.Buffers.Binary;
 using System.Text;
-using NBitcoin.DataEncoders;
+using DotNut.NBitcoin.Bech32;
 
 namespace DotNut;
 
@@ -24,11 +24,11 @@ public class PaymentRequestBech32Encoder
     {
         var tlvBytes = EncodeTLV(paymentRequest);
         var words = ConvertBits(tlvBytes, 8, 5, true);
-        var encoder = new Bech32Encoder(Encoding.ASCII.GetBytes(PREFIX))
+        var encoder = new Bech32Encoder("creqb")
         {
             StrictLength = false
         };
-        return encoder.EncodeRaw(words, Bech32EncodingType.BECH32M);
+        return encoder.EncodeRaw(words, Bech32EncodingType.BECH32M).ToUpperInvariant();
     }
     
     public static PaymentRequest Decode(string creqb)
@@ -120,9 +120,15 @@ public class PaymentRequestBech32Encoder
                             var tuple = EncodeTagTuple(["r", relay]);
                             WriteTlv(subMemStream, 0x03, tuple);
                         }
+
+                        if (transport.Tags is null)
+                        {
+                            throw new ArgumentNullException(nameof(transport.Tags), "Tags cannot be null with nostr transport!");
+                        }
+                        
                         foreach (var tag in transport.Tags)
                         {
-                            var tuple = EncodeTagTuple(tag.toArray());
+                            var tuple = EncodeTagTuple(tag.ToArray());
                             WriteTlv(subMemStream, 0x03, tuple);
                         }
                         
@@ -149,7 +155,7 @@ public class PaymentRequestBech32Encoder
             
             foreach (var tag in nut10.Tags ?? [])
             {
-                var tuple = EncodeTagTuple(tag);
+                var tuple = EncodeTagTuple(tag.ToArray());
                 WriteTlv(subMemStream, 0x03, tuple);
             }
             
@@ -173,6 +179,7 @@ public class PaymentRequestBech32Encoder
         memStream.WriteByte((byte)(data.Length & 0xFF)); // LSB
         memStream.Write(data, 0, data.Length);
     }
+    
     private static byte[] EncodeTagTuple(IEnumerable<string> tuple)
     {
         var utf8 = Encoding.UTF8;
@@ -312,30 +319,21 @@ public class PaymentRequestBech32Encoder
                     tags.Add(tuple);
                 }
             }
-
-            if (relays.Count > 0)
-            {
-                transport.Target = EncodeNprofile(targetBytes, relays.ToArray());
-            }
-            else
-            {
-                transport.Target = EncodeNpub(targetBytes);
-            }
+            
+            transport.Target = EncodeNprofile(targetBytes, relays.ToArray());
 
             if (tags.Count > 0) //FIXME: this is temporary. we should be able to have key-only or multiple values tags.
             {
-                // todo for now there aren't really any payment tags with more than 2 values. but there can be more in da future.
-                transport.Tags = tags.Select(t => new PaymentRequestTransportTag() { Key = t[0], Value = t.Length > 1 ? t[1] : "" }).ToArray();
+                transport.Tags = tags.Select(t => new Tag(t)).ToArray();
             }
         }
         else if (transport.Type == "post" && targetBytes != null)
         {
             transport.Target = Encoding.UTF8.GetString(targetBytes);
 
-            if (allTuples.Count > 0) //FIXME: this is temporary. we should be able to have key-only or multiple values tags.
+            if (allTuples.Count > 0) 
             {
-                // todo for now there aren't really any payment tags with more than 2 values. but there can be more in da future.
-                transport.Tags = allTuples.Select(t => new PaymentRequestTransportTag() { Key = t[0], Value = t.Length > 1 ? t[1] : "" }).ToArray();
+                transport.Tags = allTuples.Select(t => new Tag(t)).ToArray();
             }
         }
 
@@ -377,7 +375,7 @@ public class PaymentRequestBech32Encoder
 
         if (tags.Count > 0)
         {
-            nut10.Tags = tags.ToArray();
+            nut10.Tags = tags.Select(t => new Tag(t)).ToArray();
         }
 
         return nut10;
@@ -409,10 +407,11 @@ public class PaymentRequestBech32Encoder
     private const string NpubPrefix = "npub";
     private const string NprofilePrefix = "nprofile";
 
-    private static (byte[] Pubkey, string[] Relays) DecodeNostr(string n)
+    // Made public for debugging - TODO: make private again
+    public static (byte[] Pubkey, string[] Relays) DecodeNostr(string n)
     {
         if (n.StartsWith(NprofilePrefix))
-        { 
+        {
             return DecodeNprofile(n);
         }
         var pubkey = DecodeNpub(n);

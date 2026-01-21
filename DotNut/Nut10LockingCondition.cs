@@ -4,5 +4,5 @@ public class Nut10LockingCondition
 {
     public string Kind;
     public string Data;
-    public string[][]? Tags;
+    public Tag[] Tags;
 }

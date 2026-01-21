@@ -15,13 +15,13 @@ public class NostrNip17PaymentRequestInterfaceHandler : PaymentRequestInterfaceH
 
     public bool CanHandle(PaymentRequest request)
     {
-        return request.Transports.Any(t => t.Type == "nostr" && t.Tags.Any( t => t.Key == "n" && t.Value == "17"));
+        return request.Transports.Any(t => t.Type == "nostr" && t.Tags.Any( t => t.Key == "n" && t.Value.Any(t=>t=="17")));
     }
 
     public async Task SendPayment(PaymentRequest request, PaymentRequestPayload payload,
         CancellationToken cancellationToken = default)
     { 
-        var nprofileStr = request.Transports.First(t => t.Type == "nostr" && t.Tags.Any( t => t.Key == "n" && t.Value == "17")).Target;
+        var nprofileStr = request.Transports.First(t => t.Type == "nostr" && t.Tags.Any( t => t.Key == "n" && t.Value.Any(t=>t=="17"))).Target;
         var nprofile = (NIP19.NosteProfileNote) NIP19.FromNIP19Note(nprofileStr);
         using var  client = new CompositeNostrClient(nprofile.Relays.Select(r => new Uri(r)).ToArray());
         await client.Connect(cancellationToken);

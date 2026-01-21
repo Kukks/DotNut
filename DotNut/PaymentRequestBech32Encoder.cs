@@ -84,7 +84,7 @@ public class PaymentRequestBech32Encoder
         {
             foreach (var mint in mints)
             {
-                WriteTlvUtf8(writer, TlvTag.Mint, mint.ToLowerInvariant());
+                WriteTlvUtf8(writer, TlvTag.Mint, mint);
             }
         }
 
@@ -274,8 +274,7 @@ public class PaymentRequestBech32Encoder
         if (mints.Count > 0)
             pr.Mints = mints.ToArray();
 
-        if (transports.Count > 0)
-            pr.Transports = transports.ToArray();
+        pr.Transports = transports.ToArray();
 
         return pr;
     }
@@ -404,7 +403,7 @@ public class PaymentRequestBech32Encoder
 
     public static (byte[] Pubkey, string[] Relays) DecodeNostr(string n)
     {
-        if (n.StartsWith("nprofile", StringComparison.Ordinal))
+        if (n.StartsWith("nprofile", StringComparison.OrdinalIgnoreCase))
             return DecodeNprofile(n);
 
         return (DecodeNpub(n), []);

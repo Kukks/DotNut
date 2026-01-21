@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Text;
 using DotNut.NBitcoin.Bech32;
@@ -6,9 +7,12 @@ namespace DotNut;
 
 public class PaymentRequestBech32Encoder
 {
-    private static readonly string PREFIX = "creqb1";
-    
-    private enum TlvTag: byte {
+    private static readonly Bech32Encoder Encoder = new("creqb") { StrictLength = false };
+    private static readonly byte[] NpubPrefixBytes = "npub"u8.ToArray();
+    private static readonly byte[] NprofilePrefixBytes = "nprofile"u8.ToArray();
+
+    private enum TlvTag : byte
+    {
         PaymentId = 0x01,
         Amount = 0x02,
         Unit = 0x03,
@@ -18,208 +22,222 @@ public class PaymentRequestBech32Encoder
         Transport = 0x07,
         Nut10 = 0x08
     }
-    
-    
+
     public static string Encode(PaymentRequest paymentRequest)
     {
-        var tlvBytes = EncodeTLV(paymentRequest);
-        var words = ConvertBits(tlvBytes, 8, 5, true);
-        var encoder = new Bech32Encoder("creqb")
-        {
-            StrictLength = false
-        };
-        return encoder.EncodeRaw(words, Bech32EncodingType.BECH32M).ToUpperInvariant();
+        var writer = new ArrayBufferWriter<byte>(256);
+        EncodeTLV(writer, paymentRequest);
+
+        var tlvBytes = writer.WrittenSpan;
+        Span<byte> words = tlvBytes.Length * 2 > 1024
+            ? new byte[tlvBytes.Length * 2]
+            : stackalloc byte[tlvBytes.Length * 2];
+
+        var wordsLen = ConvertBits(tlvBytes, words, 8, 5, true);
+        return Encoder.EncodeRaw(words[..wordsLen].ToArray(), Bech32EncodingType.BECH32M).ToUpperInvariant();
     }
-    
+
     public static PaymentRequest Decode(string creqb)
     {
-        if (!creqb.StartsWith("creqb1", StringComparison.CurrentCultureIgnoreCase))
+        if (!creqb.StartsWith("creqb1", StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException("Invalid payment request type!");
         }
-        var encoder = new Bech32Encoder("creqb")
-        {
-            StrictLength = false
-        };
-        var words = encoder.DecodeDataRaw(creqb, out _);
+
+        var words = Encoder.DecodeDataRaw(creqb, out _);
         var tlv = ConvertBits(words, 5, 8, false);
         return DecodeTLV(tlv);
     }
 
-    private static byte[] EncodeTLV(PaymentRequest paymentRequest)
+    private static void EncodeTLV(IBufferWriter<byte> writer, PaymentRequest paymentRequest)
     {
-        using var memStream = new MemoryStream();
-
         if (paymentRequest.PaymentId is { } pmid)
         {
-            var pmidBytes = Encoding.UTF8.GetBytes(pmid);
-            WriteTlv(memStream, TlvTag.PaymentId, pmidBytes);
+            WriteTlvUtf8(writer, TlvTag.PaymentId, pmid);
         }
 
         if (paymentRequest.Amount is { } amount)
         {
-            var amountBytes = new byte[8];
+            Span<byte> amountBytes = stackalloc byte[8];
             BinaryPrimitives.WriteUInt64BigEndian(amountBytes, amount);
-            WriteTlv(memStream, TlvTag.Amount, amountBytes);
+            WriteTlv(writer, TlvTag.Amount, amountBytes);
         }
 
         if (paymentRequest.Unit is { } unit)
         {
-            byte[] data = [0x00];
-            if (!unit.Equals("sat", StringComparison.CurrentCultureIgnoreCase))
+            if (unit.Equals("sat", StringComparison.OrdinalIgnoreCase))
             {
-                data = Encoding.UTF8.GetBytes(unit.ToLower());
+                WriteTlv(writer, TlvTag.Unit, [0x00]);
             }
-            WriteTlv(memStream, TlvTag.Unit, data);
+            else
+            {
+                WriteTlvUtf8(writer, TlvTag.Unit, unit.ToLowerInvariant());
+            }
         }
 
         if (paymentRequest.OneTimeUse is { } s)
         {
-            byte[] data = s ? [0x01] : [0x00];
-            WriteTlv(memStream, TlvTag.SingleUse, data);
+            WriteTlv(writer, TlvTag.SingleUse, s ? [0x01] : [0x00]);
         }
 
         if (paymentRequest.Mints is { } mints)
         {
             foreach (var mint in mints)
             {
-                var mintBytes = Encoding.UTF8.GetBytes(mint.ToLower());
-                WriteTlv(memStream, TlvTag.Mint, mintBytes);
+                WriteTlvUtf8(writer, TlvTag.Mint, mint.ToLowerInvariant());
             }
         }
 
         if (paymentRequest.Memo is { } memo)
         {
-            var memoBytes = Encoding.UTF8.GetBytes(memo);
-            WriteTlv(memStream, TlvTag.Description, memoBytes);
+            WriteTlvUtf8(writer, TlvTag.Description, memo);
         }
 
         if (paymentRequest.Transports is { } transports)
         {
-            // 0x01 	kind 	u8 	Transport type: 0=nostr, 1=http_post
-            // 0x02 	target 	bytes 	Transport target (interpretation depends on kind)
-            // 0x03 	tag_tuple 	sub-sub-TLV 	Generic tag tuple (repeatable)
-            
             foreach (var transport in transports)
             {
-                using var subMemStream = new MemoryStream();
-                switch (transport.Type.ToLower())
-                {
-                    case "post":
-                        WriteTlv(subMemStream, 0x01, [0x01]);
-                        byte[] target = Encoding.UTF8.GetBytes(transport.Target);
-                        WriteTlv(subMemStream, 0x02, target);
-                        break;
-                    case "nostr":
-                        WriteTlv(subMemStream, 0x01, [0x00]);
-                        
-                        (byte[] pubkey, string[] relays) = DecodeNostr(transport.Target);
-                        WriteTlv(subMemStream, 0x02, pubkey);
-                        foreach (var relay in relays)
-                        {
-                            var tuple = EncodeTagTuple(["r", relay]);
-                            WriteTlv(subMemStream, 0x03, tuple);
-                        }
-
-                        if (transport.Tags is null)
-                        {
-                            throw new ArgumentNullException(nameof(transport.Tags), "Tags cannot be null with nostr transport!");
-                        }
-                        
-                        foreach (var tag in transport.Tags)
-                        {
-                            var tuple = EncodeTagTuple(tag.ToArray());
-                            WriteTlv(subMemStream, 0x03, tuple);
-                        }
-                        
-                        break;
-                    default:
-                        throw new ArgumentException("Unknown transport type!");
-                }
-                WriteTlv(memStream, TlvTag.Transport, subMemStream.ToArray());
+                var subWriter = new ArrayBufferWriter<byte>(128);
+                EncodeTransport(subWriter, transport);
+                WriteTlv(writer, TlvTag.Transport, subWriter.WrittenSpan);
             }
         }
 
         if (paymentRequest.Nut10 is { } nut10)
         {
-            using var subMemStream = new MemoryStream();
-            var kind = nut10.Kind.ToUpper() switch
-            {
-                "P2PK" => new byte[] { 0x00 },
-                "HTLC" => new byte[] { 0x01 },
-                _ => throw new ArgumentException("Unknown nut10 kind!")
-            };
-            WriteTlv(subMemStream, (TlvTag)0x01, kind);
-            var dataBytes = Encoding.UTF8.GetBytes(nut10.Data);
-            WriteTlv(subMemStream, (TlvTag)0x02, dataBytes);
-            
-            foreach (var tag in nut10.Tags ?? [])
-            {
-                var tuple = EncodeTagTuple(tag.ToArray());
-                WriteTlv(subMemStream, 0x03, tuple);
-            }
-            
-            WriteTlv(memStream, TlvTag.Nut10, subMemStream.ToArray());
+            var subWriter = new ArrayBufferWriter<byte>(128);
+            EncodeNut10(subWriter, nut10);
+            WriteTlv(writer, TlvTag.Nut10, subWriter.WrittenSpan);
         }
-        
-        return memStream.ToArray();
     }
-    private static void WriteTlv(MemoryStream memStream, TlvTag tag, byte[] data)
-    { 
-        WriteTlv(memStream, (byte)tag, data);
-    }
-    private static void WriteTlv(MemoryStream memStream, byte tag, byte[] data)
-    {
-        if (data.Length > ushort.MaxValue)
-        {
-            throw new ArgumentException("Data too long for 2-byte TLV length");
-        }
-        memStream.WriteByte(tag);
-        memStream.WriteByte((byte)(data.Length >> 8)); // MSB
-        memStream.WriteByte((byte)(data.Length & 0xFF)); // LSB
-        memStream.Write(data, 0, data.Length);
-    }
-    
-    private static byte[] EncodeTagTuple(IEnumerable<string> tuple)
-    {
-        var utf8 = Encoding.UTF8;
 
-        int totalLength = 0;
+    private static void EncodeNut10(IBufferWriter<byte> writer, Nut10LockingCondition nut10)
+    {
+        var kindByte = nut10.Kind.ToUpperInvariant() switch
+        {
+            "P2PK" => (byte)0x00,
+            "HTLC" => (byte)0x01,
+            _ => throw new ArgumentException("Unknown nut10 kind!")
+        };
+        WriteTlv(writer, 0x01, [kindByte]);
+        WriteTlvUtf8(writer, 0x02, nut10.Data);
+
+        foreach (var tag in nut10.Tags ?? [])
+        {
+            WriteTagTuple(writer, 0x03, tag.ToArray());
+        }
+    }
+
+    private static void EncodeTransport(IBufferWriter<byte> writer, PaymentRequestTransport transport)
+    {
+        switch (transport.Type.ToLowerInvariant())
+        {
+            case "post":
+                WriteTlv(writer, 0x01, [0x01]);
+                WriteTlvUtf8(writer, 0x02, transport.Target);
+                foreach (var tag in transport.Tags ?? [])
+                {
+                    WriteTagTuple(writer, 0x03, tag.ToArray());
+                }
+                break;
+
+            case "nostr":
+                WriteTlv(writer, 0x01, [0x00]);
+
+                var (pubkey, relays) = DecodeNostr(transport.Target);
+                WriteTlv(writer, 0x02, pubkey);
+
+                foreach (var relay in relays)
+                {
+                    WriteTagTuple(writer, 0x03, ["r", relay]);
+                }
+
+
+                foreach (var tag in transport.Tags ?? [])
+                {
+                    WriteTagTuple(writer, 0x03, tag.ToArray());
+                }
+                break;
+
+            default:
+                throw new ArgumentException("Unknown transport type!");
+        }
+    }
+
+    private static void WriteTagTuple(IBufferWriter<byte> writer, byte tag, ReadOnlySpan<string> tuple)
+    {
+        // Calculate total size for the tuple data
+        var totalLen = 0;
         foreach (var s in tuple)
         {
-            int byteLen = utf8.GetByteCount(s);
+            var byteLen = Encoding.UTF8.GetByteCount(s);
             if (byteLen > 255)
                 throw new ArgumentException($"Tag tuple string too long (max 255 bytes): {s}");
-
-            totalLength += 1 + byteLen;
+            totalLen += 1 + byteLen;
         }
 
-        var result = new byte[totalLength];
-        var span = result.AsSpan();
-        int offset = 0;
+        if (totalLen > ushort.MaxValue)
+            throw new ArgumentException("Tag tuple too long!");
 
+        // Write TLV header + tuple data directly
+        var span = writer.GetSpan(3 + totalLen);
+        span[0] = tag;
+        BinaryPrimitives.WriteUInt16BigEndian(span.Slice(1, 2), (ushort)totalLen);
+
+        var offset = 3;
         foreach (var s in tuple)
         {
-            int byteLen = utf8.GetByteCount(s);
+            var byteLen = Encoding.UTF8.GetByteCount(s);
             span[offset++] = (byte)byteLen;
-            utf8.GetBytes(s, span.Slice(offset, byteLen));
+            Encoding.UTF8.GetBytes(s, span.Slice(offset, byteLen));
             offset += byteLen;
         }
 
-        return result;
+        writer.Advance(3 + totalLen);
     }
-    
+
+    private static void WriteTlv(IBufferWriter<byte> writer, TlvTag tag, ReadOnlySpan<byte> data)
+        => WriteTlv(writer, (byte)tag, data);
+
+    private static void WriteTlv(IBufferWriter<byte> writer, byte tag, ReadOnlySpan<byte> data)
+    {
+        if (data.Length > ushort.MaxValue)
+            throw new ArgumentException("TLV data too long!");
+
+        var span = writer.GetSpan(3 + data.Length);
+        span[0] = tag;
+        BinaryPrimitives.WriteUInt16BigEndian(span.Slice(1, 2), (ushort)data.Length);
+        data.CopyTo(span.Slice(3));
+        writer.Advance(3 + data.Length);
+    }
+
+    private static void WriteTlvUtf8(IBufferWriter<byte> writer, TlvTag tag, string value)
+        => WriteTlvUtf8(writer, (byte)tag, value);
+
+    private static void WriteTlvUtf8(IBufferWriter<byte> writer, byte tag, string value)
+    {
+        var byteCount = Encoding.UTF8.GetByteCount(value);
+        if (byteCount > ushort.MaxValue)
+            throw new ArgumentException("TLV string too long!");
+
+        var span = writer.GetSpan(3 + byteCount);
+        span[0] = tag;
+        BinaryPrimitives.WriteUInt16BigEndian(span.Slice(1, 2), (ushort)byteCount);
+        Encoding.UTF8.GetBytes(value, span.Slice(3, byteCount));
+        writer.Advance(3 + byteCount);
+    }
+
     private static PaymentRequest DecodeTLV(ReadOnlySpan<byte> data)
     {
         var pr = new PaymentRequest();
         var offset = 0;
         var mints = new List<string>();
         var transports = new List<PaymentRequestTransport>();
-        
+
         while (offset < data.Length)
         {
             var tag = data[offset];
-            var length = (data[offset + 1] << 8) + data[offset + 2];
+            var length = BinaryPrimitives.ReadUInt16BigEndian(data.Slice(offset + 1, 2));
             offset += 3;
             var value = data.Slice(offset, length);
             offset += length;
@@ -245,8 +263,7 @@ public class PaymentRequestBech32Encoder
                     pr.Memo = Encoding.UTF8.GetString(value);
                     break;
                 case 0x07:
-                    var t = DecodeTransport(value);
-                    transports.Add(t);
+                    transports.Add(DecodeTransport(value));
                     break;
                 case 0x08:
                     pr.Nut10 = DecodeNut10(value);
@@ -255,18 +272,14 @@ public class PaymentRequestBech32Encoder
         }
 
         if (mints.Count > 0)
-        {
             pr.Mints = mints.ToArray();
-        }
 
         if (transports.Count > 0)
-        {
             pr.Transports = transports.ToArray();
-        }
 
         return pr;
     }
-    
+
     private static PaymentRequestTransport DecodeTransport(ReadOnlySpan<byte> data)
     {
         var transport = new PaymentRequestTransport();
@@ -274,18 +287,17 @@ public class PaymentRequestBech32Encoder
         byte[]? targetBytes = null;
         var allTuples = new List<string[]>();
 
-        // First pass: collect all raw data
         while (offset < data.Length)
         {
             var tag = data[offset];
-            var length = (data[offset + 1] << 8) + data[offset + 2];
+            var length = BinaryPrimitives.ReadUInt16BigEndian(data.Slice(offset + 1, 2));
             offset += 3;
             var value = data.Slice(offset, length);
             offset += length;
 
             switch (tag)
             {
-                case 0x01: // kind
+                case 0x01:
                     transport.Type = value[0] switch
                     {
                         0x00 => "nostr",
@@ -293,16 +305,15 @@ public class PaymentRequestBech32Encoder
                         _ => throw new FormatException("Unknown transport kind")
                     };
                     break;
-                case 0x02: // target (raw bytes, interpretation depends on kind)
+                case 0x02:
                     targetBytes = value.ToArray();
                     break;
-                case 0x03: // tag_tuple
+                case 0x03:
                     allTuples.Add(DecodeTagTuple(value));
                     break;
             }
         }
 
-        // Second pass: process collected data based on type
         if (transport.Type == "nostr" && targetBytes != null)
         {
             var relays = new List<string>();
@@ -310,31 +321,23 @@ public class PaymentRequestBech32Encoder
 
             foreach (var tuple in allTuples)
             {
-                if (tuple.Length >= 2 && tuple[0] == "r")
-                {
+                if (tuple is ["r", _, ..])
                     relays.Add(tuple[1]);
-                }
                 else
-                {
                     tags.Add(tuple);
-                }
             }
-            
+
             transport.Target = EncodeNprofile(targetBytes, relays.ToArray());
 
-            if (tags.Count > 0) //FIXME: this is temporary. we should be able to have key-only or multiple values tags.
-            {
+            if (tags.Count > 0)
                 transport.Tags = tags.Select(t => new Tag(t)).ToArray();
-            }
         }
         else if (transport.Type == "post" && targetBytes != null)
         {
             transport.Target = Encoding.UTF8.GetString(targetBytes);
 
-            if (allTuples.Count > 0) 
-            {
+            if (allTuples.Count > 0)
                 transport.Tags = allTuples.Select(t => new Tag(t)).ToArray();
-            }
         }
 
         return transport;
@@ -345,18 +348,18 @@ public class PaymentRequestBech32Encoder
         var nut10 = new Nut10LockingCondition();
         var offset = 0;
         var tags = new List<string[]>();
-    
+
         while (offset < data.Length)
         {
             var tag = data[offset];
-            var length = (data[offset + 1] << 8) + data[offset + 2];
+            var length = BinaryPrimitives.ReadUInt16BigEndian(data.Slice(offset + 1, 2));
             offset += 3;
             var value = data.Slice(offset, length);
             offset += length;
 
             switch (tag)
             {
-                case 0x01: // kind
+                case 0x01:
                     nut10.Kind = value[0] switch
                     {
                         0x00 => "P2PK",
@@ -364,116 +367,73 @@ public class PaymentRequestBech32Encoder
                         _ => throw new FormatException("Unknown nut10 kind")
                     };
                     break;
-                case 0x02: // data
+                case 0x02:
                     nut10.Data = Encoding.UTF8.GetString(value);
                     break;
-                case 0x03: // tag_tuple
+                case 0x03:
                     tags.Add(DecodeTagTuple(value));
                     break;
             }
         }
 
         if (tags.Count > 0)
-        {
             nut10.Tags = tags.Select(t => new Tag(t)).ToArray();
-        }
 
         return nut10;
     }
+
     private static string[] DecodeTagTuple(ReadOnlySpan<byte> data)
     {
         var result = new List<string>();
         var offset = 0;
-    
+
         while (offset < data.Length)
         {
             var length = data[offset++];
             if (offset + length > data.Length)
-            {
                 throw new FormatException("Invalid tag tuple: data too short");
-            }
-        
-            var value = data.Slice(offset, length);
-            result.Add(Encoding.UTF8.GetString(value));
+
+            result.Add(Encoding.UTF8.GetString(data.Slice(offset, length)));
             offset += length;
         }
-    
+
         return result.ToArray();
     }
 
-
     #region Nostr Helpers
 
-    private const string NpubPrefix = "npub";
-    private const string NprofilePrefix = "nprofile";
-
-    // Made public for debugging - TODO: make private again
     public static (byte[] Pubkey, string[] Relays) DecodeNostr(string n)
     {
-        if (n.StartsWith(NprofilePrefix))
-        {
+        if (n.StartsWith("nprofile", StringComparison.Ordinal))
             return DecodeNprofile(n);
-        }
-        var pubkey = DecodeNpub(n);
-        return (pubkey, []);
+
+        return (DecodeNpub(n), []);
     }
 
     private static byte[] DecodeNpub(string npub)
     {
-        var encoder = new Bech32Encoder(Encoding.ASCII.GetBytes(NpubPrefix))
-        {
-            StrictLength = false
-        };
-
+        var encoder = new Bech32Encoder(NpubPrefixBytes) { StrictLength = false };
         var data = encoder.DecodeDataRaw(npub, out var encodingType);
+
         if (encodingType != Bech32EncodingType.BECH32)
-        {
             throw new FormatException("Invalid npub: expected BECH32 encoding");
-        }
 
         var pubkey = ConvertBits(data, 5, 8, false);
         if (pubkey.Length != 32)
-        {
             throw new FormatException($"Invalid npub: expected 32 bytes, got {pubkey.Length}");
-        }
 
         return pubkey;
     }
 
-    private static string EncodeNpub(byte[] pubkey)
-    {
-        if (pubkey.Length != 32)
-        {
-            throw new ArgumentException($"Invalid pubkey: expected 32 bytes, got {pubkey.Length}");
-        }
-
-        var words = ConvertBits(pubkey, 8, 5, true);
-
-        var encoder = new Bech32Encoder(Encoding.ASCII.GetBytes(NpubPrefix))
-        {
-            StrictLength = false
-        };
-
-        return encoder.EncodeRaw(words, Bech32EncodingType.BECH32);
-    }
-
     private static (byte[] Pubkey, string[] Relays) DecodeNprofile(string nprofile)
     {
-        var encoder = new Bech32Encoder(Encoding.ASCII.GetBytes(NprofilePrefix))
-        {
-            StrictLength = false
-        };
-
+        var encoder = new Bech32Encoder(NprofilePrefixBytes) { StrictLength = false };
         var data = encoder.DecodeDataRaw(nprofile, out var encodingType);
+
         if (encodingType != Bech32EncodingType.BECH32)
-        {
             throw new FormatException("Invalid nprofile: expected BECH32 encoding");
-        }
 
-        // Convert from 5-bit to 8-bit
         var tlvData = ConvertBits(data, 5, 8, false);
-
-        // Parse TLV structure (1-byte T, 1-byte L format)
         byte[]? pubkey = null;
         var relays = new List<string>();
         var offset = 0;
@@ -481,139 +441,120 @@ public class PaymentRequestBech32Encoder
         while (offset < tlvData.Length)
         {
             if (offset + 2 > tlvData.Length)
-            {
                 throw new FormatException("Nprofile TLV data too short");
-            }
 
             var tag = tlvData[offset];
             var length = tlvData[offset + 1];
             offset += 2;
 
             if (offset + length > tlvData.Length)
-            {
                 throw new FormatException($"Nprofile TLV value too short: expected {length} bytes");
-            }
-
-            var value = new byte[length];
-            Array.Copy(tlvData, offset, value, 0, length);
-            offset += length;
 
             switch (tag)
             {
-                case 0x00: // Pubkey
-                    if (value.Length != 32)
-                    {
-                        throw new FormatException($"Invalid pubkey length: expected 32 bytes, got {value.Length}");
-                    }
-                    pubkey = value;
+                case 0x00:
+                    if (length != 32)
+                        throw new FormatException($"Invalid pubkey length: expected 32 bytes, got {length}");
+                    pubkey = tlvData.AsSpan(offset, 32).ToArray();
                     break;
-                case 0x01: // Relay URL
-                    relays.Add(Encoding.UTF8.GetString(value));
+                case 0x01:
+                    relays.Add(Encoding.UTF8.GetString(tlvData.AsSpan(offset, length)));
                     break;
-                // Ignore unknown tags
             }
+
+            offset += length;
         }
 
         if (pubkey == null)
-        {
             throw new FormatException("Nprofile missing required pubkey");
-        }
 
         return (pubkey, relays.ToArray());
     }
 
     private static string EncodeNprofile(byte[] pubkey, string[] relays)
     {
-        var tlv = EncodePubkeyRelaysTlv(pubkey, relays);
-
-        // Convert from 8-bit to 5-bit
-        var words = ConvertBits(tlv, 8, 5, true);
-
-        var encoder = new Bech32Encoder(Encoding.ASCII.GetBytes(NprofilePrefix))
-        {
-            StrictLength = false
-        };
-
-        return encoder.EncodeRaw(words, Bech32EncodingType.BECH32);
-    }
-
-    private static byte[] EncodePubkeyRelaysTlv(byte[] pubkey, string[] relays)
-    {
         if (pubkey.Length != 32)
-        {
             throw new ArgumentException($"Invalid pubkey: expected 32 bytes, got {pubkey.Length}");
-        }
-
-        var encodedRelays = relays.Select(Encoding.UTF8.GetBytes).ToArray();
-
-        // Validate relay lengths fit in 1 byte
-        for (var i = 0; i < encodedRelays.Length; i++)
-        {
-            if (encodedRelays[i].Length > 255)
-            {
-                throw new ArgumentException($"Relay URL too long: {relays[i]} (max 255 bytes)");
-            }
-        }
 
         // Calculate total size: pubkey (1 + 1 + 32) + relays (1 + 1 + len each)
-        var totalSize = 2 + 32 + encodedRelays.Sum(r => 2 + r.Length);
-        var result = new byte[totalSize];
+        var totalSize = 34;
+        foreach (var relay in relays)
+        {
+            var len = Encoding.UTF8.GetByteCount(relay);
+            if (len > 255)
+                throw new ArgumentException($"Relay URL too long: {relay} (max 255 bytes)");
+            totalSize += 2 + len;
+        }
 
+        Span<byte> result = totalSize <= 512 ? stackalloc byte[totalSize] : new byte[totalSize];
         var offset = 0;
 
         // Write pubkey: T=0x00, L=32, V=<32 bytes>
         result[offset++] = 0x00;
         result[offset++] = 32;
-        Array.Copy(pubkey, 0, result, offset, 32);
+        pubkey.CopyTo(result.Slice(offset, 32));
         offset += 32;
 
         // Write each relay: T=0x01, L=<len>, V=<UTF-8 string>
-        foreach (var relay in encodedRelays)
+        foreach (var relay in relays)
         {
+            var len = Encoding.UTF8.GetByteCount(relay);
             result[offset++] = 0x01;
-            result[offset++] = (byte)relay.Length;
-            Array.Copy(relay, 0, result, offset, relay.Length);
-            offset += relay.Length;
+            result[offset++] = (byte)len;
+            Encoding.UTF8.GetBytes(relay, result.Slice(offset, len));
+            offset += len;
         }
 
-        return result;
+        var words = ConvertBits(result.ToArray(), 8, 5, true);
+        var encoder = new Bech32Encoder(NprofilePrefixBytes) { StrictLength = false };
+        return encoder.EncodeRaw(words, Bech32EncodingType.BECH32);
     }
 
     private static byte[] ConvertBits(byte[] data, int fromBits, int toBits, bool pad)
+        => ConvertBits(data.AsSpan(), fromBits, toBits, pad);
+
+    private static byte[] ConvertBits(ReadOnlySpan<byte> data, int fromBits, int toBits, bool pad)
+    {
+        // estimate max output size
+        var maxLen = (data.Length * fromBits + toBits - 1) / toBits + 1;
+        Span<byte> output = maxLen <= 512 ? stackalloc byte[maxLen] : new byte[maxLen];
+        var written = ConvertBits(data, output, fromBits, toBits, pad);
+        return output[..written].ToArray();
+    }
+
+    private static int ConvertBits(ReadOnlySpan<byte> data, Span<byte> output, int fromBits, int toBits, bool pad)
     {
         var acc = 0;
         var bits = 0;
         var maxv = (1 << toBits) - 1;
-        var ret = new List<byte>();
+        var idx = 0;
 
         foreach (var value in data)
         {
             if ((value >> fromBits) > 0)
-            {
                 throw new FormatException("Invalid data");
-            }
+
             acc = (acc << fromBits) | value;
             bits += fromBits;
+
             while (bits >= toBits)
             {
                 bits -= toBits;
-                ret.Add((byte)((acc >> bits) & maxv));
+                output[idx++] = (byte)((acc >> bits) & maxv);
             }
         }
 
         if (pad)
         {
             if (bits > 0)
-            {
-                ret.Add((byte)((acc << (toBits - bits)) & maxv));
-            }
+                output[idx++] = (byte)((acc << (toBits - bits)) & maxv);
         }
         else if (bits >= fromBits || ((acc << (toBits - bits)) & maxv) != 0)
         {
             throw new FormatException("Invalid padding");
         }
 
-        return ret.ToArray();
+        return idx;
     }
 
     #endregion

@@ -34,7 +34,10 @@ public class PaymentRequestEncoder : ICBORToFromConverter<PaymentRequest>
                 {
                     var tagItem = CBORObject.NewArray();
                     tagItem.Add(tag.Key);
-                    tagItem.Add(tag.Value);
+                    foreach (var tagValue in tag.Value)
+                    {
+                        tagItem.Add(tagValue);
+                    }
                     tags.Add(tagItem);
                 }
 
@@ -42,6 +45,28 @@ public class PaymentRequestEncoder : ICBORToFromConverter<PaymentRequest>
             }
 
             transports.Add(transportItem);
+        }
+        if (paymentRequest.Nut10 is not null)
+        {
+            var nut10Obj = CBORObject.NewMap();
+            nut10Obj.Add("k", paymentRequest.Nut10.Kind);
+            nut10Obj.Add("d", paymentRequest.Nut10.Data);
+            if (paymentRequest.Nut10.Tags is not null)
+            {
+                var tagsArray = CBORObject.NewArray();
+                foreach (var tag in paymentRequest.Nut10.Tags)
+                {
+                    var tagItem = CBORObject.NewArray();
+                    tagItem.Add(tag.Key);
+                    foreach (var tagValue in tag.Value)
+                    {
+                        tagItem.Add(tagValue);
+                    }
+                    tagsArray.Add(tagItem);
+                }
+                nut10Obj.Add("t", tagsArray);
+            }
+            cbor.Add("nut10", nut10Obj);
         }
 
         cbor.Add("t", transports);
@@ -90,21 +115,43 @@ public class PaymentRequestEncoder : ICBORToFromConverter<PaymentRequest>
                                     transport.Target = transportValue.AsString();
                                     break;
                                 case "g":
-                                    transport.Tags = transportValue.Values.Select(tag =>
-                                    {
-                                        var tagItem = new PaymentRequestTransportTag
-                                        {
-                                            Key = tag[0].AsString(),
-                                            Value = tag[1].AsString()
-                                        };
-                                        return tagItem;
-                                    }).ToArray();
+                                    transport.Tags = transportValue.Values
+                                        .Where(tag => tag.Type == CBORType.Array)
+                                        .Select(tag =>
+                                            new Tag(tag.Values.Select(cborObject => cborObject.AsString()).ToArray())
+                                        )
+                                        .ToArray();
                                     break;
                             }
                         }
 
                         return transport;
                     }).ToArray();
+                    break;
+                case "nut10":
+                    var lockingCondition = new Nut10LockingCondition();
+                    foreach (var nut10Key in value.Keys)
+                    {
+                        var nut10Value = value[nut10Key];
+                        switch (nut10Key.AsString())
+                        {
+                            case "k":
+                                lockingCondition.Kind = nut10Value.AsString();
+                                break;
+                            case "d":
+                                lockingCondition.Data = nut10Value.AsString();
+                                break;
+                            case "t":
+                               lockingCondition.Tags = nut10Value.Values
+                                    .Where(tag => tag.Type == CBORType.Array)
+                                    .Select(tag =>
+                                        new Tag(tag.Values.Select(cborObject => cborObject.AsString()).ToArray())
+                                    )
+                                    .ToArray();
+                                break;
+                        }
+                    }
+                    paymentRequest.Nut10 = lockingCondition;
                     break;
             }
         }

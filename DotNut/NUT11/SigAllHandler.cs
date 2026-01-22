@@ -240,9 +240,9 @@ public class SigAllHandler
         var builder = nut10.ProofSecret switch
         {
             HTLCProofSecret htlcs => HTLCBuilder.Load(htlcs),
-            P2PKProofSecret p2pks => P2PkBuilder.Load(p2pks),
+            P2PKProofSecret p2pks => P2PKBuilder.Load(p2pks),
             // won't throw exception if there will be a new type of nut10 secret, but will return false
-            _ => new P2PkBuilder() { SigFlag = null },
+            _ => new P2PKBuilder() { SigFlag = null },
         };
 
         if (builder.SigFlag != "SIG_ALL")

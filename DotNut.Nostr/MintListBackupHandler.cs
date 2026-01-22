@@ -75,8 +75,11 @@ public class MintListBackupHandler
 
             if (evts != null && evts.Count != 0)
             {
-                evt = evts[0];
-                break;
+                var latest = evts.OrderByDescending(e => e.CreatedAt).First();
+                if (evt == null || latest.CreatedAt > evt.CreatedAt)
+                {
+                    evt = latest;
+                }
             }
         }
 

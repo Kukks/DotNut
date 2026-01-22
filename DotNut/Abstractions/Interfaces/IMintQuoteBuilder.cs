@@ -43,7 +43,7 @@ public interface IMintQuoteBuilder
     /// <summary>
     /// Optional. Allows providing a P2PK builder when a signature is required for minting.
     /// </summary>
-    IMintQuoteBuilder WithP2PkLock(P2PkBuilder p2pkBuilder);
+    IMintQuoteBuilder WithP2PkLock(P2PKBuilder p2pkBuilder);
 
     /// <summary>
     /// Optional. When minting P2Pk / HTLC Proofs allows to blind the pubkeys.

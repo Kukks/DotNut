@@ -422,7 +422,7 @@ public class Integration
             .CreateMintQuote()
             .WithAmount(1337)
             .WithP2PkLock(
-                new P2PkBuilder()
+                new P2PKBuilder()
                 {
                     Pubkeys = [privKeyBob.Key.CreatePubKey()],
                     SignatureThreshold = 1,
@@ -458,7 +458,7 @@ public class Integration
             .CreateMintQuote()
             .WithAmount(1337)
             .WithP2PkLock(
-                new P2PkBuilder()
+                new P2PKBuilder()
                 {
                     Pubkeys = [privKeyBob.Key.CreatePubKey(), privKeyAlice.Key.CreatePubKey()],
                     SignatureThreshold = 2,
@@ -508,7 +508,7 @@ public class Integration
             .CreateMintQuote()
             .WithAmount(1337)
             .WithP2PkLock(
-                new P2PkBuilder()
+                new P2PKBuilder()
                 {
                     SigFlag = "SIG_ALL",
                     Pubkeys = [privKeyBob.Key.CreatePubKey()],
@@ -541,7 +541,7 @@ public class Integration
         var privKeyBob = new PrivKey(RandomNumberGenerator.GetHexString(64, true));
         var privKeyAlice = new PrivKey(RandomNumberGenerator.GetHexString(64, true));
 
-        var builder = new P2PkBuilder()
+        var builder = new P2PKBuilder()
         {
             Pubkeys = [privKeyBob.Key.CreatePubKey(), privKeyAlice.Key.CreatePubKey()],
         };
@@ -575,7 +575,7 @@ public class Integration
 
         var privKeyBob = new PrivKey(RandomNumberGenerator.GetHexString(64, true));
 
-        var builder = new P2PkBuilder() { Pubkeys = [privKeyBob.Key.CreatePubKey()] };
+        var builder = new P2PKBuilder() { Pubkeys = [privKeyBob.Key.CreatePubKey()] };
 
         var quote = await wallet
             .CreateMintQuote()
@@ -608,7 +608,7 @@ public class Integration
 
         var privKeyBob = new PrivKey(RandomNumberGenerator.GetHexString(64, true));
 
-        var builder = new P2PkBuilder()
+        var builder = new P2PKBuilder()
         {
             Pubkeys = [privKeyBob.Key.CreatePubKey()],
             SigFlag = "SIG_ALL",
@@ -650,7 +650,7 @@ public class Integration
             .CreateMintQuote()
             .WithAmount(1337)
             .WithP2PkLock(
-                new P2PkBuilder()
+                new P2PKBuilder()
                 {
                     SigFlag = "SIG_ALL",
                     Pubkeys = [privKeyBob.Key.CreatePubKey()],

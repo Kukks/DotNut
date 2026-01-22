@@ -3,7 +3,7 @@ using NBitcoin.Secp256k1;
 
 namespace DotNut;
 
-public class P2PkBuilder
+public class P2PKBuilder
 {
     public DateTimeOffset? Lock { get; set; }
     public ECPubKey[]? RefundPubkeys { get; set; }
@@ -50,9 +50,9 @@ public class P2PkBuilder
         };
     }
 
-    public static P2PkBuilder Load(P2PKProofSecret proofSecret)
+    public static P2PKBuilder Load(P2PKProofSecret proofSecret)
     {
-        var builder = new P2PkBuilder();
+        var builder = new P2PKBuilder();
         var primaryPubkey = proofSecret.Data.ToPubKey();
         var pubkeys = proofSecret.Tags?.FirstOrDefault(strings =>
             strings.FirstOrDefault() == "pubkeys"
@@ -170,9 +170,9 @@ public class P2PkBuilder
         }
     }
 
-    public virtual P2PkBuilder Clone()
+    public virtual P2PKBuilder Clone()
     {
-        return new P2PkBuilder()
+        return new P2PKBuilder()
         {
             Lock = Lock,
             RefundPubkeys = RefundPubkeys?.ToArray(),

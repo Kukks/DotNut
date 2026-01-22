@@ -355,7 +355,7 @@ public class UnitTest1
             )
         );
 
-        var conditions = new P2PkBuilder()
+        var conditions = new P2PKBuilder()
         {
             Lock = DateTimeOffset.FromUnixTimeSeconds(21000000000),
             Pubkeys = new[] { signing_key_two.CreatePubKey(), signing_key_three.CreatePubKey() },
@@ -1277,7 +1277,7 @@ public class UnitTest1
 
         var keysetId = new KeysetId("009a1f293253e41e");
 
-        var conditions = new P2PkBuilder()
+        var conditions = new P2PKBuilder()
         {
             Lock = DateTimeOffset.FromUnixTimeSeconds(21000000000),
             Pubkeys = new[] { signing_key.CreatePubKey(), signing_key_two.CreatePubKey() },
@@ -1330,7 +1330,7 @@ public class UnitTest1
 
         var keysetId = new KeysetId("009a1f293253e41e");
 
-        var conditions = new P2PkBuilder()
+        var conditions = new P2PKBuilder()
         {
             Lock = DateTimeOffset.FromUnixTimeSeconds(21000000000),
             Pubkeys = new[] { signing_key.CreatePubKey(), signing_key_two.CreatePubKey() },

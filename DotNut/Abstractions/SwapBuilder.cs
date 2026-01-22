@@ -26,7 +26,7 @@ class SwapBuilder : ISwapBuilder
 
     //nut10 stuff
     private List<PrivKey>? _privKeys;
-    private P2PkBuilder? _builder;
+    private P2PKBuilder? _builder;
     private string? _htlcPreimage;
     private bool _shouldBlind = false;
 
@@ -96,7 +96,7 @@ class SwapBuilder : ISwapBuilder
         return this;
     }
 
-    public ISwapBuilder ToP2PK(P2PkBuilder p2pkBuilder)
+    public ISwapBuilder ToP2PK(P2PKBuilder p2pkBuilder)
     {
         this._builder = p2pkBuilder;
         return this;

@@ -48,7 +48,7 @@ public interface ISwapBuilder
     /// <summary>
     /// Optional. Generate outputs guarded by P2PK locking.
     /// </summary>
-    ISwapBuilder ToP2PK(P2PkBuilder p2pkBuilder);
+    ISwapBuilder ToP2PK(P2PKBuilder p2pkBuilder);
 
     /// <summary>
     /// Optional. Blind P2Pk / HTLC proofs.

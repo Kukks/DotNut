@@ -147,7 +147,7 @@ public static class Utils
     /// <param name="keysetId"></param>
     /// <param name="builder"></param>
     /// <returns></returns>
-    public static OutputData CreateNut10Output(ulong amount, KeysetId keysetId, P2PkBuilder builder)
+    public static OutputData CreateNut10Output(ulong amount, KeysetId keysetId, P2PKBuilder builder)
     {
         // ugliest hack ever
         Nut10Secret secret;
@@ -185,7 +185,7 @@ public static class Utils
     public static OutputData CreateNut10BlindedOutput(
         ulong amount,
         KeysetId keysetId,
-        P2PkBuilder builder
+        P2PKBuilder builder
     )
     {
         // ugliest hack ever
@@ -228,7 +228,7 @@ public static class Utils
     public static OutputData CreateNut10BlindedOutput(
         ulong amount,
         KeysetId keysetId,
-        P2PkBuilder builder,
+        P2PKBuilder builder,
         PrivKey e
     )
     {

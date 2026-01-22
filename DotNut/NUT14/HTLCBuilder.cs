@@ -3,7 +3,7 @@ using NBitcoin.Secp256k1;
 
 namespace DotNut;
 
-public class HTLCBuilder : P2PkBuilder
+public class HTLCBuilder : P2PKBuilder
 {
     public string HashLock { get; set; }
 
@@ -33,7 +33,7 @@ public class HTLCBuilder : P2PkBuilder
             Tags = proofSecret.Tags,
         };
 
-        var innerbuilder = P2PkBuilder.Load(tempProof);
+        var innerbuilder = P2PKBuilder.Load(tempProof);
         innerbuilder.Pubkeys = innerbuilder.Pubkeys.Except([_dummy.Key]).ToArray();
         return new HTLCBuilder()
         {
@@ -56,7 +56,7 @@ public class HTLCBuilder : P2PkBuilder
                 nameof(HashLock)
             );
         }
-        var innerBuilder = new P2PkBuilder()
+        var innerBuilder = new P2PKBuilder()
         {
             Lock = Lock,
             Pubkeys = Pubkeys.ToArray(),

@@ -492,7 +492,7 @@ class Program
 
         // Create a 1-of-2 multisig P2PK secret
         Console.WriteLine("\n🏗️  Creating 1-of-2 multisig P2PK:");
-        var p2pkBuilder = new P2PkBuilder
+        var p2pkBuilder = new P2PKBuilder
         {
             Pubkeys = new[] { pubKey1, pubKey2 },
             SignatureThreshold = 1, // 1-of-2 multisig
@@ -510,7 +510,7 @@ class Program
 
         // Create a time-locked P2PK
         Console.WriteLine("\n⏰ Creating time-locked P2PK:");
-        var timeLockedBuilder = new P2PkBuilder
+        var timeLockedBuilder = new P2PKBuilder
         {
             Pubkeys = new[] { pubKey1 },
             SignatureThreshold = 1,

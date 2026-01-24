@@ -16,64 +16,114 @@ public class P2PKProofSecret : Nut10ProofSecret
     public virtual ECPubKey[] GetAllowedPubkeys(out int requiredSignatures)
     {
         var builder = Builder;
-        if (
-            builder.Lock.HasValue
-            && builder.Lock.Value.ToUnixTimeSeconds() < DateTimeOffset.Now.ToUnixTimeSeconds()
-        )
-        {
-            requiredSignatures = Math.Min(builder.RefundPubkeys?.Length ?? 0, 1);
-            return builder.RefundPubkeys ?? Array.Empty<ECPubKey>();
-        }
-
         requiredSignatures = builder.SignatureThreshold;
         return builder.Pubkeys;
     }
 
-    public virtual P2PKWitness GenerateWitness(Proof proof, ECPrivKey[] keys)
+    public virtual ECPubKey[] GetAllowedRefundPubkeys(out int? requiredSignatures)
+    {
+        var builder = Builder;
+        if (
+            !builder.Lock.HasValue
+            || builder.Lock.Value.ToUnixTimeSeconds() >= DateTimeOffset.Now.ToUnixTimeSeconds()
+        )
+        {
+            requiredSignatures = null; // there's no refund condition, or timelock didn't expire yet :/
+            return [];
+        }
+
+        if (builder.RefundPubkeys == null)
+        {
+            requiredSignatures = 0; // proof is spendable without any signature
+            return [];
+        }
+        requiredSignatures = builder.RefundSignatureThreshold ?? 1;
+        return builder.RefundPubkeys ?? [];
+    }
+
+    /*
+     * ====================================================================== *
+     * If any of these returns null witness - well, witness is not necessary *
+     * ====================================================================== *
+     */
+
+    public virtual P2PKWitness? GenerateWitness(Proof proof, ECPrivKey[] keys)
     {
         return GenerateWitness(proof.Secret.GetBytes(), keys);
     }
 
-    public virtual P2PKWitness GenerateWitness(BlindedMessage message, ECPrivKey[] keys)
+    public virtual P2PKWitness? GenerateWitness(BlindedMessage message, ECPrivKey[] keys)
     {
         return GenerateWitness(message.B_.Key.ToBytes(), keys);
     }
 
-    public virtual P2PKWitness GenerateWitness(byte[] msg, ECPrivKey[] keys)
+    public virtual P2PKWitness? GenerateWitness(byte[] msg, ECPrivKey[] keys)
     {
         var hash = SHA256.HashData(msg);
         return GenerateWitness(ECPrivKey.Create(hash), keys);
     }
 
-    public virtual P2PKWitness GenerateWitness(ECPrivKey hash, ECPrivKey[] keys)
+    public virtual P2PKWitness? GenerateWitness(ECPrivKey hash, ECPrivKey[] keys)
     {
         var msg = hash.ToBytes();
-        //filter out keys that matter
+
         var allowedKeys = GetAllowedPubkeys(out var requiredSignatures);
-        var keysRequiredLeft = requiredSignatures;
-        var availableKeysLeft = keys;
-        var result = new P2PKWitness();
-        while (keysRequiredLeft > 0 && availableKeysLeft.Any())
+        var allowedRefundKeys = GetAllowedRefundPubkeys(out var requiredRefundSignatures);
+
+        if (requiredRefundSignatures == 0)
         {
-            var key = availableKeysLeft.First();
-            var pubkey = key.CreatePubKey();
-            var isAllowed = allowedKeys.Any(p => p == pubkey);
-            if (isAllowed)
-            {
-                var sig = key.SignBIP340(msg);
-
-                key.CreateXOnlyPubKey().SigVerifyBIP340(sig, msg);
-                result.Signatures = result.Signatures.Append(sig.ToHex()).ToArray();
-            }
-
-            availableKeysLeft = availableKeysLeft.Except(new[] { key }).ToArray();
-            keysRequiredLeft = requiredSignatures - result.Signatures.Length;
+            return null;
         }
 
-        if (keysRequiredLeft > 0)
-            throw new InvalidOperationException("Not enough valid keys to sign");
+        // try normal path
+        var (isValid, result) = TrySignPath(allowedKeys.ToArray(), requiredSignatures, keys, msg);
+        if (isValid)
+        {
+            return result;
+        }
 
-        return result;
+        // if it's after locktime - try refund path
+        if (requiredRefundSignatures.HasValue && allowedRefundKeys.Any())
+        {
+            (isValid, result) = TrySignPath(
+                allowedRefundKeys.ToArray(),
+                requiredRefundSignatures.Value,
+                keys,
+                msg
+            );
+            if (isValid)
+            {
+                return result;
+            }
+        }
+
+        throw new InvalidOperationException("Not enough valid keys to sign!");
+    }
+
+    private (bool IsValid, P2PKWitness Witness) TrySignPath(
+        ECPubKey[] allowedKeys,
+        int requiredSignatures,
+        ECPrivKey[] availableKeys,
+        byte[] msg
+    )
+    {
+        var allowedKeysSet = new HashSet<ECPubKey>(allowedKeys);
+        var result = new P2PKWitness();
+
+        foreach (var privKey in availableKeys)
+        {
+            if (result.Signatures.Length >= requiredSignatures)
+                break;
+
+            var pubkey = privKey.CreatePubKey();
+            if (allowedKeysSet.Contains(pubkey))
+            {
+                var sig = privKey.SignBIP340(msg);
+                result.Signatures = result.Signatures.Append(sig.ToHex()).ToArray();
+            }
+        }
+
+        return (result.Signatures.Length >= requiredSignatures, result);
     }
 
     public virtual bool VerifyWitness(Proof proof)
@@ -101,101 +151,125 @@ public class P2PKProofSecret : Nut10ProofSecret
      * =========================
      */
 
-    public virtual P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys)
+    public virtual P2PKWitness? GenerateBlindWitness(Proof proof, ECPrivKey[] keys)
     {
         ArgumentNullException.ThrowIfNull(proof.P2PkE);
-        return GenerateBlindWitness(proof.Secret.GetBytes(), keys, proof.Id, proof.P2PkE);
+        return GenerateBlindWitness(proof.Secret.GetBytes(), keys, proof.P2PkE);
     }
 
-    public virtual P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, ECPubKey P2PkE)
+    public virtual P2PKWitness? GenerateBlindWitness(Proof proof, ECPrivKey[] keys, ECPubKey P2PkE)
     {
-        return GenerateBlindWitness(proof.Secret.GetBytes(), keys, proof.Id, P2PkE);
+        return GenerateBlindWitness(proof.Secret.GetBytes(), keys, P2PkE);
     }
 
-    public virtual P2PKWitness GenerateBlindWitness(
+    public virtual P2PKWitness? GenerateBlindWitness(
         BlindedMessage message,
         ECPrivKey[] keys,
         ECPubKey P2PkE
     )
     {
-        return GenerateBlindWitness(message.B_.Key.ToBytes(), keys, message.Id, P2PkE);
+        return GenerateBlindWitness(message.B_.Key.ToBytes(), keys, P2PkE);
     }
 
-    public virtual P2PKWitness GenerateBlindWitness(
-        byte[] msg,
-        ECPrivKey[] keys,
-        KeysetId keysetId,
-        ECPubKey P2PkE
-    )
+    public virtual P2PKWitness? GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, ECPubKey P2PkE)
     {
         var hash = SHA256.HashData(msg);
-        return GenerateBlindWitness(ECPrivKey.Create(hash), keys, keysetId, P2PkE);
+        return GenerateBlindWitness(ECPrivKey.Create(hash), keys, P2PkE);
     }
 
     public virtual P2PKWitness GenerateBlindWitness(
         ECPrivKey hash,
         ECPrivKey[] keys,
-        KeysetId keysetId,
         ECPubKey P2PkE
     )
     {
         var msg = hash.ToBytes();
+
         var allowedKeys = GetAllowedPubkeys(out var requiredSignatures);
-        var keysRequiredLeft = requiredSignatures;
-        var availableKeysLeft = keys;
-        var result = new P2PKWitness();
+        var allowedRefundKeys = GetAllowedRefundPubkeys(out var requiredRefundSignatures);
 
-        var keysetIdBytes = keysetId.GetBytes();
-        var pubkeysTotalCount = Builder.Pubkeys.Length + (Builder.RefundPubkeys?.Length ?? 0);
+        if (requiredRefundSignatures == 0)
+            return null;
 
-        HashSet<int> usedSlots = new();
-
-        while (keysRequiredLeft > 0 && availableKeysLeft.Any())
+        var (isValid, result) = TrySignBlindPath(
+            allowedKeys.ToArray(),
+            requiredSignatures,
+            keys,
+            P2PkE,
+            msg
+        );
+        if (isValid)
         {
-            var key = availableKeysLeft.First();
-            var remainingKeys = availableKeysLeft.Skip(1).ToArray();
+            return result;
+        }
 
-            for (int i = 0; i < pubkeysTotalCount; i++)
+        if (requiredRefundSignatures.HasValue && allowedRefundKeys.Any())
+        {
+            (isValid, result) = TrySignBlindPath(
+                allowedRefundKeys.ToArray(),
+                requiredRefundSignatures.Value,
+                keys,
+                P2PkE,
+                msg
+            );
+            if (isValid)
+            {
+                return result;
+            }
+        }
+
+        throw new InvalidOperationException("Not enough valid keys to sign any blind path");
+    }
+
+    private (bool IsValid, P2PKWitness Witness) TrySignBlindPath(
+        ECPubKey[] allowedKeys,
+        int requiredSignatures,
+        ECPrivKey[] availableKeys,
+        ECPubKey P2PkE,
+        byte[] msg
+    )
+    {
+        var allowedKeysSet = new HashSet<ECPubKey>(allowedKeys);
+        var result = new P2PKWitness();
+        var usedSlots = new HashSet<int>();
+
+        foreach (var key in availableKeys)
+        {
+            if (result.Signatures.Length >= requiredSignatures)
+                break;
+
+            for (int i = 0; i < allowedKeys.Length; i++)
             {
                 if (usedSlots.Contains(i))
-                {
                     continue;
-                }
 
                 var Zx = Cashu.ComputeZx(key, P2PkE);
-                var ri = Cashu.ComputeRi(Zx, keysetIdBytes, i);
-
+                var ri = Cashu.ComputeRi(Zx, i);
                 var tweakedPrivkey = key.TweakAdd(ri.ToBytes());
                 var tweakedPubkey = tweakedPrivkey.CreatePubKey();
+
+                if (allowedKeysSet.Contains(tweakedPubkey))
+                {
+                    usedSlots.Add(i);
+                    var sig = tweakedPrivkey.SignBIP340(msg);
+                    result.Signatures = result.Signatures.Append(sig.ToHex()).ToArray();
+                    break;
+                }
 
                 var tweakedPrivkeyNeg = key.sec.Negate().Add(ri.sec).ToPrivateKey();
                 var tweakedPubkeyNeg = tweakedPrivkeyNeg.CreatePubKey();
 
-                if (allowedKeys.Contains(tweakedPubkey))
-                {
-                    usedSlots.Add(i);
-                    var sig = tweakedPrivkey.SignBIP340(msg);
-                    tweakedPrivkey.CreateXOnlyPubKey().SigVerifyBIP340(sig, msg);
-                    result.Signatures = result.Signatures.Append(sig.ToHex()).ToArray();
-                    keysRequiredLeft = requiredSignatures - result.Signatures.Length;
-                    break;
-                }
-
-                if (allowedKeys.Contains(tweakedPubkeyNeg))
+                if (allowedKeysSet.Contains(tweakedPubkeyNeg))
                 {
                     usedSlots.Add(i);
                     var sig = tweakedPrivkeyNeg.SignBIP340(msg);
-                    tweakedPrivkeyNeg.CreateXOnlyPubKey().SigVerifyBIP340(sig, msg);
                     result.Signatures = result.Signatures.Append(sig.ToHex()).ToArray();
-                    keysRequiredLeft = requiredSignatures - result.Signatures.Length;
                     break;
                 }
             }
-            availableKeysLeft = remainingKeys;
         }
-        if (keysRequiredLeft > 0)
-            throw new InvalidOperationException("Not enough valid keys to sign");
-        return result;
+
+        return (result.Signatures.Length >= requiredSignatures, result);
     }
 
     public virtual bool VerifyWitness(string message, P2PKWitness witness)
@@ -219,9 +293,6 @@ public class P2PKProofSecret : Nut10ProofSecret
     {
         try
         {
-            var allowedKeys = GetAllowedPubkeys(out var requiredSignatures);
-            if (witness.Signatures.Length < requiredSignatures)
-                return false;
             var sigs = witness
                 .Signatures.Select(s =>
                     SecpSchnorrSignature.TryCreate(Convert.FromHexString(s), out var sig)
@@ -230,12 +301,64 @@ public class P2PKProofSecret : Nut10ProofSecret
                 )
                 .Where(signature => signature is not null)
                 .ToArray();
-            return sigs.Count(s => allowedKeys.Any(p => p.ToXOnlyPubKey().SigVerifyBIP340(s, hash)))
-                >= requiredSignatures;
+
+            var allowedKeys = GetAllowedPubkeys(out var requiredSignatures);
+            var allowedRefundKeys = GetAllowedRefundPubkeys(out var requiredRefundSignatures);
+            if (requiredRefundSignatures == 0)
+            {
+                return true;
+            }
+
+            if (VerifyPath(allowedKeys.ToArray(), requiredSignatures, sigs, hash))
+                return true;
+
+            if (requiredRefundSignatures.HasValue && allowedRefundKeys.Any())
+            {
+                if (
+                    VerifyPath(
+                        allowedRefundKeys.ToArray(),
+                        requiredRefundSignatures.Value,
+                        sigs,
+                        hash
+                    )
+                )
+                    return true;
+            }
+
+            return false;
         }
         catch (Exception e)
         {
             return false;
         }
+    }
+
+    private bool VerifyPath(
+        ECPubKey[] allowedKeys,
+        int requiredSignatures,
+        SecpSchnorrSignature[] sigs,
+        byte[] hash
+    )
+    {
+        if (sigs.Length < requiredSignatures)
+        {
+            return false;
+        }
+        var xonlyKeys = allowedKeys.Select(k => k.ToXOnlyPubKey()).ToArray();
+        var usedKeyIndices = new HashSet<int>();
+
+        foreach (var sig in sigs)
+        {
+            for (int i = 0; i < xonlyKeys.Length; i++)
+            {
+                if (!usedKeyIndices.Contains(i) && xonlyKeys[i].SigVerifyBIP340(sig, hash))
+                {
+                    usedKeyIndices.Add(i);
+                    break;
+                }
+            }
+        }
+
+        return usedKeyIndices.Count >= requiredSignatures;
     }
 }

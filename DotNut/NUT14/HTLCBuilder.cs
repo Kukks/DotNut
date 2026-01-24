@@ -8,8 +8,8 @@ public class HTLCBuilder : P2PKBuilder
     public string HashLock { get; set; }
 
     /*
-     * ugly hack to reuse P2PkBuilder for HTLCs.
-     * P2PkBuilder expects a pubkey in `data` field, but we need to store a hashlock instead
+     * ugly hack to reuse P2PKBuilder for HTLCs.
+     * P2PKBuilder expects a pubkey in `data` field, but we need to store a hashlock instead
      *
      * we inject a dummy pubkey so the loader doesn’t break, then remove it after load/build.
      */
@@ -76,26 +76,24 @@ public class HTLCBuilder : P2PKBuilder
         };
     }
 
-    public new HTLCProofSecret BuildBlinded(KeysetId keysetId, out ECPubKey p2pkE)
+    public new HTLCProofSecret BuildBlinded(out ECPubKey p2pkE)
     {
         var e = new PrivKey(RandomNumberGenerator.GetHexString(64));
         p2pkE = e.Key.CreatePubKey();
-        return BuildBlinded(keysetId, e);
+        return BuildBlinded(e);
     }
 
-    public new HTLCProofSecret BuildBlinded(KeysetId keysetId, ECPrivKey p2pke)
+    public new HTLCProofSecret BuildBlinded(ECPrivKey p2pke)
     {
         var pubkeys = RefundPubkeys != null ? Pubkeys.Concat(RefundPubkeys).ToArray() : Pubkeys;
         var rs = new List<ECPrivKey>();
-
-        var keysetIdBytes = keysetId.GetBytes();
 
         var e = p2pke;
 
         for (int i = 0; i < pubkeys.Length; i++)
         {
             var Zx = Cashu.ComputeZx(e, pubkeys[i]);
-            var Ri = Cashu.ComputeRi(Zx, keysetIdBytes, i);
+            var Ri = Cashu.ComputeRi(Zx, i);
             rs.Add(Ri);
         }
         BlindPubkeys(rs.ToArray());

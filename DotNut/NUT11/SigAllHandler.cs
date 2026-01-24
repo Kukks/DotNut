@@ -52,7 +52,7 @@ public class SigAllHandler
             return false;
         }
 
-        P2PKWitness witnessObj;
+        P2PKWitness? witnessObj;
         if (fps is HTLCProofSecret s && HTLCPreimage is { } preimage)
         {
             if (Proofs.First().P2PkE is { } E)
@@ -61,7 +61,6 @@ public class SigAllHandler
                     msg,
                     PrivKeys.Select(pk => (ECPrivKey)pk).ToArray(),
                     Convert.FromHexString(preimage),
-                    Proofs[0].Id,
                     E
                 );
                 witness = JsonSerializer.Serialize((HTLCWitness)witnessObj);
@@ -81,7 +80,6 @@ public class SigAllHandler
             witnessObj = fps.GenerateBlindWitness(
                 msg,
                 PrivKeys.Select(pk => (ECPrivKey)pk).ToArray(),
-                Proofs[0].Id,
                 e2
             );
             witness = JsonSerializer.Serialize(witnessObj);
@@ -129,7 +127,7 @@ public class SigAllHandler
                 );
             }
 
-            if (!CheckIfEqualToFirst(firstSecret, nut10.ProofSecret))
+            if (firstSecret != nut10.ProofSecret)
             {
                 throw new ArgumentException(
                     "When signing sig_all, every proof must have identical tags and data."
@@ -253,18 +251,4 @@ public class SigAllHandler
         secret = nut10.ProofSecret;
         return true;
     }
-
-    private static bool CheckIfEqualToFirst(Nut10ProofSecret first, Nut10ProofSecret other) =>
-        first is { } a
-        && other is { } b
-        && a.Data == b.Data
-        && (
-            (a.Tags == null && b.Tags == null)
-            || (
-                a.Tags != null
-                && b.Tags != null
-                && a.Tags.Length == b.Tags.Length
-                && a.Tags.Zip(b.Tags).All(pair => pair.First.SequenceEqual(pair.Second))
-            )
-        );
 }

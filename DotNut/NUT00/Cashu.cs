@@ -192,6 +192,58 @@ public static class Cashu
         return VerifyProof(B_, C_, e, s, A);
     }
 
+    /// <summary>
+    /// Compute shared secret for P2Bk (ECDH)
+    /// </summary>
+    /// <param name="e">Privkey of Alice</param>
+    /// <param name="P">Pubkey of Bob</param>
+    /// <returns>Zx = x(e·P) or x(p·E)</returns>
+    /// <exception cref="InvalidOperationException">If can't create xOnly pubkey with derived shared secret</exception>
+    public static byte[] ComputeZx(ECPrivKey e, ECPubKey P)
+    {
+        var x = (e.sec * P.Q).ToGroupElement().x;
+        return ECXOnlyPubKey.TryCreate(x, Context.Instance, out var xOnly)
+            ? xOnly.ToBytes()
+            : throw new InvalidOperationException("Could not create xOnly pubkey");
+    }
+
+    /// <summary>
+    /// Compute deterministic blinding scalar for P2Bk
+    /// </summary>
+    /// <param name="Zx">Shared secret</param>
+    /// <param name="keysetId"></param>
+    /// <param name="i">blinded pubkey indice</param>
+    /// <returns></returns>
+    public static ECPrivKey ComputeRi(byte[] Zx, int i)
+    {
+        byte[] hash;
+
+        hash = SHA256.HashData(Concat(P2BK_PREFIX, Zx, [(byte)(i & 0xFF)]));
+        var hashValue = new BigInteger(hash);
+        if (hashValue == 0 || hashValue.CompareTo(N) != -1)
+        {
+            hash = SHA256.HashData(Concat(P2BK_PREFIX, Zx, [(byte)(i & 0xFF)], [0xff]));
+        }
+        return ECPrivKey.Create(hash);
+    }
+
+    private static byte[] Concat(params byte[][] arrays)
+    {
+        int totalLength = arrays.Sum(a => a?.Length ?? 0);
+        var result = new byte[totalLength];
+        int offset = 0;
+
+        foreach (var arr in arrays)
+        {
+            if (arr == null || arr.Length == 0)
+                continue;
+            Buffer.BlockCopy(arr, 0, result, offset, arr.Length);
+            offset += arr.Length;
+        }
+
+        return result;
+    }
+
     public static GE ToGE(this Scalar scalar)
     {
         // Multiply the scalar by the generator point to get the group element
@@ -219,61 +271,6 @@ public static class Cashu
     public static ECPubKey ToPubkey(this GE ge)
     {
         return new ECPubKey(ge, Context.Instance);
-    }
-
-    /// <summary>
-    /// Compute shared secret for P2Bk (ECDH)
-    /// </summary>
-    /// <param name="e">Privkey of Alice</param>
-    /// <param name="P">Pubkey of Bob</param>
-    /// <returns>Zx = x(e·P) or x(p·E)</returns>
-    /// <exception cref="InvalidOperationException">If can't create xOnly pubkey with derived shared secret</exception>
-    public static byte[] ComputeZx(ECPrivKey e, ECPubKey P)
-    {
-        var x = (e.sec * P.Q).ToGroupElement().x;
-        if (!ECXOnlyPubKey.TryCreate(x, Context.Instance, out var xOnly))
-        {
-            // should never happen
-            throw new InvalidOperationException("Could not create xOnly pubkey");
-        }
-        return xOnly.ToBytes();
-    }
-
-    /// <summary>
-    /// Compute deterministic blinding scalar for P2Bk
-    /// </summary>
-    /// <param name="Zx">Shared secret</param>
-    /// <param name="keysetId"></param>
-    /// <param name="i">blinded pubkey indice</param>
-    /// <returns></returns>
-    public static ECPrivKey ComputeRi(byte[] Zx, byte[] keysetId, int i)
-    {
-        byte[] hash;
-
-        hash = SHA256.HashData(Concat(P2BK_PREFIX, Zx, keysetId, [(byte)(i & 0xFF)]));
-        var hashValue = new BigInteger(hash);
-        if (hashValue == 0 || hashValue.CompareTo(N) != -1)
-        {
-            hash = SHA256.HashData(Concat(P2BK_PREFIX, Zx, keysetId, [(byte)(i & 0xFF)], [0xff]));
-        }
-        return ECPrivKey.Create(hash);
-    }
-
-    private static byte[] Concat(params byte[][] arrays)
-    {
-        int totalLength = arrays.Sum(a => a?.Length ?? 0);
-        var result = new byte[totalLength];
-        int offset = 0;
-
-        foreach (var arr in arrays)
-        {
-            if (arr == null || arr.Length == 0)
-                continue;
-            Buffer.BlockCopy(arr, 0, result, offset, arr.Length);
-            offset += arr.Length;
-        }
-
-        return result;
     }
 
     public static string ToHex(this ECPrivKey key)

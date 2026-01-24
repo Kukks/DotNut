@@ -14,9 +14,11 @@ public class P2PKBuilder
     //SIG_INPUTS, SIG_ALL
     public string? SigFlag { get; set; }
     public string? Nonce { get; set; }
+    public int? RefundSignatureThreshold { get; set; }
 
     public P2PKProofSecret Build()
     {
+        Validate();
         var tags = new List<string[]>();
         if (Pubkeys.Length > 1)
         {
@@ -34,6 +36,12 @@ public class P2PKBuilder
             if (RefundPubkeys?.Any() is true)
             {
                 tags.Add(new[] { "refund" }.Concat(RefundPubkeys.Select(p => p.ToHex())).ToArray());
+                tags.Add(new[] { "refund" }.Concat(RefundPubkeys.Select(p => p.ToHex())).ToArray());
+                RefundSignatureThreshold ??= 1;
+            }
+            if (RefundSignatureThreshold is { } refundSignatureThreshold and > 1)
+            {
+                tags.Add(new[] { "n_sigs_refund", refundSignatureThreshold.ToString() });
             }
         }
 
@@ -87,6 +95,18 @@ public class P2PKBuilder
             builder.RefundPubkeys = refund.Skip(1).Select(s => s.ToPubKey()).ToArray();
         }
 
+        var nSigsRefund = proofSecret
+            .Tags?.FirstOrDefault(strings => strings.FirstOrDefault() == "n_sigs_refund")
+            ?.Skip(1)
+            ?.FirstOrDefault();
+        if (
+            !string.IsNullOrEmpty(nSigsRefund)
+            && int.TryParse(nSigsRefund, out var nSigsRefundValue)
+        )
+        {
+            builder.RefundSignatureThreshold = nSigsRefundValue;
+        }
+
         var sigFlag = proofSecret
             .Tags?.FirstOrDefault(strings => strings.FirstOrDefault() == "sigflag")
             ?.Skip(1)
@@ -110,6 +130,21 @@ public class P2PKBuilder
         return builder;
     }
 
+    private void Validate()
+    {
+        if (this.Pubkeys.Count() < SignatureThreshold)
+        {
+            throw new ArgumentException("Signature threshold bigger than provided pubkeys count!");
+        }
+        if (
+            this.RefundSignatureThreshold is not null
+            && (RefundPubkeys is null || RefundPubkeys.Length < RefundSignatureThreshold)
+        )
+        {
+            throw new ArgumentException("Signature threshold bigger than provided pubkeys count!");
+        }
+    }
+
     /*
      * =========================
      * NUT-XX Pay to blinded key
@@ -117,27 +152,23 @@ public class P2PKBuilder
      */
 
     //For sig_inputs, generates random p2pk_e for each input
-    public P2PKProofSecret BuildBlinded(KeysetId keysetId, out ECPubKey p2pkE)
+    public P2PKProofSecret BuildBlinded(out ECPubKey p2pkE)
     {
         var e = new PrivKey(RandomNumberGenerator.GetHexString(64));
         p2pkE = e.Key.CreatePubKey();
-        return BuildBlinded(keysetId, e);
+        return BuildBlinded(e);
     }
 
     //For sig_all, p2pk_e must be provided
-    public P2PKProofSecret BuildBlinded(KeysetId keysetId, ECPrivKey p2pke)
+    public P2PKProofSecret BuildBlinded(ECPrivKey p2pke)
     {
         var pubkeys = RefundPubkeys != null ? Pubkeys.Concat(RefundPubkeys).ToArray() : Pubkeys;
         var rs = new List<ECPrivKey>();
 
-        var keysetIdBytes = keysetId.GetBytes();
-
-        var e = p2pke;
-
         for (int i = 0; i < pubkeys.Length; i++)
         {
-            var Zx = Cashu.ComputeZx(e, pubkeys[i]);
-            var Ri = Cashu.ComputeRi(Zx, keysetIdBytes, i);
+            var Zx = Cashu.ComputeZx(p2pke, pubkeys[i]);
+            var Ri = Cashu.ComputeRi(Zx, i);
             rs.Add(Ri);
         }
         BlindPubkeys(rs.ToArray());
@@ -172,7 +203,7 @@ public class P2PKBuilder
 
     public virtual P2PKBuilder Clone()
     {
-        return new P2PKBuilder()
+        return new P2PKBuilder
         {
             Lock = Lock,
             RefundPubkeys = RefundPubkeys?.ToArray(),

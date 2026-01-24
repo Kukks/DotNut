@@ -193,12 +193,12 @@ public static class Utils
         PubKey E;
         if (builder is HTLCBuilder htlc)
         {
-            secret = new Nut10Secret("HTLC", htlc.BuildBlinded(keysetId, out var e));
+            secret = new Nut10Secret("HTLC", htlc.BuildBlinded(out var e));
             E = e;
         }
         else
         {
-            secret = new Nut10Secret("P2PK", builder.BuildBlinded(keysetId, out var e));
+            secret = new Nut10Secret("P2PK", builder.BuildBlinded(out var e));
             E = e;
         }
 
@@ -236,11 +236,11 @@ public static class Utils
         Nut10Secret secret;
         if (builder is HTLCBuilder htlc)
         {
-            secret = new Nut10Secret("HTLC", htlc.BuildBlinded(keysetId, e));
+            secret = new Nut10Secret("HTLC", htlc.BuildBlinded(e));
         }
         else
         {
-            secret = new Nut10Secret("P2PK", builder.BuildBlinded(keysetId, e));
+            secret = new Nut10Secret("P2PK", builder.BuildBlinded(e));
         }
 
         var r = RandomPrivkey();

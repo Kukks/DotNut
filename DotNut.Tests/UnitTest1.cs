@@ -355,7 +355,7 @@ public class UnitTest1
             )
         );
 
-        var conditions = new P2PKBuilder()
+        var conditions = new P2PKBuilder
         {
             Lock = DateTimeOffset.FromUnixTimeSeconds(21000000000),
             Pubkeys = new[] { signing_key_two.CreatePubKey(), signing_key_three.CreatePubKey() },
@@ -381,6 +381,9 @@ public class UnitTest1
         proof.Witness = JsonSerializer.Serialize(witness);
         Assert.True(p2pkProofSecret.VerifyWitness(proof.Secret, witness));
 
+        
+        // SIG_INPUTS
+
         var valid1 =
             "{\"amount\":1,\"secret\":\"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"859d4935c4907062a6297cf4e663e2835d90d97ecdd510745d32f6816323a41f\\\",\\\"data\\\":\\\"0249098aa8b9d2fbec49ff8598feb17b592b986e62319a4fa488a3dc36387157a7\\\",\\\"tags\\\":[[\\\"sigflag\\\",\\\"SIG_INPUTS\\\"]]}]\",\"C\":\"02698c4e2b5f9534cd0687d87513c759790cf829aa5739184a3e3735471fbda904\",\"id\":\"009a1f293253e41e\",\"witness\":\"{\\\"signatures\\\":[\\\"60f3c9b766770b46caac1d27e1ae6b77c8866ebaeba0b9489fe6a15a837eaa6fcd6eaa825499c72ac342983983fd3ba3a8a41f56677cc99ffd73da68b59e1383\\\"]}\"}";
         var valid1Proof = JsonSerializer.Deserialize<Proof>(valid1);
@@ -395,8 +398,7 @@ public class UnitTest1
         );
 
         var invalid1 =
-            @"{""amount"":1,""secret"":""[\""P2PK\"",{\""nonce\"":\""0ed3fcb22c649dd7bbbdcca36e0c52d4f0187dd3b6a19efcc2bfbebb5f85b2a1\"",\""data\"":\""0249098aa8b9d2fbec49ff8598feb17b592b986e62319a4fa488a3dc36387157a7\"",\""tags\"":[[\""pubkeys\"",\""0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798\"",\""02142715675faf8da1ecc4d51e0b9e539fa0d52fdd96ed60dbe99adb15d6b05ad9\""],[\""n_sigs\"",\""2\""],[\""sigflag\"",\""SIG_INPUTS\""]]}]"",""C"":""02698c4e2b5f9534cd0687d87513c759790cf829aa5739184a3e3735471fbda904"",""id"":""009a1f293253e41e"",""witness"":""{\""signatures\"":[\""83564aca48c668f50d022a426ce0ed19d3a9bdcffeeaee0dc1e7ea7e98e9eff1840fcc821724f623468c94f72a8b0a7280fa9ef5a54a1b130ef3055217f467b3\""]}""}";
-
+            "{\n  \"amount\": 1,\n  \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"859d4935c4907062a6297cf4e663e2835d90d97ecdd510745d32f6816323a41f\\\",\\\"data\\\":\\\"0249098aa8b9d2fbec49ff8598feb17b592b986e62319a4fa488a3dc36387157a7\\\",\\\"tags\\\":[[\\\"sigflag\\\",\\\"SIG_INPUTS\\\"]]}]\",\n  \"C\": \"02698c4e2b5f9534cd0687d87513c759790cf829aa5739184a3e3735471fbda904\",\n  \"id\": \"009a1f293253e41e\",\n  \"witness\": \"{\\\"signatures\\\":[\\\"83564aca48c668f50d022a426ce0ed19d3a9bdcffeeaee0dc1e7ea7e98e9eff1840fcc821724f623468c94f72a8b0a7280fa9ef5a54a1b130ef3055217f467b3\\\"]}\"\n}";
         var invalid1Proof = JsonSerializer.Deserialize<Proof>(invalid1);
         var invalid1ProofSecret = Assert.IsType<Nut10Secret>(invalid1Proof.Secret);
         Assert.Equal(P2PKProofSecret.Key, invalid1ProofSecret!.Key);
@@ -450,7 +452,7 @@ public class UnitTest1
         );
 
         var validProofRefund =
-            "{\"amount\":1,\"id\":\"009a1f293253e41e\",\"secret\":\"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"902685f492ef3bb2ca35a47ddbba484a3365d143b9776d453947dcbf1ddf9689\\\",\\\"data\\\":\\\"026f6a2b1d709dbca78124a9f30a742985f7eddd894e72f637f7085bf69b997b9a\\\",\\\"tags\\\":[[\\\"pubkeys\\\",\\\"0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798\\\",\\\"03142715675faf8da1ecc4d51e0b9e539fa0d52fdd96ed60dbe99adb15d6b05ad9\\\"],[\\\"locktime\\\",\\\"21\\\"],[\\\"n_sigs\\\",\\\"2\\\"],[\\\"refund\\\",\\\"026f6a2b1d709dbca78124a9f30a742985f7eddd894e72f637f7085bf69b997b9a\\\"],[\\\"sigflag\\\",\\\"SIG_INPUTS\\\"]]}]\",\"C\":\"02698c4e2b5f9534cd0687d87513c759790cf829aa5739184a3e3735471fbda904\",\"witness\":\"{\\\"signatures\\\":[\\\"710507b4bc202355c91ea3c147c0d0189c75e179d995e566336afd759cb342bcad9a593345f559d9b9e108ac2c9b5bd9f0b4b6a295028a98606a0a2e95eb54f7\\\"]}\"}";
+            "{\n  \"amount\": 64,\n  \"C\": \"0257353051c02e2d650dede3159915c8be123ba4f47cf33183c7fedd20bd91a79b\",\n  \"id\": \"001b6c716bf42c7e\",\n  \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"4bc88ee09d1886c7461d45da205ca3274e1e3d9da2667c4865045cb18265a407\\\",\\\"data\\\":\\\"03d5edeb839be873df2348785506d36565f3b8f390fb931709a422b5a247ddefb1\\\",\\\"tags\\\":[[\\\"locktime\\\",\\\"21\\\"],[\\\"refund\\\",\\\"0234ad87e907e117db1590cc20a3942ffdfd5137aa563d36095d5cf5f96bada122\\\"]]}]\",\n  \"witness\": \"{\\\"signatures\\\":[\\\"b316c2ff9c15f0c5c3d230e99ad94bc76a11dfccbdc820366a3db7210288f22ef6cedcded1152904ec31056d1d5176d83a2d96df5cd4ff86afdde1c90c63af5e\\\"]}\"\n}";
         var validProofRefundParsed = JsonSerializer.Deserialize<Proof>(validProofRefund);
         var validProofRefundSecret = Assert.IsType<Nut10Secret>(validProofRefundParsed.Secret);
         Assert.Equal(P2PKProofSecret.Key, validProofRefundSecret!.Key);
@@ -468,7 +470,7 @@ public class UnitTest1
         );
 
         var invalidProofRefund =
-            "{\"amount\":1,\"id\":\"009a1f293253e41e\",\"secret\":\"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"64c46e5d30df27286166814b71b5d69801704f23a7ad626b05688fbdb48dcc98\\\",\\\"data\\\":\\\"026f6a2b1d709dbca78124a9f30a742985f7eddd894e72f637f7085bf69b997b9a\\\",\\\"tags\\\":[[\\\"pubkeys\\\",\\\"0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798\\\",\\\"03142715675faf8da1ecc4d51e0b9e539fa0d52fdd96ed60dbe99adb15d6b05ad9\\\"],[\\\"locktime\\\",\\\"21\\\"],[\\\"n_sigs\\\",\\\"2\\\"],[\\\"refund\\\",\\\"0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798\\\"],[\\\"sigflag\\\",\\\"SIG_INPUTS\\\"]]}]\",\"C\":\"02698c4e2b5f9534cd0687d87513c759790cf829aa5739184a3e3735471fbda904\",\"witness\":\"{\\\"signatures\\\":[\\\"f661d3dc046d636d47cb3d06586da42c498f0300373d1c2a4f417a44252cdf3809bce207c8888f934dba0d2b1671f1b8622d526840f2d5883e571b462630c1ff\\\"]}\"}";
+            "{\n  \"amount\": 64,\n  \"C\": \"0215865e3b30bdf6f5cdc1ee2c33379d5629bdf2eff2595603d939ff8c65d80586\",\n  \"id\": \"001b6c716bf42c7e\",\n  \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"0c3d085898f1abf2b5521035f4d0f4ecf68c6a5109f6bc836833a1188f06be65\\\",\\\"data\\\":\\\"03206e0d488387a816bbafd957be51b073432c6c7a403ec4c2a0b27647326c5150\\\",\\\"tags\\\":[[\\\"locktime\\\",\\\"99999999999\\\"],[\\\"refund\\\",\\\"026acbcd0fff3a424499c83ec892d3155c9d1984438659f448d9d0f1af3e92276a\\\"]]}]\",\n  \"witness\": \"{\\\"signatures\\\":[\\\"e5b10d7627ab39bd0cefa219c63752a0026aa5ae754b91a0c7ee2596222f87942c442aca2957166a6b468350c09c9968792784d2ae7c42fc91739b55689f4c7a\\\"]}\"\n}";
         var invalidProofRefundParsed = JsonSerializer.Deserialize<Proof>(invalidProofRefund);
         var invalidProofRefundSecret = Assert.IsType<Nut10Secret>(invalidProofRefundParsed.Secret);
         Assert.Equal(P2PKProofSecret.Key, invalidProofRefundSecret!.Key);
@@ -487,273 +489,126 @@ public class UnitTest1
     }
 
     [Fact]
+    public void Nut11_New_P2PkRules()
+    {
+        // since https://github.com/cashubtc/nuts/pull/315 p2pk and htlc behavior will be changed. After locktime, the 
+        // proof will be spendable on both (refund and normal) paths.
+        
+        var spendableProof = 
+            "{\n  \"amount\": 64,\n  \"C\": \"02d7cd858d866fca404b5cb1ffd813946e6d19efa1af00d654080fd20266bdc0b1\",\n  \"id\": \"001b6c716bf42c7e\",\n  \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"395162bf2d0add3c66aea9f22c45251dbee6e04bd9282addbb366a94cd4fb482\\\",\\\"data\\\":\\\"03ab50a667926fac858bac540766254c14b2b0334d10e8ec766455310224bbecf4\\\",\\\"tags\\\":[[\\\"locktime\\\",\\\"21\\\"],[\\\"pubkeys\\\",\\\"0229a91adec8dd9badb228c628a07fc1bf707a9b7d95dd505c490b1766fa7dc541\\\",\\\"033281c37677ea273eb7183b783067f5244933ef78d8c3f15b1a77cb246099c26e\\\"],[\\\"n_sigs\\\",\\\"2\\\"],[\\\"refund\\\",\\\"03ab50a667926fac858bac540766254c14b2b0334d10e8ec766455310224bbecf4\\\",\\\"033281c37677ea273eb7183b783067f5244933ef78d8c3f15b1a77cb246099c26e\\\"]]}]\"\n}";
+        var spendableProofParsed = JsonSerializer.Deserialize<Proof>(spendableProof);
+        Assert.NotNull(spendableProofParsed);
+        var spendableProofSecret = Assert.IsType<Nut10Secret>(spendableProofParsed.Secret);
+        Assert.Equal(P2PKProofSecret.Key, spendableProofSecret.Key);
+        var secretValue = Assert.IsType<P2PKProofSecret>(spendableProofSecret.ProofSecret);
+        
+        // "standard path" witness, n_sigs = 2.
+        // since locktime is expired, it would fail under old conditions. now the proof should remain spendable
+        var validWitness1 =
+            "{\"signatures\":[\"6a4dd46f929b4747efe7380d655be5cfc0ea943c679a409ea16d4e40968ce89de885d995937d5b85f24fa33a25df10990c5e11d5397199d779d5cf87d42f6627\",\"0c266fffe2ea2358fb93b5d30dfbcefe52a5bb53d6c85f37d54723613224a256165d20dd095768f168ab2e97bc5a879f7c2a84eee8963c9bcedcd39552dbe093\"]}";
+        var validWitness1Parsed = JsonSerializer.Deserialize<P2PKWitness>(validWitness1);
+        Assert.NotNull(validWitness1Parsed);
+        Assert.True(secretValue.VerifyWitness(spendableProofParsed.Secret, validWitness1Parsed));
+
+        // "refund path" witness, n_sigs_refund is omitted, so it's 1 by default
+        var validWitness2 =
+            "{\"signatures\":[\"d39631363480adf30433ee25c7cec28237e02b4808d4143469d4f390d4eae6ec97d18ba3cc6494ab1d04372f0838426ea296f25cb4bd8bddb296adc292eeaa96\"]}";
+        var validWitness2Parsed = JsonSerializer.Deserialize<P2PKWitness>(validWitness2);
+        Assert.NotNull(validWitness2Parsed);
+        Assert.True(secretValue.VerifyWitness(spendableProofParsed.Secret, validWitness2Parsed));
+    }
+
+    [Fact]
     public void Nut11_SIG_ALL()
     {
         var swapRequest =
             "{\n  \"inputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"c7f280eb55c1e8564e03db06973e94bc9b666d9e1ca42ad278408fe625950303\\\",\\\"data\\\":\\\"030d8acedfe072c9fa449a1efe0817157403fbec460d8e79f957966056e5dd76c1\\\",\\\"tags\\\":[[\\\"sigflag\\\",\\\"SIG_ALL\\\"]]}]\",\n      \"C\": \"02c97ee3d1db41cf0a3ddb601724be8711a032950811bf326f8219c50c4808d3cd\",\n      \"witness\": \"{\\\"signatures\\\":[\\\"ce017ca25b1b97df2f72e4b49f69ac26a240ce14b3690a8fe619d41ccc42d3c1282e073f85acd36dc50011638906f35b56615f24e4d03e8effe8257f6a808538\\\"]}\"\n    }\n  ],\n  \"outputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39\"\n    }\n  ]\n}";
         var swapRequestParsed = JsonSerializer.Deserialize<PostSwapRequest>(swapRequest);
-        var msgToSign =
-            "[\"P2PK\",{\"nonce\":\"c7f280eb55c1e8564e03db06973e94bc9b666d9e1ca42ad278408fe625950303\",\"data\":\"030d8acedfe072c9fa449a1efe0817157403fbec460d8e79f957966056e5dd76c1\",\"tags\":[[\"sigflag\",\"SIG_ALL\"]]}]02c97ee3d1db41cf0a3ddb601724be8711a032950811bf326f8219c50c4808d3cd2038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39";
-        Assert.Equal(
-            msgToSign,
-            SigAllHandler.GetMessageToSign(swapRequestParsed.Inputs, swapRequestParsed.Outputs)
-        );
+        var msgToSign = "[\"P2PK\",{\"nonce\":\"c7f280eb55c1e8564e03db06973e94bc9b666d9e1ca42ad278408fe625950303\",\"data\":\"030d8acedfe072c9fa449a1efe0817157403fbec460d8e79f957966056e5dd76c1\",\"tags\":[[\"sigflag\",\"SIG_ALL\"]]}]02c97ee3d1db41cf0a3ddb601724be8711a032950811bf326f8219c50c4808d3cd2038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39";
+        Assert.Equal(msgToSign, SigAllHandler.GetMessageToSign(swapRequestParsed.Inputs, swapRequestParsed.Outputs));
 
         var signedSwapRequest =
             "{\n  \"inputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"c7f280eb55c1e8564e03db06973e94bc9b666d9e1ca42ad278408fe625950303\\\",\\\"data\\\":\\\"030d8acedfe072c9fa449a1efe0817157403fbec460d8e79f957966056e5dd76c1\\\",\\\"tags\\\":[[\\\"sigflag\\\",\\\"SIG_ALL\\\"]]}]\",\n      \"C\": \"02c97ee3d1db41cf0a3ddb601724be8711a032950811bf326f8219c50c4808d3cd\",\n      \"witness\": \"{\\\"signatures\\\":[\\\"ce017ca25b1b97df2f72e4b49f69ac26a240ce14b3690a8fe619d41ccc42d3c1282e073f85acd36dc50011638906f35b56615f24e4d03e8effe8257f6a808538\\\"]}\"\n    }\n  ],\n  \"outputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39\"\n    }\n  ]\n}";
-        var signedSwapRequestParsed = JsonSerializer.Deserialize<PostSwapRequest>(
-            signedSwapRequest
-        );
-        Assert.True(
-            SigAllHandler.VerifySigAllWitness(
-                signedSwapRequestParsed.Inputs,
-                signedSwapRequestParsed.Outputs
-            )
-        );
-        var witness = JsonSerializer.Deserialize<P2PKWitness>(
-            signedSwapRequestParsed.Inputs.First().Witness
-        );
-        Assert.True(
-            SigAllHandler.VerifySigAllWitness(
-                signedSwapRequestParsed.Inputs,
-                signedSwapRequestParsed.Outputs,
-                witness
-            )
-        );
+        var signedSwapRequestParsed = JsonSerializer.Deserialize<PostSwapRequest>(signedSwapRequest);
+        Assert.True(SigAllHandler.VerifySigAllWitness(signedSwapRequestParsed.Inputs, signedSwapRequestParsed.Outputs));
+        var witness = JsonSerializer.Deserialize<P2PKWitness>(signedSwapRequestParsed.Inputs.First().Witness);
+        Assert.True(SigAllHandler.VerifySigAllWitness(signedSwapRequestParsed.Inputs, signedSwapRequestParsed.Outputs, witness));
 
         var validSwapRequest =
             "{\n  \"inputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"c7f280eb55c1e8564e03db06973e94bc9b666d9e1ca42ad278408fe625950303\\\",\\\"data\\\":\\\"030d8acedfe072c9fa449a1efe0817157403fbec460d8e79f957966056e5dd76c1\\\",\\\"tags\\\":[[\\\"sigflag\\\",\\\"SIG_ALL\\\"]]}]\",\n      \"C\": \"02c97ee3d1db41cf0a3ddb601724be8711a032950811bf326f8219c50c4808d3cd\",\n      \"witness\": \"{\\\"signatures\\\":[\\\"ce017ca25b1b97df2f72e4b49f69ac26a240ce14b3690a8fe619d41ccc42d3c1282e073f85acd36dc50011638906f35b56615f24e4d03e8effe8257f6a808538\\\"]}\"\n    }\n  ],\n  \"outputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39\"\n    }\n  ]\n}";
         var validSwapRequestParsed = JsonSerializer.Deserialize<PostSwapRequest>(validSwapRequest);
-        var witness1 = JsonSerializer.Deserialize<P2PKWitness>(
-            validSwapRequestParsed?.Inputs[0].Witness
-        );
-        Assert.True(
-            SigAllHandler.VerifySigAllWitness(
-                validSwapRequestParsed.Inputs,
-                validSwapRequestParsed.Outputs,
-                witness1
-            )
-        );
-        Assert.True(
-            SigAllHandler.VerifySigAllWitness(
-                validSwapRequestParsed.Inputs,
-                validSwapRequestParsed.Outputs
-            )
-        );
-
+        var witness1 = JsonSerializer.Deserialize<P2PKWitness>(validSwapRequestParsed?.Inputs[0].Witness);
+        Assert.True(SigAllHandler.VerifySigAllWitness(validSwapRequestParsed.Inputs, validSwapRequestParsed.Outputs, witness1));
+        Assert.True(SigAllHandler.VerifySigAllWitness(validSwapRequestParsed.Inputs, validSwapRequestParsed.Outputs));
+        
         var invalidSwapRequest =
             "{\n  \"inputs\": [\n    {\n      \"amount\": 1,\n      \"id\": \"00bfa73302d12ffd\",\n      \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"fa6dd3fac9086c153878dec90b9e37163d38ff2ecf8b37db6470e9d185abbbae\\\",\\\"data\\\":\\\"033b42b04e659fed13b669f8b16cdaffc3ee5738608810cf97a7631d09bd01399d\\\",\\\"tags\\\":[[\\\"sigflag\\\",\\\"SIG_ALL\\\"]]}]\",\n      \"C\": \"024d232312bab25af2e73f41d56864d378edca9109ae8f76e1030e02e585847786\",\n      \"witness\": \"{\\\"signatures\\\":[\\\"27b4d260a1186e3b62a26c0d14ffeab3b9f7c3889e78707b8fd3836b473a00601afbd53a2288ad20a624a8bbe3344453215ea075fc0ce479dd8666fd3d9162cc\\\"]}\"\n    },\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"4007b21fc5f5b1d4920bc0a08b158d98fd0fb2b0b0262b57ff53c6c5d6c2ae8c\\\",\\\"data\\\":\\\"033b42b04e659fed13b669f8b16cdaffc3ee5738608810cf97a7631d09bd01399d\\\",\\\"tags\\\":[[\\\"locktime\\\",\\\"122222222222222\\\"],[\\\"sigflag\\\",\\\"SIG_ALL\\\"]]}]\",\n      \"C\": \"02417400f2af09772219c831501afcbab4efb3b2e75175635d5474069608deb641\"\n    }\n  ],\n  \"outputs\": [\n    {\n      \"amount\": 1,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39\"\n    },\n    {\n      \"amount\": 1,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"03afe7c87e32d436f0957f1d70a2bca025822a84a8623e3a33aed0a167016e0ca5\"\n    },\n    {\n      \"amount\": 1,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"02c0d4fce02a7a0f09e3f1bca952db910b17e81a7ebcbce62cd8dcfb127d21e37b\"\n    }\n  ]\n}";
-        var invalidSwapRequestParsed = JsonSerializer.Deserialize<PostSwapRequest>(
-            invalidSwapRequest
-        );
-        Assert.False(
-            SigAllHandler.VerifySigAllWitness(
-                invalidSwapRequestParsed.Inputs,
-                invalidSwapRequestParsed.Outputs
-            )
-        );
-        var witness2 = JsonSerializer.Deserialize<P2PKWitness>(
-            validSwapRequestParsed?.Inputs[0].Witness
-        );
-        Assert.False(
-            SigAllHandler.VerifySigAllWitness(
-                invalidSwapRequestParsed.Inputs,
-                invalidSwapRequestParsed.Outputs,
-                witness2
-            )
-        );
-
-        var validSwapRequestMultisig =
+        var invalidSwapRequestParsed = JsonSerializer.Deserialize<PostSwapRequest>(invalidSwapRequest);
+        Assert.False(SigAllHandler.VerifySigAllWitness(invalidSwapRequestParsed.Inputs, invalidSwapRequestParsed.Outputs));
+        var witness2 = JsonSerializer.Deserialize<P2PKWitness>(invalidSwapRequestParsed?.Inputs[0].Witness);
+        Assert.False(SigAllHandler.VerifySigAllWitness(invalidSwapRequestParsed.Inputs, invalidSwapRequestParsed.Outputs, witness2));
+        
+        var validSwapRequestMultisig = 
             "{\n  \"inputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"04bfd885fc982d553711092d037fdceb7320fd8f96b0d4fd6d31a65b83b94272\\\",\\\"data\\\":\\\"0275e78025b558dbe6cb8fdd032a2e7613ca14fda5c1f4c4e3427f5077a7bd90e4\\\",\\\"tags\\\":[[\\\"pubkeys\\\",\\\"035163650bbd5ed4be7693f40f340346ba548b941074e9138b67ef6c42755f3449\\\",\\\"02817d22a8edc44c4141e192995a7976647c335092199f9e076a170c7336e2f5cc\\\"],[\\\"n_sigs\\\",\\\"2\\\"],[\\\"sigflag\\\",\\\"SIG_ALL\\\"]]}]\",\n      \"C\": \"03866a09946562482c576ca989d06371e412b221890804c7da8887d321380755be\",\n      \"witness\": \"{\\\"signatures\\\":[\\\"be1d72c5ca16a93c5a34f25ec63ce632ddc3176787dac363321af3fd0f55d1927e07451bc451ffe5c682d76688ea9925d7977dffbb15bd79763b527f474734b0\\\",\\\"669d6d10d7ed35395009f222f6c7bdc28a378a1ebb72ee43117be5754648501da3bedf2fd6ff0c7849ac92683538c60af0af504102e40f2d8daca8e08b1ca16b\\\"]}\"\n    }\n  ],\n  \"outputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39\"\n    }\n  ]\n}";
-        var validSwapRequestMultisigParsed = JsonSerializer.Deserialize<PostSwapRequest>(
-            validSwapRequestMultisig
-        );
-        var witness3 = JsonSerializer.Deserialize<P2PKWitness>(
-            validSwapRequestMultisigParsed.Inputs[0].Witness
-        );
-        Assert.True(
-            SigAllHandler.VerifySigAllWitness(
-                validSwapRequestMultisigParsed.Inputs,
-                validSwapRequestMultisigParsed.Outputs,
-                witness3
-            )
-        );
-        Assert.True(
-            SigAllHandler.VerifySigAllWitness(
-                validSwapRequestMultisigParsed.Inputs,
-                validSwapRequestMultisigParsed.Outputs
-            )
-        );
-
-        var validSwapRequestMultisigRefund =
-            "{\n  \"inputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"3e9253419a11f0a541dd6baeddecf8356fc864b5d061f12f05632bc3aee6b5c4\\\",\\\"data\\\":\\\"0343cca0e48ce9e3fdcddba4637ff8cdbf6f5ed9cfdf1873e63827e760f0ed4db5\\\",\\\"tags\\\":[[\\\"pubkeys\\\",\\\"0235e0a719f8b046cee90f55a59b1cdd6ca75ce23e49cbcd82c9e5b7310e21ebcd\\\",\\\"020443f98b356e021bae82bdfc05ff433cab21e27fca9ab7b0995aedb2e7aabc43\\\"],[\\\"locktime\\\",\\\"100\\\"],[\\\"n_sigs\\\",\\\"2\\\"],[\\\"refund\\\",\\\"026b432e62b041bf9cdae534203739c73fa506c9a2d6aa58a52bc601a1dec421e1\\\",\\\"02e3494a2e07e7f6e7d4567e0da7a563592bff1e121df2383667f15b83e9168a9e\\\"],[\\\"n_sigs_refund\\\",\\\"2\\\"],[\\\"sigflag\\\",\\\"SIG_ALL\\\"]]}]\",\n      \"C\": \"026c12ee3bffa5c617debcf823bf1af6a9b47145b699f2737bba3394f0893eb869\",\n      \"witness\": \"{\\\"signatures\\\":[\\\"bfe884145ce6512331324321c3946dfd812428a53656b108b59d26559a186ba2ab45e5be9ce94e2dff0d09078e25ccb82d06a8b3a63cd3dc67065b8f77292776\\\",\\\"236e5cc9c30f85a893a29a4302e41e6f2015caef4229f28fa65e2f5c9d55515cc9a1852093a81a5095055d85fd55bf4da124e55354b56e0a39e83b58b0afc197\\\"]}\"\n    }\n  ],\n  \"outputs\": [\n    {\n      \"amount\": 1,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39\"\n    },\n    {\n      \"amount\": 1,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"03afe7c87e32d436f0957f1d70a2bca025822a84a8623e3a33aed0a167016e0ca5\"\n    }\n  ]\n}";
-        var validSwapRequestMultisigRefundParsed = JsonSerializer.Deserialize<PostSwapRequest>(
-            validSwapRequestMultisigRefund
-        );
-        var witness4 = JsonSerializer.Deserialize<P2PKWitness>(
-            validSwapRequestMultisigRefundParsed.Inputs[0].Witness
-        );
-        Assert.True(
-            SigAllHandler.VerifySigAllWitness(
-                validSwapRequestMultisigRefundParsed.Inputs,
-                validSwapRequestMultisigRefundParsed.Outputs,
-                witness4
-            )
-        );
-        Assert.True(
-            SigAllHandler.VerifySigAllWitness(
-                validSwapRequestMultisigRefundParsed.Inputs,
-                validSwapRequestMultisigRefundParsed.Outputs
-            )
-        );
-
-        var validSwapRequestMultisigRefundLocktime =
+        var validSwapRequestMultisigParsed = JsonSerializer.Deserialize<PostSwapRequest>(validSwapRequestMultisig);
+        var witness3 = JsonSerializer.Deserialize<P2PKWitness>(validSwapRequestMultisigParsed.Inputs[0].Witness);
+        Assert.True(SigAllHandler.VerifySigAllWitness(validSwapRequestMultisigParsed.Inputs, validSwapRequestMultisigParsed.Outputs, witness3));
+        Assert.True(SigAllHandler.VerifySigAllWitness(validSwapRequestMultisigParsed.Inputs, validSwapRequestMultisigParsed.Outputs));
+        
+        var validSwapRequestMultisigRefundLocktime = 
             "{\n  \"inputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"9ea35553beb18d553d0a53120d0175a0991ca6109370338406eed007b26eacd1\\\",\\\"data\\\":\\\"02af21e09300af92e7b48c48afdb12e22933738cfb9bba67b27c00c679aae3ec25\\\",\\\"tags\\\":[[\\\"locktime\\\",\\\"1\\\"],[\\\"refund\\\",\\\"02637c19143c58b2c58bd378400a7b82bdc91d6dedaeb803b28640ef7d28a887ac\\\",\\\"0345c7fdf7ec7c8e746cca264bf27509eb4edb9ac421f8fbfab1dec64945a4d797\\\"],[\\\"n_sigs_refund\\\",\\\"2\\\"],[\\\"sigflag\\\",\\\"SIG_ALL\\\"]]}]\",\n      \"C\": \"03dd83536fbbcbb74ccb3c87147df26753fd499cc2c095f74367fff0fb459c312e\",\n      \"witness\": \"{\\\"signatures\\\":[\\\"23b58ef28cd22f3dff421121240ddd621deee83a3bc229fd67019c2e338d91e2c61577e081e1375dbab369307bba265e887857110ca3b4bd949211a0a298805f\\\",\\\"7e75948ef1513564fdcecfcbd389deac67c730f7004f8631ba90c0844d3e8c0cf470b656306877df5141f65fd3b7e85445a8452c3323ab273e6d0d44843817ed\\\"]}\"\n    }\n  ],\n  \"outputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39\"\n    }\n  ]\n}";
         var validSwapRequestMultisigRefundLocktimeParsed =
-            JsonSerializer.Deserialize<PostSwapRequest>(validSwapRequestMultisigRefund);
-        var witness5 = JsonSerializer.Deserialize<P2PKWitness>(
-            validSwapRequestMultisigRefundLocktimeParsed.Inputs[0].Witness
-        );
-        Assert.True(
-            SigAllHandler.VerifySigAllWitness(
-                validSwapRequestMultisigRefundLocktimeParsed.Inputs,
-                validSwapRequestMultisigRefundLocktimeParsed.Outputs,
-                witness5
-            )
-        );
-        Assert.True(
-            SigAllHandler.VerifySigAllWitness(
-                validSwapRequestMultisigRefundLocktimeParsed.Inputs,
-                validSwapRequestMultisigRefundLocktimeParsed.Outputs
-            )
-        );
-
-        var validSwapRequestHTLC =
+            JsonSerializer.Deserialize<PostSwapRequest>(validSwapRequestMultisigRefundLocktime);
+        var witness5 = JsonSerializer.Deserialize<P2PKWitness>(validSwapRequestMultisigRefundLocktimeParsed.Inputs[0].Witness);
+        Assert.True(SigAllHandler.VerifySigAllWitness(validSwapRequestMultisigRefundLocktimeParsed.Inputs, validSwapRequestMultisigRefundLocktimeParsed.Outputs, witness5));
+        Assert.True(SigAllHandler.VerifySigAllWitness(validSwapRequestMultisigRefundLocktimeParsed.Inputs, validSwapRequestMultisigRefundLocktimeParsed.Outputs));
+        
+        var validSwapRequestHTLC = 
             "{\n  \"inputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"secret\": \"[\\\"HTLC\\\",{\\\"nonce\\\":\\\"d730dd70cd7ec6e687829857de8e70aab2b970712f4dbe288343eca20e63c28c\\\",\\\"data\\\":\\\"ec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5\\\",\\\"tags\\\":[[\\\"pubkeys\\\",\\\"0350cda8a1d5257dbd6ba8401a9a27384b9ab699e636e986101172167799469b14\\\"],[\\\"sigflag\\\",\\\"SIG_ALL\\\"]]}]\",\n      \"C\": \"03ff6567e2e6c31db5cb7189dab2b5121930086791c93899e4eff3dda61cb57273\",\n      \"witness\": \"{\\\"preimage\\\":\\\"0000000000000000000000000000000000000000000000000000000000000001\\\",\\\"signatures\\\":[\\\"a4c00a9ad07f9936e404494fda99a9b935c82d7c053173b304b8663124c81d4b00f64a225f5acf41043ca52b06382722bd04ded0fbeb0fcc404eed3b24778b88\\\"]}\"\n    }\n  ],\n  \"outputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39\"\n    }\n  ]\n}";
-        var validSwapRequestHTLCParsed = JsonSerializer.Deserialize<PostSwapRequest>(
-            validSwapRequestHTLC
-        );
-        var witness6 = JsonSerializer.Deserialize<HTLCWitness>(
-            validSwapRequestHTLCParsed.Inputs[0].Witness
-        );
-        var b = SigAllHandler.VerifySigAllWitness(
-            validSwapRequestHTLCParsed.Inputs,
-            validSwapRequestHTLCParsed.Outputs,
-            witness6
-        );
+        var validSwapRequestHTLCParsed =
+            JsonSerializer.Deserialize<PostSwapRequest>(validSwapRequestHTLC);
+        var witness6 = JsonSerializer.Deserialize<HTLCWitness>(validSwapRequestHTLCParsed.Inputs[0].Witness);
+        var b = SigAllHandler.VerifySigAllWitness(validSwapRequestHTLCParsed.Inputs, validSwapRequestHTLCParsed.Outputs,
+            witness6);
         Assert.True(b);
-        Assert.True(
-            SigAllHandler.VerifySigAllWitness(
-                validSwapRequestHTLCParsed.Inputs,
-                validSwapRequestHTLCParsed.Outputs
-            )
-        );
+        Assert.True(SigAllHandler.VerifySigAllWitness(validSwapRequestHTLCParsed.Inputs, validSwapRequestHTLCParsed.Outputs));
 
-        var invalidSwapRequestHTLC =
+        var invalidSwapRequestHTLC = 
             "{\n  \"inputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"secret\": \"[\\\"HTLC\\\",{\\\"nonce\\\":\\\"512c4045f12fdfd6f55059669c189e040c37c1ce2f8be104ed6aec296acce4e9\\\",\\\"data\\\":\\\"ec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5\\\",\\\"tags\\\":[[\\\"pubkeys\\\",\\\"03ba83defd31c63f8841d188f0d41b5bb3af1bb3c08d0ba46f8f1d26a4d45e8cad\\\"],[\\\"locktime\\\",\\\"4854185133\\\"],[\\\"refund\\\",\\\"032f1008a79c722e93a1b4b853f85f38283f9ef74ee4c5c91293eb1cc3c5e46e34\\\"],[\\\"sigflag\\\",\\\"SIG_ALL\\\"]]}]\",\n      \"C\": \"02207abeff828146f1fc3909c74613d5605bd057f16791994b3c91f045b39a6939\",\n      \"witness\": \"{\\\"preimage\\\":\\\"0000000000000000000000000000000000000000000000000000000000000001\\\",\\\"signatures\\\":[\\\"7816d57871bde5be2e4281065dbe5b15f641d8f1ed9437a3ae556464d6f9b8a0a2e6660337a915f2c26dce1453a416daf682b8fb593b67a0750fce071e0759b9\\\"]}\"\n    }\n  ],\n  \"outputs\": [\n    {\n      \"amount\": 1,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39\"\n    },\n    {\n      \"amount\": 1,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"03afe7c87e32d436f0957f1d70a2bca025822a84a8623e3a33aed0a167016e0ca5\"\n    }\n  ]\n}";
-        var invalidSwapRequestHTLCParsed = JsonSerializer.Deserialize<PostSwapRequest>(
-            invalidSwapRequestHTLC
-        );
-        Assert.False(
-            SigAllHandler.VerifySigAllWitness(
-                invalidSwapRequestHTLCParsed.Inputs,
-                invalidSwapRequestHTLCParsed.Outputs
-            )
-        );
-        var witness7 = JsonSerializer.Deserialize<HTLCWitness>(
-            invalidSwapRequestHTLCParsed.Inputs[0].Witness
-        );
-        Assert.False(
-            SigAllHandler.VerifySigAllWitness(
-                invalidSwapRequestHTLCParsed.Inputs,
-                invalidSwapRequestHTLCParsed.Outputs,
-                witness7
-            )
-        );
+        var invalidSwapRequestHTLCParsed = JsonSerializer.Deserialize<PostSwapRequest>(invalidSwapRequestHTLC);
+        Assert.False(SigAllHandler.VerifySigAllWitness(invalidSwapRequestHTLCParsed.Inputs, invalidSwapRequestHTLCParsed.Outputs));
+        var witness7 = JsonSerializer.Deserialize<HTLCWitness>(invalidSwapRequestHTLCParsed.Inputs[0].Witness);
+        Assert.False(SigAllHandler.VerifySigAllWitness(invalidSwapRequestHTLCParsed.Inputs, invalidSwapRequestHTLCParsed.Outputs, witness7));
 
         var validSwapRequestHTLCMultisig =
             "{\n  \"inputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"secret\": \"[\\\"HTLC\\\",{\\\"nonce\\\":\\\"c9b0fabb8007c0db4bef64d5d128cdcf3c79e8bb780c3294adf4c88e96c32647\\\",\\\"data\\\":\\\"ec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5\\\",\\\"tags\\\":[[\\\"pubkeys\\\",\\\"039e6ec7e922abb4162235b3a42965eb11510b07b7461f6b1a17478b1c9c64d100\\\"],[\\\"locktime\\\",\\\"1\\\"],[\\\"refund\\\",\\\"02ce1bbd2c9a4be8029c9a6435ad601c45677f5cde81f8a7f0ed535e0039d0eb6c\\\",\\\"03c43c00ff57f63cfa9e732f0520c342123e21331d0121139f1b636921eeec095f\\\"],[\\\"n_sigs_refund\\\",\\\"2\\\"],[\\\"sigflag\\\",\\\"SIG_ALL\\\"]]}]\",\n      \"C\": \"0344b6f1471cf18a8cbae0e624018c816be5e3a9b04dcb7689f64173c1ae90a3a5\",\n      \"witness\": \"{\\\"preimage\\\":\\\"0000000000000000000000000000000000000000000000000000000000000001\\\",\\\"signatures\\\":[\\\"98e21672d409cc782c720f203d8284f0af0c8713f18167499f9f101b7050c3e657fb0e57478ebd8bd561c31aa6c30f4cd20ec38c73f5755b7b4ddee693bca5a5\\\",\\\"693f40129dbf905ed9c8008081c694f72a36de354f9f4fa7a61b389cf781f62a0ae0586612fb2eb504faaf897fefb6742309186117f4743bcebcb8e350e975e2\\\"]}\"\n    }\n  ],\n  \"outputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39\"\n    }\n  ]\n}";
-        var validSwapRequestHTLCMultisigParsed = JsonSerializer.Deserialize<PostSwapRequest>(
-            validSwapRequestHTLCMultisig
-        );
-        var witness8 = JsonSerializer.Deserialize<HTLCWitness>(
-            validSwapRequestHTLCMultisigParsed.Inputs[0].Witness
-        );
-        Assert.True(
-            SigAllHandler.VerifySigAllWitness(
-                validSwapRequestHTLCMultisigParsed.Inputs,
-                validSwapRequestHTLCMultisigParsed.Outputs,
-                witness8
-            )
-        );
-        Assert.True(
-            SigAllHandler.VerifySigAllWitness(
-                validSwapRequestHTLCMultisigParsed.Inputs,
-                validSwapRequestHTLCMultisigParsed.Outputs
-            )
-        );
+        var validSwapRequestHTLCMultisigParsed = JsonSerializer.Deserialize<PostSwapRequest>(validSwapRequestHTLCMultisig);
+        var witness8 = JsonSerializer.Deserialize<HTLCWitness>(validSwapRequestHTLCMultisigParsed.Inputs[0].Witness);
+        Assert.True(SigAllHandler.VerifySigAllWitness(validSwapRequestHTLCMultisigParsed.Inputs, validSwapRequestHTLCMultisigParsed.Outputs, witness8));
+        Assert.True(SigAllHandler.VerifySigAllWitness(validSwapRequestHTLCMultisigParsed.Inputs, validSwapRequestHTLCMultisigParsed.Outputs));
 
-        var meltRequest =
+        var meltRequest = 
             "{\n  \"quote\": \"cF8911fzT88aEi1d-6boZZkq5lYxbUSVs-HbJxK0\",\n  \"inputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"bbf9edf441d17097e39f5095a3313ba24d3055ab8a32f758ff41c10d45c4f3de\\\",\\\"data\\\":\\\"029116d32e7da635c8feeb9f1f4559eb3d9b42d400f9d22a64834d89cde0eb6835\\\",\\\"tags\\\":[[\\\"sigflag\\\",\\\"SIG_ALL\\\"]]}]\",\n      \"C\": \"02a9d461ff36448469dccf828fa143833ae71c689886ac51b62c8d61ddaa10028b\",\n      \"witness\": \"{\\\"signatures\\\":[\\\"478224fbe715e34f78cb33451db6fcf8ab948afb8bd04ff1a952c92e562ac0f7c1cb5e61809410635be0aa94d0448f7f7959bd5762cc3802b0a00ff58b2da747\\\"]}\"\n    }\n  ],\n  \"outputs\": [\n    {\n      \"amount\": 0,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39\"\n    }\n  ]\n}";
         var meltRequestParsed = JsonSerializer.Deserialize<PostMeltRequest>(meltRequest);
         var msg2 =
             "[\"P2PK\",{\"nonce\":\"bbf9edf441d17097e39f5095a3313ba24d3055ab8a32f758ff41c10d45c4f3de\",\"data\":\"029116d32e7da635c8feeb9f1f4559eb3d9b42d400f9d22a64834d89cde0eb6835\",\"tags\":[[\"sigflag\",\"SIG_ALL\"]]}]02a9d461ff36448469dccf828fa143833ae71c689886ac51b62c8d61ddaa10028b0038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39cF8911fzT88aEi1d-6boZZkq5lYxbUSVs-HbJxK0";
-        Assert.Equal(
-            SigAllHandler.GetMessageToSign(
-                meltRequestParsed.Inputs,
-                meltRequestParsed.Outputs,
-                meltRequestParsed.Quote
-            ),
-            msg2
-        );
+        Assert.Equal(SigAllHandler.GetMessageToSign(meltRequestParsed.Inputs, meltRequestParsed.Outputs, meltRequestParsed.Quote), msg2);
 
-        var meltRequestValid =
+        var meltRequestValid = 
             "{\n  \"quote\": \"cF8911fzT88aEi1d-6boZZkq5lYxbUSVs-HbJxK0\",\n  \"inputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"bbf9edf441d17097e39f5095a3313ba24d3055ab8a32f758ff41c10d45c4f3de\\\",\\\"data\\\":\\\"029116d32e7da635c8feeb9f1f4559eb3d9b42d400f9d22a64834d89cde0eb6835\\\",\\\"tags\\\":[[\\\"sigflag\\\",\\\"SIG_ALL\\\"]]}]\",\n      \"C\": \"02a9d461ff36448469dccf828fa143833ae71c689886ac51b62c8d61ddaa10028b\",\n      \"witness\": \"{\\\"signatures\\\":[\\\"478224fbe715e34f78cb33451db6fcf8ab948afb8bd04ff1a952c92e562ac0f7c1cb5e61809410635be0aa94d0448f7f7959bd5762cc3802b0a00ff58b2da747\\\"]}\"\n    }\n  ],\n  \"outputs\": [\n    {\n      \"amount\": 0,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39\"\n    }\n  ]\n}";
-        var meltRequestValidParsed = JsonSerializer.Deserialize<PostMeltRequest>(meltRequest);
-        Assert.True(
-            SigAllHandler.VerifySigAllWitness(
-                meltRequestValidParsed.Inputs,
-                meltRequestValidParsed.Outputs,
-                meltRequestValidParsed.Quote
-            )
-        );
-        var witness9 = JsonSerializer.Deserialize<P2PKWitness>(
-            meltRequestValidParsed.Inputs[0].Witness
-        );
-        Assert.True(
-            SigAllHandler.VerifySigAllWitness(
-                meltRequestValidParsed.Inputs,
-                meltRequestValidParsed.Outputs,
-                witness9,
-                meltRequestValidParsed.Quote
-            )
-        );
+        var meltRequestValidParsed = JsonSerializer.Deserialize<PostMeltRequest>(meltRequestValid);
+        Assert.True(SigAllHandler.VerifySigAllWitness(meltRequestValidParsed.Inputs, meltRequestValidParsed.Outputs, meltRequestValidParsed.Quote));
+        var witness9 = JsonSerializer.Deserialize<P2PKWitness>(meltRequestValidParsed.Inputs[0].Witness);
+        Assert.True(SigAllHandler.VerifySigAllWitness(meltRequestValidParsed.Inputs, meltRequestValidParsed.Outputs, witness9, meltRequestValidParsed.Quote));
 
         var meltRequestMultisig =
             "{\n  \"quote\": \"Db3qEMVwFN2tf_1JxbZp29aL5cVXpSMIwpYfyOVF\",\n  \"inputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"68d7822538740e4f9c9ebf5183ef6c4501c7a9bca4e509ce2e41e1d62e7b8a99\\\",\\\"data\\\":\\\"0394e841bd59aeadce16380df6174cb29c9fea83b0b65b226575e6d73cc5a1bd59\\\",\\\"tags\\\":[[\\\"pubkeys\\\",\\\"033d892d7ad2a7d53708b7a5a2af101cbcef69522bd368eacf55fcb4f1b0494058\\\"],[\\\"n_sigs\\\",\\\"2\\\"],[\\\"sigflag\\\",\\\"SIG_ALL\\\"]]}]\",\n      \"C\": \"03a70c42ec9d7192422c7f7a3ad017deda309fb4a2453fcf9357795ea706cc87a9\",\n      \"witness\": \"{\\\"signatures\\\":[\\\"ed739970d003f703da2f101a51767b63858f4894468cc334be04aa3befab1617a81e3eef093441afb499974152d279e59d9582a31dc68adbc17ffc22a2516086\\\",\\\"f9efe1c70eb61e7ad8bd615c50ff850410a4135ea73ba5fd8e12a734743ad045e575e9e76ea5c52c8e7908d3ad5c0eaae93337e5c11109e52848dc328d6757a2\\\"]}\"\n    }\n  ],\n  \"outputs\": [\n    {\n      \"amount\": 0,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39\"\n    }\n  ]\n}";
-        var meltRequestMultisigParsed = JsonSerializer.Deserialize<PostMeltRequest>(
-            meltRequestMultisig
-        );
-        Assert.True(
-            SigAllHandler.VerifySigAllWitness(
-                meltRequestMultisigParsed.Inputs,
-                meltRequestMultisigParsed.Outputs,
-                meltRequestMultisigParsed.Quote
-            )
-        );
-        var witness10 = JsonSerializer.Deserialize<P2PKWitness>(
-            meltRequestMultisigParsed.Inputs[0].Witness
-        );
-        Assert.True(
-            SigAllHandler.VerifySigAllWitness(
-                meltRequestMultisigParsed.Inputs,
-                meltRequestMultisigParsed.Outputs,
-                witness10,
-                meltRequestMultisigParsed.Quote
-            )
-        );
+        var meltRequestMultisigParsed = JsonSerializer.Deserialize<PostMeltRequest>(meltRequestMultisig);
+        Assert.True(SigAllHandler.VerifySigAllWitness(meltRequestMultisigParsed.Inputs, meltRequestMultisigParsed.Outputs, meltRequestMultisigParsed.Quote));
+        var witness10 = JsonSerializer.Deserialize<P2PKWitness>(meltRequestMultisigParsed.Inputs[0].Witness);
+        Assert.True(SigAllHandler.VerifySigAllWitness(meltRequestMultisigParsed.Inputs, meltRequestMultisigParsed.Outputs, witness10, meltRequestMultisigParsed.Quote));
     }
-
+        
     [Fact]
     public void Nut12Tests_Hash_e()
     {
@@ -1131,66 +986,57 @@ public class UnitTest1
     private static readonly byte[] P2BK_PREFIX = "Cashu_P2BK_v1"u8.ToArray();
 
     [Fact]
-    public void Nut26Tests()
+    public void Nut28_P2BK_Tests()
     {
         // sender ephemeral keypair
         var e = new PrivKey("1cedb9df0c6872188b560ace9e35fd55c2532d53e19ae65b46159073886482ca");
         var E = new PubKey("02a8cda4cf448bfce9a9e46e588c06ea1780fcb94e3bbdf3277f42995d403a8b0c");
-
-        Assert.Equal(
-            E.Key.ToString()?.ToLowerInvariant(),
-            e.Key.CreatePubKey().ToString().ToLowerInvariant()
-        );
+        Assert.Equal(E.Key.ToString()?.ToLowerInvariant(), e.Key.CreatePubKey().ToString()?.ToLowerInvariant());
 
         // receiver keypair
         var p = new PrivKey("ad37e8abd800be3e8272b14045873f4353327eedeb702b72ddcc5c5adff5129c");
         var P = new PubKey("02771fed6cb88aaac38b8b32104a942bf4b8f4696bc361171b3c7d06fa2ebddf06");
 
-        Assert.Equal(
-            P.Key.ToString().ToLowerInvariant(),
-            p.Key.CreatePubKey().ToString().ToLowerInvariant()
-        );
-
-        var kid = new KeysetId("009a1f293253e41e");
-
+        Assert.Equal(P.Key.ToString()?.ToLowerInvariant(), p.Key.CreatePubKey().ToString()?.ToLowerInvariant());
+        
         var zx = "40d6ba4430a6dfa915bb441579b0f4dee032307434e9957a092bbca73151df8b";
         Assert.Equal(zx, Convert.ToHexString(Cashu.ComputeZx(e, P)).ToLowerInvariant());
         Assert.Equal(zx, Convert.ToHexString(Cashu.ComputeZx(p, E)).ToLowerInvariant());
 
         string[] rs =
         [
-            "41b5f15975f787bd5bd8d91753cbbe56d0d7aface851b1063e8011f68551862d",
-            "c4d68c79b8676841f767bcd53437af3f43d51b205f351d5cdfe5cb866ec41494",
-            "04ecf53095882f28965f267e46d2c555f15bcd74c3a84f42cf0de8ebfb712c7c",
-            "4163bc31b3087901b8b28249213b0ecc447cee3ea1f0c04e4dd5934e0c3f78ad",
-            "f5d6d20c399887f29bdda771660f87226e3a0d4ef36a90f40d3f717085957b60",
-            "f275404a115cd720ee099f5d6b7d5dc705d1c95ac6ae01c917031b64f7dccc72",
-            "39dffa9f0160bcda63920305fc12f88d824f5b654970dbd579c08367c12fcd78",
-            "3331338e87608c7f36265c9b52bb5ebeac1bb3e2220d2682370f4b7c09dccd4b",
-            "44947bd36c0200fb5d5d05187861364f6b666aac8ce37b368e27f01cea7cf147",
-            "cf4e69842833e0dab8a7302933d648fee98de80284af2d7ead71b420a8f0ebde",
-            "3638eae8a9889bbd96769637526010b34cd1e121805eaaaaa0602405529ca92f",
+            "f43cfecf4d44e109872ed601156a01211c0d9eba0460d5be254a510782a2d4aa",
+            "4a57e6acb9db19344af5632aa45000cd2c643550bc63c7d5732221171ab0f5b3",
+            "d4a8b84b21f2b0ad31654e96eddbc32bfdedae2d05dc179bdd6cc20236b1104d",
+            "ecebf43123d1da3de611a05f5020085d63ca20829242cdc07f7c780e19594798",
+            "5f42d463ead44cbb20e51843d9eb3b8b0e0021566fd89852d23ae85f57d60858",
+            "a8f1c9d336954997ad571e5a5b59fe340c80902b10b9099d44e17abb3070118c",
+            "c39fa43b707215c163593fb8cadc0eddb4fe2f82c0c79c82a6fc2e3b6b051a7e",
+            "b17d6a51396eb926f4a901e20ff760a852563f90fd4b85e193888f34fd2ee523",
+            "4d4af85ea296457155b7ce328cf9accbe232e8ac23a1dfe901a36ab1b72ea04d",
+            "ce311248ea9f42a73fc874b3ce351d55964652840d695382f0018b36bb089dd1",
+            "9de35112d62e6343d02301d8f58fef87958e99bb68cfdfa855e04fe18b95b114",
         ];
 
         for (int i = 0; i <= 10; i++)
         {
-            var ri = (PrivKey)Cashu.ComputeRi(Convert.FromHexString(zx), kid.GetBytes(), i);
+            var ri = (PrivKey)Cashu.ComputeRi(Convert.FromHexString(zx),  i);
             Assert.Equal(rs[i], ri.ToString());
         }
 
         string[] blindedPublicKeys =
         [
-            "03f221b62aa21ee45982d14505de2b582716ae95c265168f586dc547f0ea8f135f",
-            "0299692178029fe08c49e8123bb0e84d6e960b27f82c8aed43013526489d46c0d5",
-            "03ae189850bda004f9723e17372c99ff9df9e29750d2147d40efb45ac8ab2cdd2c",
-            "03109838d718fbe02e9458ffa423f25bae0388146542534f8e2a094de6f7b697fa",
-            "0339d5ed7ea93292e60a4211b2daf20dff53f050835614643a43edccc35c8313db",
-            "0237861efcd52fe959bce07c33b5607aeae0929749b8339f68ba4365f2fb5d2d8d",
-            "026d5500988a62cde23096047db61e9fb5ef2fea5c521019e23862108ea4e14d72",
-            "039024fd20b26e73143509537d7c18595cfd101da4b18bb86ddd30e944aac6ef1b",
-            "03017ec4218ca2ed0fbe050e3f1a91221407bf8c896b803a891c3a52d162867ef8",
-            "0380dc0d2c79249e47b5afb61b7d40e37b9b0370ec7c80b50c62111021b886ab31",
-            "0261a8a32e718f5f27610a2b7c2069d6bab05d1ead7da21aa9dd2a3c758bdf6479",
+            "03b7c03eb05a0a539cfc438e81bcf38b65b7bb8685e8790f9b853bfe3d77ad5315",
+            "0352fb6d93360b7c2538eedf3c861f32ea5883fceec9f3e573d9d84377420da838",
+            "03667361ca925065dcafea0a705ba49e75bdd7975751fcc933e05953463c79fff1",
+            "02aca3ed09382151250b38c85087ae0a1436a057b40f824a5569ba353d40347d08",
+            "02cd397bd6e326677128f1b0e5f1d745ad89b933b1b8671e947592778c9fc2301d",
+            "0394140369aae01dbaf74977ccbb09b3a9cf2252c274c791ac734a331716f1f7d4",
+            "03480f28e8f8775d56a4254c7e0dfdd5a6ecd6318c757fcec9e84c1b48ada0666d",
+            "02f8a7be813f7ba2253d09705cc68c703a9fd785a055bf8766057fc6695ec80efc",
+            "03aa5446aaf07ca9730b233f5c404fd024ef92e3787cd1c34c81c0778fe23c59e9",
+            "037f82d4e0a79b0624a58ef7181344b95afad8acf4275dad49bcd39c189b73ece2",
+            "032371fc0eef6885062581a3852494e2eab8f384b7dd196281b85b77f94770fac5",
         ];
         //it's the same blinding as with computeB_
         for (int i = 0; i <= 10; i++)
@@ -1203,22 +1049,22 @@ public class UnitTest1
 
         string[] skStd =
         [
-            "eeedda054df845fbde4b8a579952fd9a240a2e9ad3c1dc791c4c6e51654698c9",
-            "720e75259068268079da6e1579beee83dc58bd279b5ca893fddfc9547e82e5ef",
-            "b224dddc6d88ed6718d1d7be8c5a0499448e4c62af187ab5acda4546db663f18",
-            "ee9ba4dd8b0937403b25338966c24e0f97af6d2c8d60ebc12ba1efa8ec348b49",
-            "a30ebab8119946311e5058b1ab96c66706bdaf562f921c2b2b396f3e95544cbb",
-            "9fad28f5e95d955f707c509db1049d0b9e556b6202d58d0034fd1933079b9dcd",
-            "e717e34ad9617b18e604b446419a37d0d581da5334e10748578cdfc2a124e014",
-            "e0691c3a5f614abdb8990ddb98429e01ff4e32d00d7d51f514dba7d6e9d1dfe7",
-            "f1cc647f4402bf39dfcfb658bde87592be98e99a7853a6a96bf44c77ca7203e3",
-            "7c86523000349f193b19e169795d884382118a09c0d6b8b5cb6bb1eeb8afbd39",
-            "e370d394818959fc18e9477797e74ff6a004600f6bced61d7e2c80603291bbcb",
+            "a174e77b25459f4809a187415af14065b49140c1408860f543444ed59261a605",
+            "f78fcf5891dbd772cd68146ae9d740107f96b43ea7d3f34850ee7d71faa6084f",
+            "81e0a0f6f9f36eebb3d7ffd733630270967150344203a2d2fb66bfd0466fe1a8",
+            "9a23dcdcfbd2987c6884519f95a747a1fc4dc289ce6a58f79d7675dc291818f3",
+            "0c7abd0fc2d50af9a357c9841f727acfa683c35dac002389f034e62d6794d9b3",
+            "5629b27f0e9607d62fc9cf9aa0e13d78a50432324ce094d462db7889402ee2e7",
+            "70d78ce74872d3ffe5cbf0f910634e224d81d189fcef27b9c4f62c097ac3ebd9",
+            "5eb552fd116f7765771bb322557e9fecead9e19839731118b1828d030cedb67e",
+            "fa82e10a7a9703afd82a7f72d280ec0f3565679a0f120b5bdf6fc70c9723b2e9",
+            "7b68faf4c2a000e5c23b25f413bc5c9a2ec9f48b4990deba0dfb8904cac76f2c",
+            "4b1b39beae2f21825295b3193b172ecc2e123bc2a4f76adf73da4daf9b54826f",
         ];
 
         for (int i = 0; i <= 10; i++)
         {
-            var ri = Cashu.ComputeRi(Convert.FromHexString(zx), kid.GetBytes(), i);
+            var ri = Cashu.ComputeRi(Convert.FromHexString(zx), i);
             var derivedKey = p.Key.TweakAdd(ri.ToBytes());
 
             Assert.Equal(skStd[i], Convert.ToHexString(derivedKey.ToBytes()).ToLowerInvariant());
@@ -1226,22 +1072,22 @@ public class UnitTest1
 
         string[] skNeg =
         [
-            "947e08ad9df6c97ed96627d70e447f1238540da5ac2a25cf208614287592b4d2",
-            "179ea3cde066aa0374f50b94eeb06ffbf0a29c3273c4f1ea02196f2b8ecf01f8",
-            "57b50c84bd8770ea13ec753e014b861158d82b6d8780c40bb113eb1debb25b21",
-            "942bd385db07bac3363fd108dbb3cf87abf94c3765c935172fdb957ffc80a752",
-            "489ee9606197c9b4196af631208847df1b078e6107fa65812f731515a5a068c4",
-            "453d579e395c18e26b96ee1d25f61e83b29f4a6cdb3dd6563936bf0a17e7b9d6",
-            "8ca811f3295ffe9be11f51c5b68bb948e9cbb95e0d49509e5bc68599b170fc1d",
-            "85f94ae2af5fce40b3b3ab5b0d341f7a139811dae5e59b4b19154dadfa1dfbf0",
-            "975c9327940142bcdaea53d832d9f70ad2e2c8a550bbefff702df24edabe1fec",
-            "221680d85033229c36347ee8ee4f09bb965b6914993f020bcfa557c5c8fbd942",
-            "8901023cd187dd7f1403e4f70cd8d16eb44e3f1a44371f738266263742ddd7d4",
+            "47051623754422cb04bc24c0cfe2c1ddc8db1fcc18f0aa4b477df4aca2adc20e",
+            "9d1ffe00e1da5af5c882b1ea5ec8c18893e09349803c3c9e552823490af22458",
+            "2770cf9f49f1f26eaef29d56a85483e8aabb2f3f1a6bec28ffa065a756bbfdb1",
+            "3fb40b854bd11bff639eef1f0a98c91a1097a194a6d2a24da1b01bb3396434fc",
+            "b20aebb812d38e7c9e7267039463fc46757c7f4f33b10d1bb440ea91481736fd",
+            "fbb9e1275e948b592ae46d1a15d2beef73fcee23d4917e6626e77ced20b14031",
+            "1667bb8f98715782e0e68e788554cf9a61cbb094d557710fc92fd1e08b1007e2",
+            "044581a5616dfae8723650a1ca702164ff23c0a311db5a6eb5bc32da1d39d287",
+            "a0130fb2ca958732d3451cf247726d8749af46a4e77a54b1e3a96ce3a76fcef2",
+            "20f9299d129e8468bd55c37388adde124313d39621f9281012352edbdb138b35",
+            "f0ab6866fe2da5054db05098b008b042fd0af7b42ca8547137e652137bd6dfb9"
         ];
 
         for (int i = 0; i <= 10; i++)
         {
-            var ri = Cashu.ComputeRi(Convert.FromHexString(zx), kid.GetBytes(), i);
+            var ri = Cashu.ComputeRi(Convert.FromHexString(zx), i);
             var derivedKeyNeg = p.Key.sec.Negate().Add(ri.sec).ToPrivateKey();
 
             Assert.Equal(skNeg[i], Convert.ToHexString(derivedKeyNeg.ToBytes()).ToLowerInvariant());
@@ -1249,7 +1095,7 @@ public class UnitTest1
     }
 
     [Fact]
-    public void Nut26_Flow()
+    public void Nut28_P2BK_Flow()
     {
         // sender generates ephermal keypair
         var e = new PrivKey("1cedb9df0c6872188b560ace9e35fd55c2532d53e19ae65b46159073886482ca");
@@ -1276,7 +1122,7 @@ public class UnitTest1
             .CreatePubKey();
 
         var keysetId = new KeysetId("009a1f293253e41e");
-
+        
         var conditions = new P2PKBuilder()
         {
             Lock = DateTimeOffset.FromUnixTimeSeconds(21000000000),
@@ -1285,7 +1131,7 @@ public class UnitTest1
             SignatureThreshold = 2,
             SigFlag = "SIG_INPUTS",
         };
-        var p2pkProofSecret = conditions.BuildBlinded(keysetId, e);
+        var p2pkProofSecret = conditions.BuildBlinded(e);
 
         var secret = new Nut10Secret(P2PKProofSecret.Key, p2pkProofSecret);
 
@@ -1338,7 +1184,7 @@ public class UnitTest1
             SignatureThreshold = 2,
             SigFlag = "SIG_INPUTS",
         };
-        var p2pkProofSecret = conditions.BuildBlinded(keysetId, out var E);
+        var p2pkProofSecret = conditions.BuildBlinded(out var E);
 
         var secret = new Nut10Secret(P2PKProofSecret.Key, p2pkProofSecret);
 

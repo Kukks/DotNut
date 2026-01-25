@@ -30,14 +30,6 @@ public static class Nut10Helper
 
         if (sigAllHandler.TrySign(out string? witness))
         {
-            if (witness == null)
-            {
-                throw new ArgumentNullException(
-                    nameof(witness),
-                    "sig_all input was correct, but couldn't create a witness signature!"
-                );
-            }
-
             proofs[0].Witness = witness;
             return;
         }

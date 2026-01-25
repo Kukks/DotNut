@@ -78,4 +78,22 @@ public class Nut10ProofSecret
 
     public static bool operator !=(Nut10ProofSecret first, Nut10ProofSecret second) =>
         !(first == second);
+
+    /// <summary>
+    /// Helper for SIG_ALL equality check. Every proof has to have identical data and tags fields
+    /// </summary>
+    public bool SigAllEquals(Nut10ProofSecret other)
+    {
+       return other is { } o
+            && this.Data == o.Data
+            && (
+                (this.Tags == null && o.Tags == null)
+                || (
+                    this.Tags != null
+                    && o.Tags != null
+                    && this.Tags.Length == o.Tags.Length
+                    && this.Tags.Zip(o.Tags).All(pair => pair.First.SequenceEqual(pair.Second))
+                )
+            );
+    }
 }

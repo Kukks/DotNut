@@ -36,7 +36,6 @@ public class P2PKBuilder
             if (RefundPubkeys?.Any() is true)
             {
                 tags.Add(new[] { "refund" }.Concat(RefundPubkeys.Select(p => p.ToHex())).ToArray());
-                tags.Add(new[] { "refund" }.Concat(RefundPubkeys.Select(p => p.ToHex())).ToArray());
                 RefundSignatureThreshold ??= 1;
             }
             if (RefundSignatureThreshold is { } refundSignatureThreshold and > 1)

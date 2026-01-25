@@ -34,12 +34,13 @@ public class SigAllHandler
         byte[] msg;
         try
         {
-            var msgStr = GetMessageToSign(Proofs.ToArray(), BlindedMessages.ToArray(), MeltQuoteId);
             if (!ValidateFirstProof(Proofs[0], out var sec) || sec is null)
             {
                 return false;
             }
             _firstProofSecret = sec;
+            
+            var msgStr = GetMessageToSign(Proofs.ToArray(), BlindedMessages.ToArray(), MeltQuoteId);
             msg = Encoding.UTF8.GetBytes(msgStr);
         }
         catch (ArgumentException)
@@ -110,9 +111,9 @@ public class SigAllHandler
                 nameof(outputs)
             );
         }
-        if (!ValidateFirstProof(inputs[0], out var firstSecret))
+        if (!ValidateFirstProof(inputs[0], out var firstSecret) || firstSecret is null)
         {
-            throw new ArgumentException("Provided first proof is invalid");
+            throw new ArgumentException("Provided first proof is invalid or null");
         }
         var msg = new StringBuilder();
 
@@ -127,7 +128,7 @@ public class SigAllHandler
                 );
             }
 
-            if (firstSecret != nut10.ProofSecret)
+            if (!firstSecret.SigAllEquals(nut10.ProofSecret))
             {
                 throw new ArgumentException(
                     "When signing sig_all, every proof must have identical tags and data."

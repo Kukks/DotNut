@@ -337,7 +337,7 @@ public static class Utils
 
     public static ulong SumProofs(List<Proof> proofs)
     {
-        return proofs.Aggregate(0UL, (current, proof) => current + proof.Amount);
+        return proofs.Aggregate(0UL, (current, proof) => checked(current + proof.Amount));
     }
 
     public static ISecret RandomSecret()

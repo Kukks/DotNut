@@ -17,11 +17,11 @@ public static class NotificationParser
 
         return subscriptionKind switch
         {
-            SubscriptionKind.bolt11_mint_quote =>
+            SubscriptionKind.Bolt11MintQuote =>
                 jsonElement.Deserialize<PostMintQuoteBolt11Response>(),
-            SubscriptionKind.bolt11_melt_quote =>
+            SubscriptionKind.Bolt11MeltQuote =>
                 jsonElement.Deserialize<PostMeltQuoteBolt11Response>(),
-            SubscriptionKind.proof_state => jsonElement.Deserialize<PostCheckStateResponse>(),
+            SubscriptionKind.ProofState => jsonElement.Deserialize<PostCheckStateResponse>(),
             _ => notification.Params.Payload,
         };
     }

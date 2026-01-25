@@ -524,6 +524,7 @@ public class Integration
             await wallet.Swap().FromInputs(proofs).ProcessAsync()
         );
 
+
         var swappedProofs = await wallet
             .Swap()
             .FromInputs(proofs)

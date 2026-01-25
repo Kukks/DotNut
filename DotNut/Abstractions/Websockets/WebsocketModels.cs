@@ -114,4 +114,5 @@ internal class PendingRequest
 {
     public required TaskCompletionSource<RequestResult> Tcs { get; set; }
     public required string SubscriptionId { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

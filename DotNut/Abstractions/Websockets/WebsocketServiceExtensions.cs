@@ -12,7 +12,7 @@ public static class WebsocketServiceExtensions
         await service.LazyConnectAsync(mintUrl, ct);
         return await service.SubscribeAsync(
             mintUrl,
-            SubscriptionKind.bolt11_mint_quote,
+            SubscriptionKind.Bolt11MintQuote,
             quoteIds,
             ct
         );
@@ -28,7 +28,7 @@ public static class WebsocketServiceExtensions
         await service.LazyConnectAsync(mintUrl, ct);
         return await service.SubscribeAsync(
             mintUrl,
-            SubscriptionKind.bolt11_melt_quote,
+            SubscriptionKind.Bolt11MeltQuote,
             quoteIds,
             ct
         );
@@ -42,7 +42,7 @@ public static class WebsocketServiceExtensions
     )
     {
         await service.LazyConnectAsync(mintUrl, ct);
-        return await service.SubscribeAsync(mintUrl, SubscriptionKind.proof_state, proofYs, ct);
+        return await service.SubscribeAsync(mintUrl, SubscriptionKind.ProofState, proofYs, ct);
     }
 
     public static async Task<Subscription> SubscribeToSingleProofStateAsync(

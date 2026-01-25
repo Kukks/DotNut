@@ -11,6 +11,10 @@ public class WebsocketConnection : IDisposable
     public DateTime ConnectedAt { get; set; } = DateTime.UtcNow;
     public CancellationTokenSource? CancellationTokenSource { get; set; }
 
+    public DateTime? LastPingSent { get; set; }
+    public DateTime? LastMessageReceived { get; set; }
+    public int ReconnectAttempts { get; set; }
+
     public bool Equals(WebsocketConnection? other)
     {
         if (other is null)

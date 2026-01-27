@@ -59,9 +59,9 @@ class SwapBuilder : ISwapBuilder
         return this;
     }
 
-    public ISwapBuilder ForOutputs(List<OutputData> outputs)
+    public ISwapBuilder ForOutputs(IEnumerable<OutputData> outputs)
     {
-        this._outputs = outputs;
+        this._outputs = outputs.DeepCopyList();
         return this;
     }
 

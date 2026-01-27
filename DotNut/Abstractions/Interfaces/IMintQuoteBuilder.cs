@@ -33,7 +33,7 @@ public interface IMintQuoteBuilder
     /// <summary>
     /// Optional. Provide precomputed outputs so blinding factors and secrets are reused safely.
     /// </summary>
-    IMintQuoteBuilder WithOutputs(List<OutputData> outputs);
+    IMintQuoteBuilder WithOutputs(IEnumerable<OutputData> outputs);
 
     /// <summary>
     /// Optional. Provide description for the mint invoice.

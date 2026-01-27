@@ -34,9 +34,9 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
         return this;
     }
 
-    public IMeltQuoteBuilder WithBlankOutputs(List<OutputData> blankOutputs)
+    public IMeltQuoteBuilder WithBlankOutputs(IEnumerable<OutputData> blankOutputs)
     {
-        this._blankOutputs = blankOutputs;
+        this._blankOutputs = blankOutputs as List<OutputData> ?? blankOutputs.ToList();
         return this;
     }
 

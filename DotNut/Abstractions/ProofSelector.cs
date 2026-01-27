@@ -55,12 +55,14 @@ public class ProofSelector : IProofSelector
     }
 
     public async Task<SendResponse> SelectProofsToSend(
-        List<Proof> proofs,
+        IEnumerable<Proof> proofs,
         ulong amountToSend,
         bool includeFees = false,
         CancellationToken ct = default
     )
     {
+        var proofsToSelectFrom = proofs as List<Proof> ?? proofs.ToList();
+        
         // Init vars
         const int MAX_TRIALS = 60; // 40-80 is optimal (per RGLI paper)
         const double MAX_OVRPCT = 0; // Acceptable close match overage (percent)
@@ -164,7 +166,7 @@ public class ProofSelector : IProofSelector
          */
         ulong totalAmount = 0;
         ulong totalFeePPK = 0;
-        var proofWithFees = proofs
+        var proofWithFees = proofsToSelectFrom
             .Select(p =>
             {
                 ulong ppkfee = GetProofFeePPK(p);
@@ -235,7 +237,7 @@ public class ProofSelector : IProofSelector
         double totalNetSum = SumExFees(totalAmount, totalFeePPK);
         if (amountToSend <= 0 || amountToSend > totalNetSum)
         {
-            return new SendResponse { Keep = proofs, Send = new List<Proof>() };
+            return new SendResponse { Keep = proofsToSelectFrom, Send = new List<Proof>() };
         }
 
         // Max acceptable amount for non-exact matches
@@ -405,11 +407,11 @@ public class ProofSelector : IProofSelector
         {
             var bestProofs = bestSubset.Select(obj => obj.Proof).ToList();
             var bestProofCs = bestProofs.Select(p => p.C).ToHashSet();
-            var keep = proofs.Where(p => !bestProofCs.Contains(p.C)).ToList();
+            var keep = proofsToSelectFrom.Where(p => !bestProofCs.Contains(p.C)).ToList();
 
             return new SendResponse { Keep = keep, Send = bestProofs };
         }
 
-        return new SendResponse { Keep = proofs, Send = new List<Proof>() };
+        return new SendResponse { Keep = proofsToSelectFrom, Send = new List<Proof>() };
     }
 }

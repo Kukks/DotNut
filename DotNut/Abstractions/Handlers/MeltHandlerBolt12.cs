@@ -13,7 +13,7 @@ public class MeltHandlerBolt12(
 {
     public PostMeltQuoteBolt12Response GetQuote() => quote;
 
-    public async Task<List<Proof>> Melt(List<Proof> inputs, CancellationToken ct = default)
+    public async Task<List<Proof>> Melt(IEnumerable<Proof> inputs, CancellationToken ct = default)
     {
         //we're operating on copy here since later the proof state is mutated in stripFingerprints
         var proofs = inputs.DeepCopyList();

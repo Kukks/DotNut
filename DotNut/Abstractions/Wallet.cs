@@ -292,11 +292,12 @@ public class Wallet : IWalletBuilder
     }
 
     public async Task<List<OutputData>> CreateOutputs(
-        List<ulong> amounts,
+        IEnumerable<ulong> amounts,
         KeysetId id,
         CancellationToken ct = default
     )
     {
+        var amountsList = amounts as IReadOnlyList<ulong> ?? amounts.ToList();
         await _maybeSyncKeys(ct);
         if (this._keys.Count == 0)
         {
@@ -312,7 +313,7 @@ public class Wallet : IWalletBuilder
         }
         if (this._mnemonic == null)
         {
-            return Utils.CreateOutputs(amounts, id, keyset.Keys);
+            return Utils.CreateOutputs(amountsList, id, keyset.Keys);
         }
 
         if (this._counter == null)
@@ -326,29 +327,30 @@ public class Wallet : IWalletBuilder
         var counterValue = await this._counter.GetCounterForId(id, ct);
         if (!_shouldBumpCounter)
         {
-            return Utils.CreateOutputs(amounts, id, keyset.Keys, this._mnemonic, counterValue);
+            return Utils.CreateOutputs(amountsList, id, keyset.Keys, this._mnemonic, counterValue);
         }
 
-        await this._counter.IncrementCounter(id, (uint)amounts.Count, ct);
-        return Utils.CreateOutputs(amounts, id, keyset.Keys, this._mnemonic, counterValue);
+        await this._counter.IncrementCounter(id, (uint)amountsList.Count, ct);
+        return Utils.CreateOutputs(amountsList, id, keyset.Keys, this._mnemonic, counterValue);
     }
 
     public async Task<List<OutputData>> CreateOutputs(
-        List<ulong> amounts,
+        IEnumerable<ulong> amounts,
         string unit,
         CancellationToken ct = default
     )
     {
+        var amountsList = amounts as IReadOnlyList<ulong> ?? amounts.ToList();
         var keysetId = await this.GetActiveKeysetId(unit, ct);
         if (keysetId == null)
         {
             throw new ArgumentNullException(nameof(keysetId));
         }
-        return await this.CreateOutputs(amounts, keysetId, ct);
+        return await this.CreateOutputs(amountsList, keysetId, ct);
     }
 
     public async Task<SendResponse> SelectProofsToSend(
-        List<Proof> proofs,
+        IEnumerable<Proof> proofs,
         ulong amount,
         bool includeFees,
         CancellationToken ct = default

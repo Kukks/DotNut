@@ -39,6 +39,8 @@ public static class Utils
     /// <param name="amount">Amount that blank outputs have to cover</param>
     /// <param name="keysetId">Active keyset id which will sign outputs</param>
     /// <param name="keys">Keys for given KeysetId</param>
+    /// <param name="mnemonic">Bip39 mnemonic for Nut13 deterministic secret derivation</param>
+    /// <param name="counter">Nut13 counter, for current keysetId.</param>
     /// <returns>Blank Outputs</returns>
     public static List<OutputData> CreateBlankOutputs(
         ulong amount,
@@ -84,21 +86,24 @@ public static class Utils
     /// <returns></returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     public static List<OutputData> CreateOutputs(
-        List<ulong> amounts,
+        IEnumerable<ulong> amounts,
         KeysetId keysetId,
         Keyset keys,
         NBitcoin.BIP39.Mnemonic? mnemonic = null,
         uint? counter = null
     )
     {
-        if (amounts.Any(a => !keys.Keys.Contains(a)))
+        var amountsList = amounts as IReadOnlyList<ulong> 
+                          ?? amounts.ToList();
+        
+        if (amountsList.Any(a => !keys.Keys.Contains(a)))
             throw new ArgumentException("Invalid amounts");
 
-        var outputs = new List<OutputData>(amounts.Count);
+        var outputs = new List<OutputData>(amountsList.Count);
 
         if (mnemonic is not null && counter is { } c)
         {
-            for (uint i = 0; i < amounts.Count; i++)
+            for (uint i = 0; i < amountsList.Count; i++)
             {
                 var secret = mnemonic.DeriveSecret(keysetId, c + i);
                 var r = new PrivKey(mnemonic.DeriveBlindingFactor(keysetId, c + i));
@@ -107,7 +112,7 @@ public static class Utils
                 {
                     BlindedMessage = new BlindedMessage
                     {
-                        Amount = amounts[(int)i],
+                        Amount = amountsList[(int)i],
                         B_ = B_,
                         Id = keysetId,
                     },
@@ -119,7 +124,7 @@ public static class Utils
             return outputs;
         }
 
-        foreach (var amount in amounts)
+        foreach (var amount in amountsList)
         {
             var secret = RandomSecret();
             var r = RandomPrivkey();
@@ -308,27 +313,34 @@ public static class Utils
     }
 
     public static List<Proof> ConstructProofsFromPromises(
-        List<BlindSignature> promises,
-        List<OutputData> outputs,
+        IEnumerable<BlindSignature> promises,
+        IEnumerable<OutputData> outputs,
         Keyset keys
     )
     {
-        List<Proof> proofs = new List<Proof>();
-        for (int i = 0; i < promises.Count; i++)
+        var bs = promises as IReadOnlyList<BlindSignature> ?? promises.ToList();
+        var os = outputs as IReadOnlyList<OutputData> ?? outputs.ToList();
+        if (os.Count < bs.Count)
         {
-            if (!keys.TryGetValue(promises[i].Amount, out var key))
+            throw new ArgumentException("Outputs must as least equal amount of elements!");
+        }
+        
+        List<Proof> proofs = new List<Proof>(bs.Count);
+        for (int i = 0; i < bs.Count; i++)
+        {
+            if (!keys.TryGetValue(bs[i].Amount, out var key))
             {
                 throw new ArgumentException(
-                    $"Provided keyset doesn't contain PubKey for amount {promises[i].Amount}"
+                    $"Provided keyset doesn't contain PubKey for amount {bs[i].Amount}"
                 );
             }
 
             var proof = ConstructProofFromPromise(
-                promises[i],
-                outputs[i].BlindingFactor,
-                outputs[i].Secret,
+                bs[i],
+                os[i].BlindingFactor,
+                os[i].Secret,
                 key,
-                outputs[i].P2BkE
+                os[i].P2BkE
             );
             proofs.Add(proof);
         }

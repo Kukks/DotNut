@@ -3,7 +3,7 @@ using NBitcoin.Secp256k1;
 
 namespace DotNut.Abstractions;
 
-public static class Nut10Helper
+internal static class Nut10Helper
 {
     public static void MaybeProcessNut10(
         List<PrivKey> privKeys,

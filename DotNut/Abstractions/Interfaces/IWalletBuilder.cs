@@ -148,7 +148,7 @@ public interface IWalletBuilder : IDisposable
     /// <returns>Outputs</returns>
     /// <exception cref="ArgumentNullException">If keys not set. If Mnemonic set, but no Counter.</exception>
     Task<List<OutputData>> CreateOutputs(
-        List<ulong> amounts,
+        IEnumerable<ulong> amounts,
         KeysetId id,
         CancellationToken ct = default
     );
@@ -162,7 +162,7 @@ public interface IWalletBuilder : IDisposable
     /// <returns>Outputs</returns>
     /// <exception cref="ArgumentNullException">If no keysetID stored in wallet.</exception>
     Task<List<OutputData>> CreateOutputs(
-        List<ulong> amounts,
+        IEnumerable<ulong> amounts,
         string unit,
         CancellationToken ct = default
     );
@@ -241,7 +241,7 @@ public interface IWalletBuilder : IDisposable
     /// <param name="ct"></param>
     /// <returns></returns>
     Task<SendResponse> SelectProofsToSend(
-        List<Proof> proofs,
+        IEnumerable<Proof> proofs,
         ulong amount,
         bool includeFees,
         CancellationToken ct = default

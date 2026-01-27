@@ -60,13 +60,19 @@ class MintQuoteBuilder : IMintQuoteBuilder
         return this;
     }
 
-    public IMintQuoteBuilder WithOutputs(List<OutputData> outputs)
+    public IMintQuoteBuilder WithOutputs(IEnumerable<OutputData> outputs)
     {
-        this._outputs = outputs;
-        if (outputs.Any(o => o.BlindedMessage.Id != outputs[0].BlindedMessage.Id))
+        var os = outputs as List<OutputData> ?? outputs.ToList();
+        if (os.Count == 0)
+        {
+            throw new ArgumentException("Outputs collection cannot be empty.");
+        }
+        if (os.Any(o => o.BlindedMessage.Id != os[0].BlindedMessage.Id))
         {
             throw new ArgumentException("Every output must have the same keyset id!");
         }
+
+        this._outputs = os;
         return this;
     }
 

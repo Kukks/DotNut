@@ -15,6 +15,11 @@ public interface ICounter
         uint bumpBy = 1,
         CancellationToken ct = default
     );
+    public Task<(uint oldValue, uint newValue)> FetchAndIncrement(
+        KeysetId keysetId,
+        uint bumpBy = 1, 
+        CancellationToken ct = default
+        );
     public Task SetCounter(KeysetId keysetId, uint counter, CancellationToken ct = default);
     public Task<IReadOnlyDictionary<KeysetId, uint>> Export();
 }

@@ -324,14 +324,15 @@ public class Wallet : IWalletBuilder
             );
         }
 
-        var counterValue = await this._counter.GetCounterForId(id, ct);
+        
         if (!_shouldBumpCounter)
         {
+            var counterValue = await this._counter.GetCounterForId(id, ct);
             return Utils.CreateOutputs(amountsList, id, keyset.Keys, this._mnemonic, counterValue);
         }
 
-        await this._counter.IncrementCounter(id, (uint)amountsList.Count, ct);
-        return Utils.CreateOutputs(amountsList, id, keyset.Keys, this._mnemonic, counterValue);
+        var (old, @new) = await this._counter.FetchAndIncrement(id, (uint)amountsList.Count, ct);
+        return Utils.CreateOutputs(amountsList, id, keyset.Keys, this._mnemonic, old);
     }
 
     public async Task<List<OutputData>> CreateOutputs(

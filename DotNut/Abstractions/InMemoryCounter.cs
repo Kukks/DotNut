@@ -31,6 +31,22 @@ public class InMemoryCounter : ICounter
         return Task.FromResult(next);
     }
 
+    public Task<(uint oldValue, uint newValue)> FetchAndIncrement(KeysetId keysetId, uint bumpBy = 1, CancellationToken ct = default)
+    {
+        uint oldValue = 0;
+        uint newValue = _counter.AddOrUpdate(
+            keysetId,
+            bumpBy,
+            (_, current) =>
+            {
+                oldValue = current;
+                return current + bumpBy;
+            });
+
+        return Task.FromResult((oldValue, newValue));
+    }
+
+
     public Task SetCounter(KeysetId keysetId, uint counter, CancellationToken ct = default)
     {
         _counter[keysetId] = counter;

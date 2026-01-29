@@ -158,7 +158,7 @@ class SwapBuilder : ISwapBuilder
                 if (keyset == null)
                 {
                     throw new InvalidOperationException(
-                        $"Can't find keys for keyset id ${proof.Id}"
+                        $"Can't find keys for keyset id {proof.Id}"
                     );
                 }
                 

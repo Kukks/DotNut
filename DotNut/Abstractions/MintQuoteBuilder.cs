@@ -154,7 +154,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
     {
         await this._wallet._maybeSyncKeys(ct);
 
-        var api = await this._wallet.GetMintApi();
+        var api = await this._wallet.GetMintApi(ct);
         if (api is null)
         {
             throw new ArgumentNullException(

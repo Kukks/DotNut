@@ -2,7 +2,8 @@
 
 public class CashuProtocolException : Exception
 {
-    public CashuProtocolException(CashuProtocolError error) : base(error.Detail)
+    public CashuProtocolException(CashuProtocolError error)
+        : base(error.Detail)
     {
         Error = error;
     }

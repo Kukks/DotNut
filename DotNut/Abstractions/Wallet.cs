@@ -43,7 +43,9 @@ public class Wallet : IWalletBuilder
 
     public IWalletBuilder WithMint(string mintUrl)
     {
-        var httpClient = new HttpClient { BaseAddress = new Uri(mintUrl) };
+        //add trailing / so mint like https://mint.minibits.cash/Bitcoin will work correctly
+        var mintUri = new Uri(mintUrl + "/");
+        var httpClient = new HttpClient { BaseAddress = mintUri };
         _mintApi = new CashuHttpClient(httpClient, true);
         _ownsHttpClient = true;
         return this;

@@ -453,10 +453,10 @@ public class Wallet : IWalletBuilder
         var keysRaw = await _mintApi!.GetKeys(ct);
         foreach (var keysetItemResponse in keysRaw.Keysets)
         {
-            //todo new derivation
             var isKeysetIdValid = keysetItemResponse.Keys.VerifyKeysetId(
                 keysetItemResponse.Id,
                 keysetItemResponse.Unit,
+                keysetItemResponse.InputFeePpk,
                 keysetItemResponse.FinalExpiry
             );
             if (!isKeysetIdValid)
@@ -487,10 +487,10 @@ public class Wallet : IWalletBuilder
         {
             return null;
         }
-        //todo new keysetId derivation
         var isKeysetIdValid = keysRaw.Keys.VerifyKeysetId(
             keysRaw.Id,
             keysRaw.Unit,
+            keysRaw.InputFeePpk,
             keysRaw.FinalExpiry
         );
         if (!isKeysetIdValid)

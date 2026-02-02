@@ -14,7 +14,7 @@ public class Keyset : Dictionary<ulong, PubKey>
         byte version = 0x00,
         string? unit = null,
         ulong? inputFeePpk = null,
-        string? finalExpiration = null
+        ulong? finalExpiration = null
     )
     {
         // 1 - sort public keys by their amount in ascending order
@@ -82,10 +82,10 @@ public class Keyset : Dictionary<ulong, PubKey>
                 }
 
                 // 5 - If a final expiration is specified, add the UTF8-encoded string prefixed with "|final_expiry:" (e.g. "|final_expiry:1896187313")
-                if (!string.IsNullOrWhiteSpace(finalExpiration))
+                if (finalExpiration is not null)
                 {
                     var expiryBytes = Encoding.UTF8.GetBytes(
-                        $"|final_expiry:{finalExpiration.Trim()}"
+                        $"|final_expiry:{finalExpiration.ToString()}"
                     );
                     stream.Write(expiryBytes, 0, expiryBytes.Length);
                 }
@@ -107,7 +107,7 @@ public class Keyset : Dictionary<ulong, PubKey>
         KeysetId keysetId,
         string? unit = null,
         ulong? inputFeePpk = null,
-        string? finalExpiration = null
+        ulong? finalExpiration = null
     )
     {
         byte version = keysetId.GetVersion();

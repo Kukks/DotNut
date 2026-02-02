@@ -232,7 +232,7 @@ public class UnitTest1
         (byte)1,
         "sat",
         100UL,
-        "2059210353"
+        2059210353
     )]
     [InlineData(
         "01ab6aa4ff30390da34986d84be5274b48ad7a74265d791095bfc39f4098d9764f",
@@ -240,7 +240,7 @@ public class UnitTest1
         (byte)0x01,
         "sat",
         0UL,
-        "2059210353"
+        2059210353
     )]
     [InlineData(
         "012fbb01a4e200c76df911eeba3b8fe1831202914b24664f4bccbd25852a6708f8",
@@ -255,7 +255,7 @@ public class UnitTest1
         byte? version = null,
         string? unit = null,
         ulong? inputFee = null,
-        string? finalExpiration = null
+        ulong? finalExpiration = null
     )
     {
         var keysetIdParsed = new KeysetId(keysetId);

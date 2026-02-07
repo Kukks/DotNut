@@ -33,6 +33,8 @@ public class MintHandlerBolt12(
     }
 
     public PostMintQuoteBolt12Response GetQuote() => quote;
+    public List<OutputData> GetOutputs() => outputs;
+    
 
     public async Task<List<Proof>> Mint(CancellationToken ct = default)
     {

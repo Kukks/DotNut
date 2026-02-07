@@ -9,5 +9,7 @@ public interface IMintHandler<TQuote, TResponse> : IMintHandler
     public IMintHandler<TQuote, TResponse> SignWithPrivkey(string privKeyHex);
 
     TQuote GetQuote();
+    List<OutputData> GetOutputs();
+    
     Task<TResponse> Mint(CancellationToken ct = default);
 }

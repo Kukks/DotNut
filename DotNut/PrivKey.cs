@@ -7,11 +7,17 @@ namespace DotNut;
 [JsonConverter(typeof(PrivKeyJsonConverter))]
 public class PrivKey
 {
-    [JsonIgnore(Condition = JsonIgnoreCondition.Always)] public readonly ECPrivKey Key;
+    [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+    public readonly ECPrivKey Key;
 
     public PrivKey(string hex)
     {
         Key = hex.ToPrivKey();
+    }
+
+    public PrivKey(byte[] bytes)
+    {
+        Key = Convert.ToHexString(bytes).ToPrivKey();
     }
 
     private PrivKey(ECPrivKey ecPrivKey)
@@ -23,7 +29,7 @@ public class PrivKey
     {
         return Convert.ToHexString(Key.ToBytes()).ToLower();
     }
-    
+
     public static implicit operator PrivKey(ECPrivKey ecPubKey)
     {
         return new PrivKey(ecPubKey);

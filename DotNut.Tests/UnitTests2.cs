@@ -588,7 +588,7 @@ public class UnitTests2
         var privKey = new PrivKey(
             "0000000000000000000000000000000000000000000000000000000000000001"
         );
-        var builder = new P2PKBuilder
+        var builder = new P2PkBuilder
         {
             Pubkeys = [privKey.Key.CreatePubKey()],
             SignatureThreshold = 1,
@@ -613,7 +613,7 @@ public class UnitTests2
             "0000000000000000000000000000000000000000000000000000000000000002"
         );
 
-        var builder = new P2PKBuilder
+        var builder = new P2PkBuilder
         {
             Pubkeys = [privKey1.Key.CreatePubKey(), privKey2.Key.CreatePubKey()],
             SignatureThreshold = 2,

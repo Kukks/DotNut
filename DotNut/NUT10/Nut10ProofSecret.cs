@@ -16,6 +16,7 @@ public class Nut10ProofSecret
     public string[][]? Tags { get; set; }
 
     public override bool Equals(object obj) => this.Equals(obj as Nut10ProofSecret);
+
     public bool Equals(Nut10ProofSecret s)
     {
         if (s is null)
@@ -33,12 +34,17 @@ public class Nut10ProofSecret
             return false;
         }
 
-        return
-            this.Nonce == s.Nonce &&
-            this.Data == s.Data &&
-            ((this.Tags == null && s.Tags == null) ||
-             (this.Tags != null && s.Tags != null && this.Tags.Length == s.Tags.Length &&
-              this.Tags.Zip(s.Tags).All(pair => pair.First.SequenceEqual(pair.Second))));
+        return this.Nonce == s.Nonce
+            && this.Data == s.Data
+            && (
+                (this.Tags == null && s.Tags == null)
+                || (
+                    this.Tags != null
+                    && s.Tags != null
+                    && this.Tags.Length == s.Tags.Length
+                    && this.Tags.Zip(s.Tags).All(pair => pair.First.SequenceEqual(pair.Second))
+                )
+            );
     }
 
     public override int GetHashCode()
@@ -78,7 +84,7 @@ public class Nut10ProofSecret
     /// </summary>
     public bool SigAllEquals(Nut10ProofSecret other)
     {
-       return other is { } o
+        return other is { } o
             && this.Data == o.Data
             && (
                 (this.Tags == null && o.Tags == null)

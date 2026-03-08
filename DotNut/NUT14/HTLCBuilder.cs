@@ -3,7 +3,7 @@ using NBitcoin.Secp256k1;
 
 namespace DotNut;
 
-public class HTLCBuilder : P2PKBuilder
+public class HTLCBuilder : P2PkBuilder
 {
     public string HashLock { get; set; }
 
@@ -33,17 +33,17 @@ public class HTLCBuilder : P2PKBuilder
             Tags = proofSecret.Tags,
         };
 
-        var innerbuilder = P2PKBuilder.Load(tempProof);
-        innerbuilder.Pubkeys = innerbuilder.Pubkeys.Except([_dummy.Key]).ToArray();
+        var innerBuilder = P2PkBuilder.Load(tempProof);
+        innerBuilder.Pubkeys = innerBuilder.Pubkeys.Except([_dummy.Key]).ToArray();
         return new HTLCBuilder()
         {
             HashLock = hashLock,
-            Lock = innerbuilder.Lock,
-            Pubkeys = innerbuilder.Pubkeys,
-            RefundPubkeys = innerbuilder.RefundPubkeys,
-            SignatureThreshold = innerbuilder.SignatureThreshold,
-            SigFlag = innerbuilder.SigFlag,
-            Nonce = innerbuilder.Nonce,
+            Lock = innerBuilder.Lock,
+            Pubkeys = innerBuilder.Pubkeys,
+            RefundPubkeys = innerBuilder.RefundPubkeys,
+            SignatureThreshold = innerBuilder.SignatureThreshold,
+            SigFlag = innerBuilder.SigFlag,
+            Nonce = innerBuilder.Nonce,
         };
     }
 
@@ -56,7 +56,7 @@ public class HTLCBuilder : P2PKBuilder
                 nameof(HashLock)
             );
         }
-        var innerBuilder = new P2PKBuilder()
+        var innerBuilder = new P2PkBuilder()
         {
             Lock = Lock,
             Pubkeys = Pubkeys.ToArray(),
@@ -76,26 +76,22 @@ public class HTLCBuilder : P2PKBuilder
         };
     }
 
-    public new HTLCProofSecret BuildBlinded(KeysetId keysetId, out ECPubKey p2pkE)
+    public new HTLCProofSecret BuildBlinded(out ECPubKey p2pkE)
     {
         var e = new PrivKey(RandomNumberGenerator.GetHexString(64));
         p2pkE = e.Key.CreatePubKey();
-        return BuildBlinded(keysetId, e);
+        return BuildBlinded(e);
     }
 
-    public new HTLCProofSecret BuildBlinded(KeysetId keysetId, ECPrivKey p2pke)
+    public new HTLCProofSecret BuildBlinded(ECPrivKey p2pke)
     {
         var pubkeys = RefundPubkeys != null ? Pubkeys.Concat(RefundPubkeys).ToArray() : Pubkeys;
         var rs = new List<ECPrivKey>();
 
-        var keysetIdBytes = keysetId.GetBytes();
-
-        var e = p2pke;
-
         for (int i = 0; i < pubkeys.Length; i++)
         {
-            var Zx = Cashu.ComputeZx(e, pubkeys[i]);
-            var Ri = Cashu.ComputeRi(Zx, keysetIdBytes, i);
+            var Zx = Cashu.ComputeZx(p2pke, pubkeys[i]);
+            var Ri = Cashu.ComputeRi(Zx, i);
             rs.Add(Ri);
         }
         BlindPubkeys(rs.ToArray());
@@ -104,12 +100,13 @@ public class HTLCBuilder : P2PKBuilder
 
     public override HTLCBuilder Clone()
     {
-        return new HTLCBuilder()
+        return new HTLCBuilder
         {
             HashLock = HashLock,
             Lock = Lock,
             RefundPubkeys = RefundPubkeys?.ToArray(),
             SignatureThreshold = SignatureThreshold,
+            RefundSignatureThreshold = RefundSignatureThreshold,
             Pubkeys = Pubkeys.ToArray(),
             SigFlag = SigFlag,
             Nonce = Nonce,

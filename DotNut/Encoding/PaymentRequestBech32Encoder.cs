@@ -20,7 +20,7 @@ public class PaymentRequestBech32Encoder
         Mint = 0x05,
         Description = 0x06,
         Transport = 0x07,
-        Nut10 = 0x08
+        Nut10 = 0x08,
     }
 
     public static string Encode(PaymentRequest paymentRequest)
@@ -29,12 +29,15 @@ public class PaymentRequestBech32Encoder
         EncodeTLV(writer, paymentRequest);
 
         var tlvBytes = writer.WrittenSpan;
-        Span<byte> words = tlvBytes.Length * 2 > 1024
-            ? new byte[tlvBytes.Length * 2]
-            : stackalloc byte[tlvBytes.Length * 2];
+        Span<byte> words =
+            tlvBytes.Length * 2 > 1024
+                ? new byte[tlvBytes.Length * 2]
+                : stackalloc byte[tlvBytes.Length * 2];
 
         var wordsLen = ConvertBits(tlvBytes, words, 8, 5, true);
-        return Encoder.EncodeRaw(words[..wordsLen].ToArray(), Bech32EncodingType.BECH32M).ToUpperInvariant();
+        return Encoder
+            .EncodeRaw(words[..wordsLen].ToArray(), Bech32EncodingType.BECH32M)
+            .ToUpperInvariant();
     }
 
     public static PaymentRequest Decode(string creqb)
@@ -117,7 +120,7 @@ public class PaymentRequestBech32Encoder
         {
             "P2PK" => (byte)0x00,
             "HTLC" => (byte)0x01,
-            _ => throw new ArgumentException("Unknown nut10 kind!")
+            _ => throw new ArgumentException("Unknown nut10 kind!"),
         };
         WriteTlv(writer, 0x01, [kindByte]);
         WriteTlvUtf8(writer, 0x02, nut10.Data);
@@ -128,7 +131,10 @@ public class PaymentRequestBech32Encoder
         }
     }
 
-    private static void EncodeTransport(IBufferWriter<byte> writer, PaymentRequestTransport transport)
+    private static void EncodeTransport(
+        IBufferWriter<byte> writer,
+        PaymentRequestTransport transport
+    )
     {
         switch (transport.Type.ToLowerInvariant())
         {
@@ -152,7 +158,6 @@ public class PaymentRequestBech32Encoder
                     WriteTagTuple(writer, 0x03, ["r", relay]);
                 }
 
-
                 foreach (var tag in transport.Tags ?? [])
                 {
                     WriteTagTuple(writer, 0x03, tag.ToArray());
@@ -164,7 +169,11 @@ public class PaymentRequestBech32Encoder
         }
     }
 
-    private static void WriteTagTuple(IBufferWriter<byte> writer, byte tag, ReadOnlySpan<string> tuple)
+    private static void WriteTagTuple(
+        IBufferWriter<byte> writer,
+        byte tag,
+        ReadOnlySpan<string> tuple
+    )
     {
         // Calculate total size for the tuple data
         var totalLen = 0;
@@ -196,8 +205,8 @@ public class PaymentRequestBech32Encoder
         writer.Advance(3 + totalLen);
     }
 
-    private static void WriteTlv(IBufferWriter<byte> writer, TlvTag tag, ReadOnlySpan<byte> data)
-        => WriteTlv(writer, (byte)tag, data);
+    private static void WriteTlv(IBufferWriter<byte> writer, TlvTag tag, ReadOnlySpan<byte> data) =>
+        WriteTlv(writer, (byte)tag, data);
 
     private static void WriteTlv(IBufferWriter<byte> writer, byte tag, ReadOnlySpan<byte> data)
     {
@@ -211,8 +220,8 @@ public class PaymentRequestBech32Encoder
         writer.Advance(3 + data.Length);
     }
 
-    private static void WriteTlvUtf8(IBufferWriter<byte> writer, TlvTag tag, string value)
-        => WriteTlvUtf8(writer, (byte)tag, value);
+    private static void WriteTlvUtf8(IBufferWriter<byte> writer, TlvTag tag, string value) =>
+        WriteTlvUtf8(writer, (byte)tag, value);
 
     private static void WriteTlvUtf8(IBufferWriter<byte> writer, byte tag, string value)
     {
@@ -251,7 +260,10 @@ public class PaymentRequestBech32Encoder
                     pr.Amount = BinaryPrimitives.ReadUInt64BigEndian(value);
                     break;
                 case 0x03:
-                    pr.Unit = value.Length == 1 && value[0] == 0x00 ? "sat" : Encoding.UTF8.GetString(value);
+                    pr.Unit =
+                        value.Length == 1 && value[0] == 0x00
+                            ? "sat"
+                            : Encoding.UTF8.GetString(value);
                     break;
                 case 0x04:
                     pr.OneTimeUse = value.Length == 1 && value[0] == 0x01;
@@ -301,7 +313,7 @@ public class PaymentRequestBech32Encoder
                     {
                         0x00 => "nostr",
                         0x01 => "post",
-                        _ => throw new FormatException("Unknown transport kind")
+                        _ => throw new FormatException("Unknown transport kind"),
                     };
                     break;
                 case 0x02:
@@ -363,7 +375,7 @@ public class PaymentRequestBech32Encoder
                     {
                         0x00 => "P2PK",
                         0x01 => "HTLC",
-                        _ => throw new FormatException("Unknown nut10 kind")
+                        _ => throw new FormatException("Unknown nut10 kind"),
                     };
                     break;
                 case 0x02:
@@ -453,7 +465,9 @@ public class PaymentRequestBech32Encoder
             {
                 case 0x00:
                     if (length != 32)
-                        throw new FormatException($"Invalid pubkey length: expected 32 bytes, got {length}");
+                        throw new FormatException(
+                            $"Invalid pubkey length: expected 32 bytes, got {length}"
+                        );
                     pubkey = tlvData.AsSpan(offset, 32).ToArray();
                     break;
                 case 0x01:
@@ -509,8 +523,8 @@ public class PaymentRequestBech32Encoder
         return encoder.EncodeRaw(words, Bech32EncodingType.BECH32);
     }
 
-    private static byte[] ConvertBits(byte[] data, int fromBits, int toBits, bool pad)
-        => ConvertBits(data.AsSpan(), fromBits, toBits, pad);
+    private static byte[] ConvertBits(byte[] data, int fromBits, int toBits, bool pad) =>
+        ConvertBits(data.AsSpan(), fromBits, toBits, pad);
 
     private static byte[] ConvertBits(ReadOnlySpan<byte> data, int fromBits, int toBits, bool pad)
     {
@@ -521,7 +535,13 @@ public class PaymentRequestBech32Encoder
         return output[..written].ToArray();
     }
 
-    private static int ConvertBits(ReadOnlySpan<byte> data, Span<byte> output, int fromBits, int toBits, bool pad)
+    private static int ConvertBits(
+        ReadOnlySpan<byte> data,
+        Span<byte> output,
+        int fromBits,
+        int toBits,
+        bool pad
+    )
     {
         var acc = 0;
         var bits = 0;

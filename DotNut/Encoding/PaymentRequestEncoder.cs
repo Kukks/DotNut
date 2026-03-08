@@ -72,10 +72,6 @@ public class PaymentRequestEncoder : ICBORToFromConverter<PaymentRequest>
             cbor.Add("nut10", nut10Obj);
         }
 
-        if (paymentRequest.Nut26 is { } nut26)
-        {
-            cbor.Add("nut26", nut26);
-        }
         return cbor;
     }
 
@@ -122,13 +118,14 @@ public class PaymentRequestEncoder : ICBORToFromConverter<PaymentRequest>
                                         transport.Target = transportValue.AsString();
                                         break;
                                     case "g":
-                                        transport.Tags = transportValue.Values
-                                            .Where(tag => tag.Type == CBORType.Array)
-                                            .Select(tag =>
-                                                new Tag(
-                                                    tag.Values.Select(cborObject => cborObject.AsString()).ToArray()
-                                                )
-                                            )
+                                        transport.Tags = transportValue
+                                            .Values.Where(tag => tag.Type == CBORType.Array)
+                                            .Select(tag => new Tag(
+                                                tag.Values.Select(cborObject =>
+                                                        cborObject.AsString()
+                                                    )
+                                                    .ToArray()
+                                            ))
                                             .ToArray();
                                         break;
                                 }
@@ -152,19 +149,17 @@ public class PaymentRequestEncoder : ICBORToFromConverter<PaymentRequest>
                                 lockingCondition.Data = nut10Value.AsString();
                                 break;
                             case "t":
-                                lockingCondition.Tags = nut10Value.Values
-                                    .Where(tag => tag.Type == CBORType.Array)
-                                    .Select(tag =>
-                                        new Tag(tag.Values.Select(cborObject => cborObject.AsString()).ToArray())
-                                    )
+                                lockingCondition.Tags = nut10Value
+                                    .Values.Where(tag => tag.Type == CBORType.Array)
+                                    .Select(tag => new Tag(
+                                        tag.Values.Select(cborObject => cborObject.AsString())
+                                            .ToArray()
+                                    ))
                                     .ToArray();
                                 break;
                         }
                     }
                     paymentRequest.Nut10 = lockingCondition;
-                    break;
-                case "nut26":
-                    paymentRequest.Nut26 = value.AsBoolean();
                     break;
             }
         }

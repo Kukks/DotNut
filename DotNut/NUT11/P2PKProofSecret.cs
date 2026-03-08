@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using NBitcoin.Secp256k1;
@@ -11,7 +11,7 @@ public class P2PKProofSecret : Nut10ProofSecret
     public const string Key = "P2PK";
 
     [JsonIgnore]
-    public virtual P2PKBuilder Builder => P2PKBuilder.Load(this);
+    public virtual P2PkBuilder Builder => P2PkBuilder.Load(this);
 
     public virtual ECPubKey[] GetAllowedPubkeys(out int requiredSignatures)
     {
@@ -20,6 +20,13 @@ public class P2PKProofSecret : Nut10ProofSecret
         return builder.Pubkeys;
     }
 
+    /// <param name="requiredSignatures">
+    /// Can have 3 types of values
+    /// null - no refund condition / timelock still on
+    /// 0 - proof is spendable without any signature
+    /// 1,2 ... int.MaxValue - amount of required signatures
+    /// </param>
+    /// <returns></returns>
     public virtual ECPubKey[] GetAllowedRefundPubkeys(out int? requiredSignatures)
     {
         var builder = Builder;
@@ -151,41 +158,35 @@ public class P2PKProofSecret : Nut10ProofSecret
      * =========================
      */
 
-    public virtual P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys)
+    public virtual P2PKWitness? GenerateBlindWitness(Proof proof, ECPrivKey[] keys)
     {
         ArgumentNullException.ThrowIfNull(proof.P2PkE);
-        return GenerateBlindWitness(proof.Secret.GetBytes(), keys, proof.Id, proof.P2PkE);
+        return GenerateBlindWitness(proof.Secret.GetBytes(), keys, proof.P2PkE);
     }
 
-    public virtual P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, ECPubKey P2PkE)
+    public virtual P2PKWitness? GenerateBlindWitness(Proof proof, ECPrivKey[] keys, ECPubKey P2PkE)
     {
-        return GenerateBlindWitness(proof.Secret.GetBytes(), keys, proof.Id, P2PkE);
+        return GenerateBlindWitness(proof.Secret.GetBytes(), keys, P2PkE);
     }
 
-    public virtual P2PKWitness GenerateBlindWitness(
+    public virtual P2PKWitness? GenerateBlindWitness(
         BlindedMessage message,
         ECPrivKey[] keys,
         ECPubKey P2PkE
     )
     {
-        return GenerateBlindWitness(message.B_.Key.ToBytes(), keys, message.Id, P2PkE);
+        return GenerateBlindWitness(message.B_.Key.ToBytes(), keys, P2PkE);
     }
 
-    public virtual P2PKWitness? GenerateBlindWitness(
-        byte[] msg,
-        ECPrivKey[] keys,
-        KeysetId keysetId,
-        ECPubKey P2PkE
-    )
+    public virtual P2PKWitness? GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, ECPubKey P2PkE)
     {
         var hash = SHA256.HashData(msg);
-        return GenerateBlindWitness(ECPrivKey.Create(hash), keys, keysetId, P2PkE);
+        return GenerateBlindWitness(ECPrivKey.Create(hash), keys, P2PkE);
     }
 
     public virtual P2PKWitness? GenerateBlindWitness(
         ECPrivKey hash,
         ECPrivKey[] keys,
-        KeysetId keysetId,
         ECPubKey P2PkE
     )
     {

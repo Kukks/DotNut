@@ -22,7 +22,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
     private GetKeysResponse.KeysetItemResponse? _keyset;
 
     //for p2pk
-    private P2PKBuilder? _builder;
+    private P2PkBuilder? _builder;
     private bool _shouldBlind = false;
 
     public MintQuoteBuilder(Wallet wallet)
@@ -76,7 +76,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
         return this;
     }
 
-    public IMintQuoteBuilder WithP2PkLock(P2PKBuilder p2pkBuilder)
+    public IMintQuoteBuilder WithP2PkLock(P2PkBuilder p2pkBuilder)
     {
         this._builder = p2pkBuilder;
         return this;

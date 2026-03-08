@@ -39,7 +39,7 @@ public class SigAllHandler
                 return false;
             }
             _firstProofSecret = sec;
-            
+
             var msgStr = GetMessageToSign(Proofs.ToArray(), BlindedMessages.ToArray(), MeltQuoteId);
             msg = Encoding.UTF8.GetBytes(msgStr);
         }
@@ -53,7 +53,7 @@ public class SigAllHandler
             return false;
         }
 
-        P2PKWitness witnessObj;
+        P2PKWitness? witnessObj;
         if (fps is HTLCProofSecret s && HTLCPreimage is { } preimage)
         {
             if (Proofs.First().P2PkE is { } E)
@@ -62,18 +62,19 @@ public class SigAllHandler
                     msg,
                     PrivKeys.Select(pk => (ECPrivKey)pk).ToArray(),
                     Convert.FromHexString(preimage),
-                    Proofs[0].Id,
                     E
                 );
-                witness = JsonSerializer.Serialize((HTLCWitness)witnessObj);
-                return true;
             }
-            witnessObj = s.GenerateWitness(
-                msg,
-                PrivKeys.Select(pk => (ECPrivKey)pk).ToArray(),
-                Convert.FromHexString(preimage)
-            );
-            witness = JsonSerializer.Serialize((HTLCWitness)witnessObj);
+            else
+            {
+                witnessObj = s.GenerateWitness(
+                    msg,
+                    PrivKeys.Select(pk => (ECPrivKey)pk).ToArray(),
+                    Convert.FromHexString(preimage)
+                );
+            }
+            if (witnessObj is not null)
+                witness = JsonSerializer.Serialize((HTLCWitness)witnessObj);
             return true;
         }
 
@@ -82,14 +83,15 @@ public class SigAllHandler
             witnessObj = fps.GenerateBlindWitness(
                 msg,
                 PrivKeys.Select(pk => (ECPrivKey)pk).ToArray(),
-                Proofs[0].Id,
                 e2
             );
-            witness = JsonSerializer.Serialize(witnessObj);
-            return true;
         }
-        witnessObj = fps.GenerateWitness(msg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray());
-        witness = JsonSerializer.Serialize(witnessObj);
+        else
+        {
+            witnessObj = fps.GenerateWitness(msg, PrivKeys.Select(pk => (ECPrivKey)pk).ToArray());
+        }
+        if (witnessObj is not null)
+            witness = JsonSerializer.Serialize(witnessObj);
         return true;
     }
 
@@ -241,9 +243,9 @@ public class SigAllHandler
         var builder = nut10.ProofSecret switch
         {
             HTLCProofSecret htlcs => HTLCBuilder.Load(htlcs),
-            P2PKProofSecret p2pks => P2PKBuilder.Load(p2pks),
+            P2PKProofSecret p2pks => P2PkBuilder.Load(p2pks),
             // won't throw exception if there will be a new type of nut10 secret, but will return false
-            _ => new P2PKBuilder() { SigFlag = null },
+            _ => new P2PkBuilder() { SigFlag = null },
         };
 
         if (builder.SigFlag != "SIG_ALL")

@@ -30,7 +30,8 @@ public class WebsocketService : IWebsocketService
 
     public event EventHandler<ConnectionStateChangedEventArgs>? ConnectionStateChanged;
 
-    public WebsocketService() : this(new WebsocketServiceOptions()) { }
+    public WebsocketService()
+        : this(new WebsocketServiceOptions()) { }
 
     public WebsocketService(WebsocketServiceOptions options)
     {
@@ -100,7 +101,9 @@ public class WebsocketService : IWebsocketService
         {
             if (_connections.TryGetValue(normalized, out var existing))
             {
-                if (existing is { State: WebSocketState.Open, WebSocket.State: WebSocketState.Open })
+                if (
+                    existing is { State: WebSocketState.Open, WebSocket.State: WebSocketState.Open }
+                )
                 {
                     return existing;
                 }
@@ -177,11 +180,13 @@ public class WebsocketService : IWebsocketService
         var subId = Guid.NewGuid().ToString();
         var requestId = GetNextRequestId();
 
-        var channel = Channel.CreateBounded<WsMessage>(new BoundedChannelOptions(_options.MaxChannelCapacity)
-        {
-            FullMode = BoundedChannelFullMode.DropOldest,
-            SingleReader = false,
-        });
+        var channel = Channel.CreateBounded<WsMessage>(
+            new BoundedChannelOptions(_options.MaxChannelCapacity)
+            {
+                FullMode = BoundedChannelFullMode.DropOldest,
+                SingleReader = false,
+            }
+        );
 
         var request = new WsRequest
         {
@@ -415,7 +420,11 @@ public class WebsocketService : IWebsocketService
                     messageBuffer.Write(buffer, 0, result.Count);
                     if (result.EndOfMessage)
                     {
-                        var message = Encoding.UTF8.GetString(messageBuffer.GetBuffer(), 0, (int)messageBuffer.Length);
+                        var message = Encoding.UTF8.GetString(
+                            messageBuffer.GetBuffer(),
+                            0,
+                            (int)messageBuffer.Length
+                        );
                         messageBuffer.SetLength(0);
                         ProcessMessage(message);
                     }
@@ -456,8 +465,10 @@ public class WebsocketService : IWebsocketService
             using var doc = JsonDocument.Parse(message);
             var root = doc.RootElement;
 
-            if (root.TryGetProperty("method", out var methodProp)
-                && methodProp.GetString() == "subscribe")
+            if (
+                root.TryGetProperty("method", out var methodProp)
+                && methodProp.GetString() == "subscribe"
+            )
             {
                 var notification = JsonSerializer.Deserialize<WsNotification>(message, JsonOptions);
                 if (notification != null)
@@ -488,7 +499,11 @@ public class WebsocketService : IWebsocketService
         }
     }
 
-    private async Task SendMessageAsync<T>(WebsocketConnection connection, T message, CancellationToken ct)
+    private async Task SendMessageAsync<T>(
+        WebsocketConnection connection,
+        T message,
+        CancellationToken ct
+    )
     {
         var json = JsonSerializer.Serialize(message, JsonOptions);
         var bytes = Encoding.UTF8.GetBytes(json);
@@ -576,19 +591,28 @@ public class WebsocketService : IWebsocketService
         var normalized = NormalizeMintUrl(mintUrl);
         var delay = _options.InitialReconnectDelay;
 
-        for (int attempt = 1; attempt <= _options.MaxReconnectAttempts && !ct.IsCancellationRequested; attempt++)
+        for (
+            int attempt = 1;
+            attempt <= _options.MaxReconnectAttempts && !ct.IsCancellationRequested;
+            attempt++
+        )
         {
             try
             {
                 await Task.Delay(delay, ct);
 
-                var connectionLock = _connectionLocks.GetOrAdd(normalized, _ => new SemaphoreSlim(1, 1));
+                var connectionLock = _connectionLocks.GetOrAdd(
+                    normalized,
+                    _ => new SemaphoreSlim(1, 1)
+                );
                 await connectionLock.WaitAsync(ct);
 
                 try
                 {
-                    if (_connections.TryGetValue(normalized, out var existing)
-                        && existing.State == WebSocketState.Open)
+                    if (
+                        _connections.TryGetValue(normalized, out var existing)
+                        && existing.State == WebSocketState.Open
+                    )
                     {
                         return; // already reconnected
                     }
@@ -608,7 +632,9 @@ public class WebsocketService : IWebsocketService
             }
             catch
             {
-                delay = TimeSpan.FromTicks(Math.Min(delay.Ticks * 2, _options.MaxReconnectDelay.Ticks));
+                delay = TimeSpan.FromTicks(
+                    Math.Min(delay.Ticks * 2, _options.MaxReconnectDelay.Ticks)
+                );
             }
         }
 
@@ -617,9 +643,7 @@ public class WebsocketService : IWebsocketService
 
     private async Task ResubscribeAllAsync(string mintUrl, CancellationToken ct)
     {
-        var subsToRestore = _subscriptionInfos
-            .Where(kvp => kvp.Value.MintUrl == mintUrl)
-            .ToList();
+        var subsToRestore = _subscriptionInfos.Where(kvp => kvp.Value.MintUrl == mintUrl).ToList();
 
         foreach (var (subId, info) in subsToRestore)
         {
@@ -719,11 +743,10 @@ public class WebsocketService : IWebsocketService
 
     private void OnConnectionStateChanged(string connectionId, WebSocketState state)
     {
-        ConnectionStateChanged?.Invoke(this, new ConnectionStateChangedEventArgs
-        {
-            ConnectionId = connectionId,
-            State = state
-        });
+        ConnectionStateChanged?.Invoke(
+            this,
+            new ConnectionStateChangedEventArgs { ConnectionId = connectionId, State = state }
+        );
     }
 
     private static string NormalizeMintUrl(string mintUrl)

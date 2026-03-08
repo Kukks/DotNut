@@ -326,7 +326,6 @@ public class Wallet : IWalletBuilder
             );
         }
 
-        
         if (!_shouldBumpCounter)
         {
             var counterValue = await this._counter.GetCounterForId(id, ct);

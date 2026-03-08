@@ -3,7 +3,7 @@ using NBitcoin.Secp256k1;
 
 namespace DotNut;
 
-public class P2PKBuilder
+public class P2PkBuilder
 {
     public DateTimeOffset? Lock { get; set; }
     public ECPubKey[]? RefundPubkeys { get; set; }
@@ -37,7 +37,6 @@ public class P2PKBuilder
             {
                 tags.Add(new[] { "refund" }.Concat(RefundPubkeys.Select(p => p.ToHex())).ToArray());
                 RefundSignatureThreshold ??= 1;
-
             }
             if (RefundSignatureThreshold is { } refundSignatureThreshold and > 1)
             {
@@ -58,9 +57,9 @@ public class P2PKBuilder
         };
     }
 
-    public static P2PKBuilder Load(P2PKProofSecret proofSecret)
+    public static P2PkBuilder Load(P2PKProofSecret proofSecret)
     {
-        var builder = new P2PKBuilder();
+        var builder = new P2PkBuilder();
         var primaryPubkey = proofSecret.Data.ToPubKey();
         var pubkeys = proofSecret.Tags?.FirstOrDefault(strings =>
             strings.FirstOrDefault() == "pubkeys"
@@ -94,10 +93,15 @@ public class P2PKBuilder
         {
             builder.RefundPubkeys = refund.Skip(1).Select(s => s.ToPubKey()).ToArray();
         }
-        
-        var nSigsRefund = proofSecret.Tags?.FirstOrDefault(strings => strings.FirstOrDefault() == "n_sigs_refund")?
-            .Skip(1)?.FirstOrDefault();
-        if (!string.IsNullOrEmpty(nSigsRefund) && int.TryParse(nSigsRefund, out var nSigsRefundValue))
+
+        var nSigsRefund = proofSecret
+            .Tags?.FirstOrDefault(strings => strings.FirstOrDefault() == "n_sigs_refund")
+            ?.Skip(1)
+            ?.FirstOrDefault();
+        if (
+            !string.IsNullOrEmpty(nSigsRefund)
+            && int.TryParse(nSigsRefund, out var nSigsRefundValue)
+        )
         {
             builder.RefundSignatureThreshold = nSigsRefundValue;
         }
@@ -195,13 +199,14 @@ public class P2PKBuilder
         }
     }
 
-    public virtual P2PKBuilder Clone()
+    public virtual P2PkBuilder Clone()
     {
-        return new P2PKBuilder()
+        return new P2PkBuilder()
         {
             Lock = Lock,
             RefundPubkeys = RefundPubkeys?.ToArray(),
             SignatureThreshold = SignatureThreshold,
+            RefundSignatureThreshold = RefundSignatureThreshold,
             Pubkeys = Pubkeys.ToArray(),
             SigFlag = SigFlag,
             Nonce = Nonce,

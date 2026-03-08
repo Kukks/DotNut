@@ -4,7 +4,7 @@ public class Tag
 {
     public string Key { get; set; }
     public List<string> Value { get; set; }
-    
+
     public Tag(string[] tag)
     {
         if (tag == null || tag.Length == 0)
@@ -17,6 +17,6 @@ public class Tag
 
     public string[] ToArray()
     {
-        return [Key, ..Value];
+        return [Key, .. Value];
     }
 }

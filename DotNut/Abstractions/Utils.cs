@@ -93,9 +93,8 @@ public static class Utils
         uint? counter = null
     )
     {
-        var amountsList = amounts as IReadOnlyList<ulong> 
-                          ?? amounts.ToList();
-        
+        var amountsList = amounts as IReadOnlyList<ulong> ?? amounts.ToList();
+
         if (amountsList.Any(a => !keys.Keys.Contains(a)))
             throw new ArgumentException("Invalid amounts");
 
@@ -152,7 +151,7 @@ public static class Utils
     /// <param name="keysetId"></param>
     /// <param name="builder"></param>
     /// <returns></returns>
-    public static OutputData CreateNut10Output(ulong amount, KeysetId keysetId, P2PKBuilder builder)
+    public static OutputData CreateNut10Output(ulong amount, KeysetId keysetId, P2PkBuilder builder)
     {
         // ugliest hack ever
         Nut10Secret secret;
@@ -190,7 +189,7 @@ public static class Utils
     public static OutputData CreateNut10BlindedOutput(
         ulong amount,
         KeysetId keysetId,
-        P2PKBuilder builder
+        P2PkBuilder builder
     )
     {
         // ugliest hack ever
@@ -198,12 +197,12 @@ public static class Utils
         PubKey E;
         if (builder is HTLCBuilder htlc)
         {
-            secret = new Nut10Secret("HTLC", htlc.BuildBlinded(keysetId, out var e));
+            secret = new Nut10Secret("HTLC", htlc.BuildBlinded(out var e));
             E = e;
         }
         else
         {
-            secret = new Nut10Secret("P2PK", builder.BuildBlinded(keysetId, out var e));
+            secret = new Nut10Secret("P2PK", builder.BuildBlinded(out var e));
             E = e;
         }
 
@@ -233,7 +232,7 @@ public static class Utils
     public static OutputData CreateNut10BlindedOutput(
         ulong amount,
         KeysetId keysetId,
-        P2PKBuilder builder,
+        P2PkBuilder builder,
         PrivKey e
     )
     {
@@ -241,11 +240,11 @@ public static class Utils
         Nut10Secret secret;
         if (builder is HTLCBuilder htlc)
         {
-            secret = new Nut10Secret("HTLC", htlc.BuildBlinded(keysetId, e));
+            secret = new Nut10Secret("HTLC", htlc.BuildBlinded(e));
         }
         else
         {
-            secret = new Nut10Secret("P2PK", builder.BuildBlinded(keysetId, e));
+            secret = new Nut10Secret("P2PK", builder.BuildBlinded(e));
         }
 
         var r = RandomPrivkey();
@@ -324,7 +323,7 @@ public static class Utils
         {
             throw new ArgumentException("Outputs must as least equal amount of elements!");
         }
-        
+
         List<Proof> proofs = new List<Proof>(bs.Count);
         for (int i = 0; i < bs.Count; i++)
         {

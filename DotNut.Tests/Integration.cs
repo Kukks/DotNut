@@ -322,6 +322,8 @@ public class Integration
 
         var sub = await service.SubscribeToMintQuoteAsync(MintUrl, new[] { quote.Quote });
 
+        //todo imo this test should be rebuilt. this is a race condition, and it's possible that quote will be marked as paid 
+        // b4 we finish subscribing it. it should be marked as paid
         int connectedCount = 0;
         int notificationCount = 0;
 
@@ -334,7 +336,7 @@ public class Integration
             async () =>
             {
                 await connectedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
-                await Task.Delay(1000, cts.Token);
+                await Task.Delay(1000, cts.Token); // idk about this line. why did I wrote this?
                 await PayInvoice();
             },
             cts.Token
@@ -422,7 +424,7 @@ public class Integration
             .CreateMintQuote()
             .WithAmount(1337)
             .WithP2PkLock(
-                new P2PKBuilder()
+                new P2PkBuilder()
                 {
                     Pubkeys = [privKeyBob.Key.CreatePubKey()],
                     SignatureThreshold = 1,
@@ -458,7 +460,7 @@ public class Integration
             .CreateMintQuote()
             .WithAmount(1337)
             .WithP2PkLock(
-                new P2PKBuilder()
+                new P2PkBuilder()
                 {
                     Pubkeys = [privKeyBob.Key.CreatePubKey(), privKeyAlice.Key.CreatePubKey()],
                     SignatureThreshold = 2,
@@ -508,7 +510,7 @@ public class Integration
             .CreateMintQuote()
             .WithAmount(1337)
             .WithP2PkLock(
-                new P2PKBuilder()
+                new P2PkBuilder()
                 {
                     SigFlag = "SIG_ALL",
                     Pubkeys = [privKeyBob.Key.CreatePubKey()],
@@ -542,7 +544,7 @@ public class Integration
         var privKeyBob = new PrivKey(RandomNumberGenerator.GetHexString(64, true));
         var privKeyAlice = new PrivKey(RandomNumberGenerator.GetHexString(64, true));
 
-        var builder = new P2PKBuilder()
+        var builder = new P2PkBuilder()
         {
             Pubkeys = [privKeyBob.Key.CreatePubKey(), privKeyAlice.Key.CreatePubKey()],
         };
@@ -576,7 +578,7 @@ public class Integration
 
         var privKeyBob = new PrivKey(RandomNumberGenerator.GetHexString(64, true));
 
-        var builder = new P2PKBuilder() { Pubkeys = [privKeyBob.Key.CreatePubKey()] };
+        var builder = new P2PkBuilder() { Pubkeys = [privKeyBob.Key.CreatePubKey()] };
 
         var quote = await wallet
             .CreateMintQuote()
@@ -609,7 +611,7 @@ public class Integration
 
         var privKeyBob = new PrivKey(RandomNumberGenerator.GetHexString(64, true));
 
-        var builder = new P2PKBuilder()
+        var builder = new P2PkBuilder()
         {
             Pubkeys = [privKeyBob.Key.CreatePubKey()],
             SigFlag = "SIG_ALL",
@@ -651,7 +653,7 @@ public class Integration
             .CreateMintQuote()
             .WithAmount(1337)
             .WithP2PkLock(
-                new P2PKBuilder()
+                new P2PkBuilder()
                 {
                     SigFlag = "SIG_ALL",
                     Pubkeys = [privKeyBob.Key.CreatePubKey()],

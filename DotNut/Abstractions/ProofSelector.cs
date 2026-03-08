@@ -62,7 +62,7 @@ public class ProofSelector : IProofSelector
     )
     {
         var proofsToSelectFrom = proofs as List<Proof> ?? proofs.ToList();
-        
+
         // Init vars
         const int MAX_TRIALS = 60; // 40-80 is optimal (per RGLI paper)
         const double MAX_OVRPCT = 0; // Acceptable close match overage (percent)

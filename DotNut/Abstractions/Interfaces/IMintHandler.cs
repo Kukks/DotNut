@@ -10,6 +10,6 @@ public interface IMintHandler<TQuote, TResponse> : IMintHandler
 
     TQuote GetQuote();
     List<OutputData> GetOutputs();
-    
+
     Task<TResponse> Mint(CancellationToken ct = default);
 }

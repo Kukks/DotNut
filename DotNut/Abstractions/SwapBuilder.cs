@@ -26,7 +26,7 @@ class SwapBuilder : ISwapBuilder
 
     //nut10 stuff
     private List<PrivKey>? _privKeys;
-    private P2PKBuilder? _builder;
+    private P2PkBuilder? _builder;
     private string? _htlcPreimage;
     private bool _shouldBlind = false;
 
@@ -96,7 +96,7 @@ class SwapBuilder : ISwapBuilder
         return this;
     }
 
-    public ISwapBuilder ToP2PK(P2PKBuilder p2pkBuilder)
+    public ISwapBuilder ToP2PK(P2PkBuilder p2pkBuilder)
     {
         this._builder = p2pkBuilder;
         return this;
@@ -144,14 +144,17 @@ class SwapBuilder : ISwapBuilder
         {
             throw new InvalidOperationException($"Can't find keys for keyset {_targetKeysetId}");
         }
-        
+
         if (_verifyDleq)
         {
             foreach (var proof in swapInputs)
             {
                 if (proof.DLEQ == null)
                 {
-                    throw new ArgumentNullException(nameof(proof.DLEQ), "Can't verify non-existent DLEQ proof!");
+                    throw new ArgumentNullException(
+                        nameof(proof.DLEQ),
+                        "Can't verify non-existent DLEQ proof!"
+                    );
                 }
                 // proof may be already inactive - make sure to fetch
                 var keyset = await _wallet.GetKeys(proof.Id, true, false, ct);
@@ -161,7 +164,7 @@ class SwapBuilder : ISwapBuilder
                         $"Can't find keys for keyset id {proof.Id}"
                     );
                 }
-                
+
                 if (!keyset.Keys.TryGetValue(proof.Amount, out var key))
                 {
                     throw new InvalidOperationException(

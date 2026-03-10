@@ -26,6 +26,7 @@ public class WebsocketService : IWebsocketService
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower) },
     };
 
     public event EventHandler<ConnectionStateChangedEventArgs>? ConnectionStateChanged;
@@ -335,7 +336,6 @@ public class WebsocketService : IWebsocketService
             return;
 
         _disposed = true;
-        _disposeCts.Cancel();
 
         var mintUrls = _connections.Keys.ToList();
         foreach (var mintUrl in mintUrls)
@@ -349,6 +349,8 @@ public class WebsocketService : IWebsocketService
                 // continue disposing other connections
             }
         }
+
+        _disposeCts.Cancel();
 
         _subscriptions.Clear();
         _connections.Clear();

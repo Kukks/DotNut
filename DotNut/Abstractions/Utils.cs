@@ -192,7 +192,6 @@ public static class Utils
         P2PkBuilder builder
     )
     {
-        // ugliest hack ever
         Nut10Secret secret;
         PubKey E;
         if (builder is HTLCBuilder htlc)
@@ -236,7 +235,6 @@ public static class Utils
         PrivKey e
     )
     {
-        // ugliest hack ever
         Nut10Secret secret;
         if (builder is HTLCBuilder htlc)
         {

@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using DotNut.Abstractions;
 using DotNut.Abstractions.Websockets;
 using DotNut.Api;
+using DotNut.ApiModels;
 
 namespace DotNut.Tests;
 
@@ -322,25 +323,10 @@ public class Integration
 
         var sub = await service.SubscribeToMintQuoteAsync(MintUrl, new[] { quote.Quote });
 
-        //todo imo this test should be rebuilt. this is a race condition, and it's possible that quote will be marked as paid 
-        // b4 we finish subscribing it. it should be marked as paid
-        int connectedCount = 0;
-        int notificationCount = 0;
-
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(240));
 
-        var connectedTcs = new TaskCompletionSource();
-        var paidTcs = new TaskCompletionSource();
-
-        _ = Task.Run(
-            async () =>
-            {
-                await connectedTcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
-                await Task.Delay(1000, cts.Token); // idk about this line. why did I wrote this?
-                await PayInvoice();
-            },
-            cts.Token
-        );
+        int connectedCount = 0;
+        bool gotPaid = false;
 
         await foreach (var msg in sub.NotificationChannel.Reader.ReadAllAsync(cts.Token))
         {
@@ -348,32 +334,27 @@ public class Integration
             {
                 case WsMessage.Response:
                     connectedCount++;
-                    connectedTcs.TrySetResult();
                     break;
 
                 case WsMessage.Notification notification:
-                    notificationCount++;
-
-                    if (notificationCount >= 2)
-                        paidTcs.TrySetResult();
-
+                    var parsed = NotificationParser.ParsePayload<PostMintQuoteBolt11Response>(
+                        notification.Value
+                    );
+                    if (parsed?.State == "PAID")
+                        gotPaid = true;
                     break;
 
                 case WsMessage.Error error:
                     Assert.Fail($"WebSocket error: {error}");
                     break;
-
-                default:
-                    Assert.Fail($"Unexpected message type: {msg.GetType().Name}");
-                    break;
             }
 
-            if (paidTcs.Task.IsCompleted)
+            if (gotPaid)
                 break;
         }
 
         Assert.Equal(1, connectedCount);
-        Assert.True(notificationCount >= 2, $"Expected >=2 notifications, got {notificationCount}");
+        Assert.True(gotPaid, "Expected to receive PAID notification");
 
         var proofs = await mintHandler.Mint();
         Assert.NotEmpty(proofs);

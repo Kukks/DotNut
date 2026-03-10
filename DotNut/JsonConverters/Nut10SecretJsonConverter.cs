@@ -5,20 +5,24 @@ namespace DotNut.JsonConverters;
 
 public class Nut10SecretJsonConverter : JsonConverter<Nut10Secret>
 {
-    public override Nut10Secret? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override Nut10Secret? Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
     {
-        if(reader.TokenType == JsonTokenType.Null)
+        if (reader.TokenType == JsonTokenType.Null)
             return null;
         if (reader.TokenType != JsonTokenType.StartArray)
         {
             throw new JsonException("Expected array");
         }
         reader.Read();
-        if(reader.TokenType != JsonTokenType.String)
+        if (reader.TokenType != JsonTokenType.String)
             throw new JsonException("Expected string");
         var key = reader.GetString();
         reader.Read();
-        
+
         Nut10ProofSecret? proofSecret;
         switch (key)
         {
@@ -32,7 +36,7 @@ public class Nut10SecretJsonConverter : JsonConverter<Nut10Secret>
             default:
                 throw new JsonException("Unknown secret type");
         }
-        if(proofSecret is null)
+        if (proofSecret is null)
             throw new JsonException("Invalid proof secret");
         reader.Read();
         if (reader.TokenType != JsonTokenType.EndArray)
@@ -40,19 +44,21 @@ public class Nut10SecretJsonConverter : JsonConverter<Nut10Secret>
             throw new JsonException("Expected end array");
         }
 
-        return new Nut10Secret(key,  proofSecret);
-        
-
+        return new Nut10Secret(key, proofSecret);
     }
 
-    public override void Write(Utf8JsonWriter writer, Nut10Secret? value, JsonSerializerOptions options)
+    public override void Write(
+        Utf8JsonWriter writer,
+        Nut10Secret? value,
+        JsonSerializerOptions options
+    )
     {
         if (value is null)
         {
             writer.WriteNullValue();
             return;
         }
-        
+
         writer.WriteStartArray();
         JsonSerializer.Serialize(writer, value.Key, options);
         JsonSerializer.Serialize(writer, value.ProofSecret, options);

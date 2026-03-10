@@ -341,7 +341,11 @@ public class Integration
                         notification.Value
                     );
                     if (parsed?.State == "PAID")
+                    {
                         gotPaid = true;
+                        await sub.CloseAsync();
+                    }
+                        
                     break;
 
                 case WsMessage.Error error:
@@ -356,7 +360,7 @@ public class Integration
         Assert.Equal(1, connectedCount);
         Assert.True(gotPaid, "Expected to receive PAID notification");
 
-        var proofs = await mintHandler.Mint();
+        var proofs = await mintHandler.Mint(cts.Token);
         Assert.NotEmpty(proofs);
     }
 

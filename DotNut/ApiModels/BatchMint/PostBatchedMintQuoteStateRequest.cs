@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace DotNut.ApiModels;
 
-public class PostBatchMintQuoteStateRequest
+public class PostBatchedMintQuoteStateRequest
 {
     [JsonPropertyName("quotes")]
     public string[] Quotes { get; set; }

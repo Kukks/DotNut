@@ -616,7 +616,6 @@ public class UnitTest1
             )
         );
 
-
         var validSwapRequestMultisigRefundLocktime =
             "{\n  \"inputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"secret\": \"[\\\"P2PK\\\",{\\\"nonce\\\":\\\"9ea35553beb18d553d0a53120d0175a0991ca6109370338406eed007b26eacd1\\\",\\\"data\\\":\\\"02af21e09300af92e7b48c48afdb12e22933738cfb9bba67b27c00c679aae3ec25\\\",\\\"tags\\\":[[\\\"locktime\\\",\\\"1\\\"],[\\\"refund\\\",\\\"02637c19143c58b2c58bd378400a7b82bdc91d6dedaeb803b28640ef7d28a887ac\\\",\\\"0345c7fdf7ec7c8e746cca264bf27509eb4edb9ac421f8fbfab1dec64945a4d797\\\"],[\\\"n_sigs_refund\\\",\\\"2\\\"],[\\\"sigflag\\\",\\\"SIG_ALL\\\"]]}]\",\n      \"C\": \"03dd83536fbbcbb74ccb3c87147df26753fd499cc2c095f74367fff0fb459c312e\",\n      \"witness\": \"{\\\"signatures\\\":[\\\"23b58ef28cd22f3dff421121240ddd621deee83a3bc229fd67019c2e338d91e2c61577e081e1375dbab369307bba265e887857110ca3b4bd949211a0a298805f\\\",\\\"7e75948ef1513564fdcecfcbd389deac67c730f7004f8631ba90c0844d3e8c0cf470b656306877df5141f65fd3b7e85445a8452c3323ab273e6d0d44843817ed\\\"]}\"\n    }\n  ],\n  \"outputs\": [\n    {\n      \"amount\": 2,\n      \"id\": \"00bfa73302d12ffd\",\n      \"B_\": \"038ec853d65ae1b79b5cdbc2774150b2cb288d6d26e12958a16fb33c32d9a86c39\"\n    }\n  ]\n}";
         var validSwapRequestMultisigRefundLocktimeParsed =
@@ -1153,7 +1152,10 @@ public class UnitTest1
         var p = new PrivKey("ad37e8abd800be3e8272b14045873f4353327eedeb702b72ddcc5c5adff5129c");
         var P = new PubKey("02771fed6cb88aaac38b8b32104a942bf4b8f4696bc361171b3c7d06fa2ebddf06");
 
-        Assert.Equal(P.Key.ToString()?.ToLowerInvariant(), p.Key.CreatePubKey().ToString()?.ToLowerInvariant());
+        Assert.Equal(
+            P.Key.ToString()?.ToLowerInvariant(),
+            p.Key.CreatePubKey().ToString()?.ToLowerInvariant()
+        );
 
         var zx = "40d6ba4430a6dfa915bb441579b0f4dee032307434e9957a092bbca73151df8b";
         Assert.Equal(zx, Convert.ToHexString(Cashu.ComputeZx(e, P)).ToLowerInvariant());
@@ -1176,7 +1178,7 @@ public class UnitTest1
 
         for (int i = 0; i <= 10; i++)
         {
-            var ri = (PrivKey)Cashu.ComputeRi(Convert.FromHexString(zx),  i);
+            var ri = (PrivKey)Cashu.ComputeRi(Convert.FromHexString(zx), i);
             Assert.Equal(rs[i], ri.ToString());
         }
 
@@ -1238,7 +1240,7 @@ public class UnitTest1
             "044581a5616dfae8723650a1ca702164ff23c0a311db5a6eb5bc32da1d39d287",
             "a0130fb2ca958732d3451cf247726d8749af46a4e77a54b1e3a96ce3a76fcef2",
             "20f9299d129e8468bd55c37388adde124313d39621f9281012352edbdb138b35",
-            "f0ab6866fe2da5054db05098b008b042fd0af7b42ca8547137e652137bd6dfb9"
+            "f0ab6866fe2da5054db05098b008b042fd0af7b42ca8547137e652137bd6dfb9",
         ];
 
         for (int i = 0; i <= 10; i++)
@@ -1377,19 +1379,21 @@ public class UnitTest1
         Assert.Single(decoded.Transports);
         var t = decoded.Transports[0];
         Assert.Equal("nostr", t.Type);
-        Assert.Equal("nprofile1qqsgm6qfa3c8dtz2fvzhvfqeacmwm0e50pe3k5tfmvpjjmn0vj7m2tgpz3mhxue69uhhyetvv9ujuerpd46hxtnfduq3wamnwvaz7tmjv4kxz7fw8qenxvewwdcxzcm99uqs6amnwvaz7tmwdaejumr0ds4ljh7n", t.Target);
+        Assert.Equal(
+            "nprofile1qqsgm6qfa3c8dtz2fvzhvfqeacmwm0e50pe3k5tfmvpjjmn0vj7m2tgpz3mhxue69uhhyetvv9ujuerpd46hxtnfduq3wamnwvaz7tmjv4kxz7fw8qenxvewwdcxzcm99uqs6amnwvaz7tmwdaejumr0ds4ljh7n",
+            t.Target
+        );
         Assert.Single(t.Tags);
         Assert.Equal("n", t.Tags.First().Key);
         Assert.Equal("17", t.Tags.First().Value.First());
 
-       
         var encodedAgain = PaymentRequestBech32Encoder.Encode(decoded);
         // Assert.Equal(encoded, encodedAgain);
-        
+
         // let's try a roundtrip since - idk why,
         // but the output of encodedAgain is a little bit different than this one in encoded in this test
         var decodedAgain = PaymentRequestBech32Encoder.Decode(encodedAgain);
-        
+
         Assert.Equal(decoded.PaymentId, decodedAgain.PaymentId);
         Assert.Equal(decoded.Amount, decodedAgain.Amount);
         Assert.Equal(decoded.Unit, decodedAgain.Unit);
@@ -1399,29 +1403,34 @@ public class UnitTest1
         for (var i = 0; i < decoded.Transports[0].Tags.Length; i++)
         {
             Assert.Equal(decoded.Transports[0].Tags[i].Key, decodedAgain.Transports[0].Tags[i].Key);
-            Assert.Equal(decoded.Transports[0].Tags[i].Value, decodedAgain.Transports[0].Tags[i].Value);
+            Assert.Equal(
+                decoded.Transports[0].Tags[i].Value,
+                decodedAgain.Transports[0].Tags[i].Value
+            );
         }
     }
-    
 
     [Fact]
     public void Nut26_NostrTransport()
     {
-        var encoded = 
+        var encoded =
             "CREQB1QYQQSE3EXFSN2VTZ8QPQQZQQQQQQQQQQQPJQXQQPQQZSQXTGW368QUE69UHK66TWWSCJUETCV9KHQMR99E3K7MG9QQVKSAR5WPEN5TE0D45KUAPJ9EJHSCTDWPKX2TNRDAKSWQPEQYQQZQQZQQSQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQRQQZSZMSZXYMSXQQ8Q9HQGWFHXV6SCAGZ48";
         var d = PaymentRequest.Parse(encoded);
-        
+
         Assert.Equal("f92a51b8", d.PaymentId);
         Assert.Equal(100UL, d.Amount);
         Assert.Equal("sat", d.Unit);
         Assert.Equal(2, d.Mints?.Length);
         Assert.Equal("https://mint1.example.com", d.Mints[0]);
         Assert.Equal("https://mint2.example.com", d.Mints[1]);
-        
+
         Assert.Single(d.Transports);
         var t = d.Transports[0];
         Assert.Equal("nostr", t.Type);
-        Assert.Equal("nprofile1qqsqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq8uzqt", t.Target);
+        Assert.Equal(
+            "nprofile1qqsqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq8uzqt",
+            t.Target
+        );
         Assert.Equal(2, t.Tags.Length);
         Assert.Equal("n", t.Tags[0].Key);
         Assert.Equal("17", t.Tags[0].Value[0]);
@@ -1435,13 +1444,14 @@ public class UnitTest1
     [Fact]
     public void Nut26_MinimalPaymentRequest()
     {
-        var encoded = "CREQB1QYQQSDMXX3SNYC3N8YPSQQGQQ5QPS6R5W3C8XW309AKKJMN59EJHSCTDWPKX2TNRDAKSYP0LHG";
+        var encoded =
+            "CREQB1QYQQSDMXX3SNYC3N8YPSQQGQQ5QPS6R5W3C8XW309AKKJMN59EJHSCTDWPKX2TNRDAKSYP0LHG";
         var d = PaymentRequest.Parse(encoded);
         Assert.Equal("7f4a2b39", d.PaymentId);
         Assert.Equal("sat", d.Unit);
         Assert.Single(d.Mints!);
         Assert.Equal("https://mint.example.com", d.Mints[0]);
-        
+
         var encodedAgain = d.ToBech32String();
         Assert.Equal(encoded, encodedAgain);
     }
@@ -1458,12 +1468,15 @@ public class UnitTest1
         Assert.Single(d.Mints);
         Assert.Equal("https://mint.example.com", d.Mints[0]);
         Assert.Equal("P2PK", d.Nut10.Kind);
-        Assert.Equal("02c3b5bb27e361457c92d93d78dd73d3d53732110b2cfe8b50fbc0abc615e9c331", d.Nut10.Data);
+        Assert.Equal(
+            "02c3b5bb27e361457c92d93d78dd73d3d53732110b2cfe8b50fbc0abc615e9c331",
+            d.Nut10.Data
+        );
         Assert.Single(d.Nut10.Tags);
         Assert.Equal("timeout", d.Nut10.Tags[0].Key);
         Assert.Equal("3600", d.Nut10.Tags[0].Value[0]);
-        
-        var encodedAgain =  d.ToBech32String();
+
+        var encodedAgain = d.ToBech32String();
         Assert.Equal(encoded, encodedAgain);
     }
 
@@ -1478,19 +1491,19 @@ public class UnitTest1
         Assert.Equal("sat", d.Unit);
         Assert.Single(d.Mints);
         Assert.Equal("https://mint.example.com", d.Mints[0]);
-        
+
         var t = Assert.Single(d.Transports);
         Assert.Equal("post", t.Type);
-        Assert.Equal("https://api.example.com/v1/payment",t.Target);
+        Assert.Equal("https://api.example.com/v1/payment", t.Target);
         Assert.Single(t.Tags);
-        
+
         var tag = Assert.Single(t.Tags);
         Assert.Equal("custom", tag.Key);
         Assert.Equal(2, tag.Value.Count);
         Assert.Equal("value1", tag.Value[0]);
         Assert.Equal("value2", tag.Value[1]);
-        
-        var encodedAgain =  d.ToBech32String();
+
+        var encodedAgain = d.ToBech32String();
         Assert.Equal(encoded, encodedAgain);
     }
 
@@ -1500,16 +1513,19 @@ public class UnitTest1
         var encoded =
             "CREQB1QYQQ5UN9D3SHJHM5V4EHGQSQPQQQQQQQQQQQQEQRQQQSQPGQRP58GARSWVAZ7TMDD9H8GTN90PSK6URVV5HXXMMDQUQGZQGQQYQQYQPQ80CVV07TJDRRGPA0J7J7TMNYL2YR6YR7L8J4S3EVF6U64TH6GKWSXQQMQ9EPSAMNWVAZ7TMJV4KXZ7F39EJHSCTDWPKX2TNRDAKSXQQMQ9EPSAMNWVAZ7TMJV4KXZ7FJ9EJHSCTDWPKX2TNRDAKSXQQMQ9EPSAMNWVAZ7TMJV4KXZ7FN9EJHSCTDWPKX2TNRDAKSKRFDAR";
         var d = PaymentRequest.Parse(encoded);
-        
+
         Assert.Equal("relay_test", d.PaymentId);
         Assert.Equal(100UL, d.Amount);
         Assert.Equal("sat", d.Unit);
         Assert.NotNull(d.Mints);
         Assert.Equal("https://mint.example.com", Assert.Single(d.Mints));
         var t = Assert.Single(d.Transports);
-        
+
         Assert.Equal("nostr", t.Type);
-        Assert.Equal("nprofile1qqsrhuxx8l9ex335q7he0f09aej04zpazpl0ne2cgukyawd24mayt8gprpmhxue69uhhyetvv9unztn90psk6urvv5hxxmmdqyv8wumn8ghj7un9d3shjv3wv4uxzmtsd3jjucm0d5q3samnwvaz7tmjv4kxz7fn9ejhsctdwpkx2tnrdaksxzjpjp", t.Target);
+        Assert.Equal(
+            "nprofile1qqsrhuxx8l9ex335q7he0f09aej04zpazpl0ne2cgukyawd24mayt8gprpmhxue69uhhyetvv9unztn90psk6urvv5hxxmmdqyv8wumn8ghj7un9d3shjv3wv4uxzmtsd3jjucm0d5q3samnwvaz7tmjv4kxz7fn9ejhsctdwpkx2tnrdaksxzjpjp",
+            t.Target
+        );
 
         var encodedAgain = d.ToBech32String();
         Assert.Equal(encoded, encodedAgain);
@@ -1518,7 +1534,8 @@ public class UnitTest1
     [Fact]
     public void Nut26_Description()
     {
-        var encoded = "CREQB1QYQQJER9WD347AR9WD6QYQQGQQQQQQQQQQQXGQCQQYQQ2QQCDP68GURN8GHJ7MTFDE6ZUETCV9KHQMR99E3K7MGXQQV9GETNWSS8QCTED4JKUAPQV3JHXCMJD9C8G6T0DCFLJJRX";
+        var encoded =
+            "CREQB1QYQQJER9WD347AR9WD6QYQQGQQQQQQQQQQQXGQCQQYQQ2QQCDP68GURN8GHJ7MTFDE6ZUETCV9KHQMR99E3K7MGXQQV9GETNWSS8QCTED4JKUAPQV3JHXCMJD9C8G6T0DCFLJJRX";
         var decoded = PaymentRequest.Parse(encoded);
         Assert.Equal("desc_test", decoded.PaymentId);
         Assert.Equal(100UL, decoded.Amount);
@@ -1527,31 +1544,32 @@ public class UnitTest1
         Assert.Equal("https://mint.example.com", Assert.Single(decoded.Mints));
 
         Assert.Equal("Test payment description", decoded.Memo);
-        
-        var encodedAgain =  decoded.ToBech32String();
+
+        var encodedAgain = decoded.ToBech32String();
         Assert.Equal(encoded, encodedAgain);
     }
-    
+
     [Fact]
     public void Nut26_SingleUseTrue()
     {
         var encoded =
             "CREQB1QYQQ7UMFDENKCE2LW4EK2HM5WF6K2QSQPQQQQQQQQQQQQEQRQQQSQPQQQYQS2QQCDP68GURN8GHJ7MTFDE6ZUETCV9KHQMR99E3K7MGX0AYM7";
-        
+
         var decoded = PaymentRequest.Parse(encoded);
-        
+
         Assert.Equal("single_use_true", decoded.PaymentId);
         Assert.Equal(100UL, decoded.Amount);
         Assert.Equal("sat", decoded.Unit);
         Assert.NotNull(decoded.Mints);
         Assert.Equal("https://mint.example.com", Assert.Single(decoded.Mints));
-        
+
         Assert.NotNull(decoded.OneTimeUse);
         Assert.Equal(true, decoded.OneTimeUse);
-        
-        var encodedAgain =  decoded.ToBech32String();
+
+        var encodedAgain = decoded.ToBech32String();
         Assert.Equal(encoded, encodedAgain);
     }
+
     [Fact]
     public void Nut26_SingleUseFalse()
     {
@@ -1563,125 +1581,132 @@ public class UnitTest1
         Assert.Equal("sat", decoded.Unit);
         Assert.NotNull(decoded.OneTimeUse);
         Assert.Equal(false, decoded.OneTimeUse);
-        
+
         Assert.NotNull(decoded.Mints);
         Assert.Equal("https://mint.example.com", Assert.Single(decoded.Mints));
-        
+
         var encodedAgain = decoded.ToBech32String();
         Assert.Equal(encoded, encodedAgain);
     }
-    
+
     [Fact]
     public void Nut26_MsatUnit()
     {
         var encoded =
             "CREQB1QYQQJATWD9697MTNV96QYQQGQQQQQQQQQQP7SQCQQ3KHXCT5Q5QPS6R5W3C8XW309AKKJMN59EJHSCTDWPKX2TNRDAKSYYMU95";
         var decoded = PaymentRequest.Parse(encoded);
-        
+
         Assert.Equal("unit_msat", decoded.PaymentId);
         Assert.Equal(1000UL, decoded.Amount);
         Assert.Equal("msat", decoded.Unit);
         Assert.NotNull(decoded.Mints);
-        Assert.Equal("https://mint.example.com", Assert.Single(decoded.Mints)); 
-        
+        Assert.Equal("https://mint.example.com", Assert.Single(decoded.Mints));
+
         var encodedAgain = decoded.ToBech32String();
         Assert.Equal(encoded, encodedAgain);
     }
-    
+
     [Fact]
     public void Nut26_UsdUnit()
     {
         var encoded =
             "CREQB1QYQQSATWD9697ATNVSPQQZQQQQQQQQQQQ86QXQQRW4EKGPGQRP58GARSWVAZ7TMDD9H8GTN90PSK6URVV5HXXMMDEPCJYC";
         var decoded = PaymentRequest.Parse(encoded);
-        
+
         Assert.Equal("unit_usd", decoded.PaymentId);
         Assert.Equal(500UL, decoded.Amount);
         Assert.Equal("usd", decoded.Unit);
-        
+
         Assert.NotNull(decoded.Mints);
         Assert.Equal("https://mint.example.com", Assert.Single(decoded.Mints));
-        
+
         var encodedAgain = decoded.ToBech32String();
         Assert.Equal(encoded, encodedAgain);
     }
-    
+
     [Fact]
     public void Nut26_MultipleTransports()
     {
-        var encoded = 
+        var encoded =
             "CREQB1QYQQ7MT4D36XJHM5WFSKUUMSDAE8GQSQPQQQQQQQQQQQRAQRQQQSQPGQRP58GARSWVAZ7TMDD9H8GTN90PSK6URVV5HXXMMDQCQZQ5RP09KK2MN5YPMKJARGYPKH2MR5D9CXCEFQW3EXZMNNWPHHYARNQUQZ7QGQQYQQYQPQ80CVV07TJDRRGPA0J7J7TMNYL2YR6YR7L8J4S3EVF6U64TH6GKWSXQQ9Q9HQYVFHQUQZWQGQQYQSYQPQDP68GURN8GHJ7CTSDYCJUETCV9KHQMR99E3K7MF0WPSHJMT9DE6QWQP6QYQQZQGZQQSXSAR5WPEN5TE0V9CXJV3WV4UXZMTSD3JJUCM0D5HHQCTED4JKUAQRQQGQSURJD9HHY6T50YRXYCTRDD6HQTSH7TP";
         var decoded = PaymentRequest.Parse(encoded);
-        
-        Assert.Equal("multi_transport",  decoded.PaymentId);
+
+        Assert.Equal("multi_transport", decoded.PaymentId);
         Assert.Equal(500UL, decoded.Amount);
         Assert.Equal("sat", decoded.Unit);
         Assert.NotNull(decoded.Mints);
         Assert.Equal("https://mint.example.com", Assert.Single(decoded.Mints));
         Assert.NotNull(decoded.Transports);
         Assert.Equal(3, decoded.Transports.Length);
-        
+
         var t = decoded.Transports[0];
         Assert.Equal("nostr", t.Type);
-        Assert.Equal("nprofile1qqsrhuxx8l9ex335q7he0f09aej04zpazpl0ne2cgukyawd24mayt8g2lcy6q", t.Target);
+        Assert.Equal(
+            "nprofile1qqsrhuxx8l9ex335q7he0f09aej04zpazpl0ne2cgukyawd24mayt8g2lcy6q",
+            t.Target
+        );
         Assert.Equal("n", t.Tags[0].Key);
         Assert.Equal("17", t.Tags[0].Value.First());
 
         var t1 = decoded.Transports[1];
         Assert.Equal("post", t1.Type);
         Assert.Equal("https://api1.example.com/payment", t1.Target);
-        
+
         var t2 = decoded.Transports[2];
         Assert.Equal("post", t2.Type);
         Assert.Equal("priority", t2.Tags.Single().Key);
         Assert.Equal("backup", t2.Tags.Single().Value.Single());
 
-        var encodedAgain =  decoded.ToBech32String();
+        var encodedAgain = decoded.ToBech32String();
         Assert.Equal(encoded, encodedAgain);
     }
-    
+
     [Fact]
     public void Nut26MinimalNostrTransport()
     {
-        var encoded = 
+        var encoded =
             "CREQB1QYQQ6MTFDE5K6CTVTAHX7UM5WGPSQQGQQ5QPS6R5W3C8XW309AKKJMN59EJHSCTDWPKX2TNRDAKSWQP8QYQQZQQZQQSRHUXX8L9EX335Q7HE0F09AEJ04ZPAZPL0NE2CGUKYAWD24MAYT8G7QNXMQ";
         var decoded = PaymentRequest.Parse(encoded);
-        
-        Assert.Equal("minimal_nostr",  decoded.PaymentId);
+
+        Assert.Equal("minimal_nostr", decoded.PaymentId);
         Assert.Equal("sat", decoded.Unit);
-        Assert.Equal("https://mint.example.com",  Assert.Single(decoded.Mints));
+        Assert.Equal("https://mint.example.com", Assert.Single(decoded.Mints));
         var t = Assert.Single(decoded.Transports);
         Assert.Equal("nostr", t.Type);
-        Assert.Equal("nprofile1qqsrhuxx8l9ex335q7he0f09aej04zpazpl0ne2cgukyawd24mayt8g2lcy6q", t.Target);
-        
-        var encodedAgain= decoded.ToBech32String();
+        Assert.Equal(
+            "nprofile1qqsrhuxx8l9ex335q7he0f09aej04zpazpl0ne2cgukyawd24mayt8g2lcy6q",
+            t.Target
+        );
+
+        var encodedAgain = decoded.ToBech32String();
         Assert.Equal(encoded, encodedAgain);
     }
-    
+
     [Fact]
     public void Nut26MinimalPostTransport()
     {
-        var encoded = "CREQB1QYQQCMTFDE5K6CTVTA58GARSQVQQZQQ9QQVXSAR5WPEN5TE0D45KUAPWV4UXZMTSD3JJUCM0D5RSQ8SPQQQSZQSQZA58GARSWVAZ7TMPWP5JUETCV9KHQMR99E3K7MG0TWYGX";
+        var encoded =
+            "CREQB1QYQQCMTFDE5K6CTVTA58GARSQVQQZQQ9QQVXSAR5WPEN5TE0D45KUAPWV4UXZMTSD3JJUCM0D5RSQ8SPQQQSZQSQZA58GARSWVAZ7TMPWP5JUETCV9KHQMR99E3K7MG0TWYGX";
         var decoded = PaymentRequest.Parse(encoded);
-        
+
         Assert.Equal("minimal_http", decoded.PaymentId);
-        Assert.Equal("sat",  decoded.Unit);
-        Assert.Equal("https://mint.example.com",  Assert.Single(decoded.Mints));
+        Assert.Equal("sat", decoded.Unit);
+        Assert.Equal("https://mint.example.com", Assert.Single(decoded.Mints));
         var t = Assert.Single(decoded.Transports);
         Assert.Equal("post", t.Type);
         Assert.Equal("https://api.example.com", t.Target);
-        
-        var encodedAgain= decoded.ToBech32String();
+
+        var encodedAgain = decoded.ToBech32String();
         Assert.Equal(encoded, encodedAgain);
     }
-    
+
     [Fact]
     public void Nut26Nut10HTLC()
     {
         var encoded =
             "CREQB1QYQQJ6R5D3347AR9WD6QYQQGQQQQQQQQQQP7SQCQQYQQ2QQCDP68GURN8GHJ7MTFDE6ZUETCV9KHQMR99E3K7MGXQQF5S4ZVGVSXCMMRDDJKGGRSV9UK6ETWWSYQPTGPQQQSZQSQGFS46VR9XCMRSV3SVFNXYDP3XGERZVNRVCMKZC3NV3JKYVP5X5UKXEFJ8QEXZVTZXQ6XVERPXUMX2CFKXQERVCFKXAJNGVTPV5ERVE3NV33SXQQ5PPKX7CMTW35K6EG2XYMNQVPSXQCRQVPSQVQY5PNJV4N82MNYGGCRXVEJ8QCKXVEHXCMNWETPXGMNXETZXUCNSVMZXUURXVPKXANR2V35XSUNXVM9VCMNSEPCVVEKVVF4VGCKZDEHVD3RYDPKXQUNJCEJXEJS4EHJHC";
         var decoded = PaymentRequest.Parse(encoded);
-        
+
         Assert.Equal("htlc_test", decoded.PaymentId);
         Assert.Equal(1000UL, decoded.Amount);
         Assert.Equal("sat", decoded.Unit);
@@ -1690,17 +1715,23 @@ public class UnitTest1
         Assert.Equal("HTLC locked payment", decoded.Memo);
         var nut10 = decoded.Nut10;
         Assert.Equal("HTLC", nut10.Kind);
-        Assert.Equal("a]0e66820bfb412212cf7ab3deb0459ce282a1b04fda76ea6026a67e41ae26f3dc", nut10.Data);
+        Assert.Equal(
+            "a]0e66820bfb412212cf7ab3deb0459ce282a1b04fda76ea6026a67e41ae26f3dc",
+            nut10.Data
+        );
         Assert.Equal(2, nut10.Tags.Length);
         Assert.Equal("locktime", nut10.Tags[0].Key);
         Assert.Equal("1700000000", nut10.Tags[0].Value.Single());
         Assert.Equal("refund", nut10.Tags[1].Key);
-        Assert.Equal("033281c37677ea273eb7183b783067f5244933ef78d8c3f15b1a77cb246099c26e", nut10.Tags[1].Value.Single());
-        
+        Assert.Equal(
+            "033281c37677ea273eb7183b783067f5244933ef78d8c3f15b1a77cb246099c26e",
+            nut10.Tags[1].Value.Single()
+        );
+
         var encodedAgain = decoded.ToBech32String();
         Assert.Equal(encoded, encodedAgain);
     }
-    
+
     [Fact]
     public void Nut26CustomCurrencyUnit()
     {
@@ -1712,7 +1743,7 @@ public class UnitTest1
         Assert.Equal(100UL, decoded.Amount);
         Assert.Equal("btc", decoded.Unit);
         Assert.Equal("https://mint.example.com", Assert.Single(decoded.Mints));
-        
+
         var encodedAgain = decoded.ToBech32String();
         Assert.Equal(encoded, encodedAgain);
     }

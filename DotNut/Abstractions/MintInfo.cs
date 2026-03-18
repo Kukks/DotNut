@@ -226,10 +226,17 @@ public class MintInfo
         {
             try
             {
-                var nut29 = JsonSerializer.Deserialize<BatchMintInfo>(nutJson.RootElement.GetRawText());
+                var nut29 = JsonSerializer.Deserialize<BatchMintInfo>(
+                    nutJson.RootElement.GetRawText()
+                );
                 if (nut29?.Methods != null && nut29.Methods.Length > 0)
                 {
-                    return new BatchMintInfo { Supported = true, MaxBatchSize = nut29.MaxBatchSize, Methods = nut29.Methods };
+                    return new BatchMintInfo
+                    {
+                        Supported = true,
+                        MaxBatchSize = nut29.MaxBatchSize,
+                        Methods = nut29.Methods,
+                    };
                 }
             }
             catch (JsonException)
@@ -304,6 +311,7 @@ public class WebSocketSupportResult
     public bool Supported { get; set; }
     public WebSocketSupport[]? Params { get; set; }
 }
+
 public class MPPInfo
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]

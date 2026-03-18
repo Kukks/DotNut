@@ -200,7 +200,9 @@ public class HTLCProofSecret : P2PKProofSecret
         );
     }
 
-    [Obsolete("Use GenerateBlindWitness(Proof proof, ECPrivKey[] keys, string preimage, ECPubKey P2PkE)")]
+    [Obsolete(
+        "Use GenerateBlindWitness(Proof proof, ECPrivKey[] keys, string preimage, ECPubKey P2PkE)"
+    )]
     public override P2PKWitness GenerateBlindWitness(Proof proof, ECPrivKey[] keys, ECPubKey P2PkE)
     {
         throw new InvalidOperationException(
@@ -208,7 +210,9 @@ public class HTLCProofSecret : P2PKProofSecret
         );
     }
 
-    [Obsolete("Use GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, string preimage, ECPubKey P2PkE)")]
+    [Obsolete(
+        "Use GenerateBlindWitness(BlindedMessage message, ECPrivKey[] keys, string preimage, ECPubKey P2PkE)"
+    )]
     public override P2PKWitness GenerateBlindWitness(
         BlindedMessage message,
         ECPrivKey[] keys,
@@ -220,7 +224,9 @@ public class HTLCProofSecret : P2PKProofSecret
         );
     }
 
-    [Obsolete("Use GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, byte[] preimage, ECPubKey P2PkE)")]
+    [Obsolete(
+        "Use GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, byte[] preimage, ECPubKey P2PkE)"
+    )]
     public override P2PKWitness GenerateBlindWitness(byte[] msg, ECPrivKey[] keys, ECPubKey P2PkE)
     {
         throw new InvalidOperationException(
@@ -228,7 +234,9 @@ public class HTLCProofSecret : P2PKProofSecret
         );
     }
 
-    [Obsolete("Use GenerateBlindWitness(ECPrivKey hash, ECPrivKey[] keys, byte[] preimage, ECPubKey P2PkE)")]
+    [Obsolete(
+        "Use GenerateBlindWitness(ECPrivKey hash, ECPrivKey[] keys, byte[] preimage, ECPubKey P2PkE)"
+    )]
     public override P2PKWitness GenerateBlindWitness(
         ECPrivKey hash,
         ECPrivKey[] keys,

@@ -229,7 +229,7 @@ public class MintInfo
                 var nut29 = JsonSerializer.Deserialize<BatchMintInfo>(
                     nutJson.RootElement.GetRawText()
                 );
-                if (nut29?.Methods != null && nut29.Methods.Length > 0)
+                if (nut29 is not null)
                 {
                     return new BatchMintInfo
                     {
@@ -382,10 +382,13 @@ public class WebSocketSupport
 public class BatchMintInfo
 {
     public bool Supported { get; set; }
+    public bool AllSupported => Methods is null;
 
     [JsonPropertyName("max_batch_size")]
-    public int MaxBatchSize { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int? MaxBatchSize { get; set; }
 
     [JsonPropertyName("methods")]
-    public string[] Methods { get; set; } = [];
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public string[]? Methods { get; set; }
 }

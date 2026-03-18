@@ -9,7 +9,7 @@ public class PostBatchedMintRequest
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     [JsonPropertyName("quote_amounts")]
-    public ulong?[]? Amounts { get; set; }
+    public ulong[]? Amounts { get; set; }
 
     [JsonPropertyName("outputs")]
     public BlindedMessage[] Outputs { get; set; }

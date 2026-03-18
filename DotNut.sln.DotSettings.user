@@ -15,9 +15,10 @@
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AObject_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003FUsers_003Fevilk_003FAppData_003FRoaming_003FJetBrains_003FRider2024_002E2_003Fresharper_002Dhost_003FSourcesCache_003F9a6b1457cbcf17db31a383ba49ef9bcc786cf3ef77146d997eee499b27a46d_003FObject_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AStringAsserts_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003FUsers_003Fevilk_003FAppData_003FRoaming_003FJetBrains_003FRider2024_002E2_003Fresharper_002Dhost_003FSourcesCache_003F999ae9cc4ab7b7cfbc5080803e994426e97fd9d87c5b1f44544a799bc114_003FStringAsserts_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AThrowHelper_002ESerialization_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003FUsers_003Fevilk_003FAppData_003FRoaming_003FJetBrains_003FRider2024_002E2_003Fresharper_002Dhost_003FSourcesCache_003F60afdfcef9945be6977fa4b76b3d84506e2a2067afb63480aacf49417cfa_003FThrowHelper_002ESerialization_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=344e6aee_002D97cc_002D44aa_002D988c_002D3f99a3ffbb3b/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="UnitTest1" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=344e6aee_002D97cc_002D44aa_002D988c_002D3f99a3ffbb3b/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="UnitTest1" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;TestAncestor&gt;
     &lt;TestId&gt;xUnit::0AAAA85C-9FDC-4FD5-9CC2-ED8385B40106::net8.0::DotNut.Tests.UnitTest1&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::0AAAA85C-9FDC-4FD5-9CC2-ED8385B40106::net8.0::DotNut.Tests.Nut29Tests&lt;/TestId&gt;
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String>
 	
@@ -37,11 +38,12 @@
     &lt;TestId&gt;xUnit::0AAAA85C-9FDC-4FD5-9CC2-ED8385B40106::net8.0::DotNut.Tests.UnitTests2&lt;/TestId&gt;
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=b3f65980_002Db8f1_002D4055_002D932c_002Dd03b5a73a7a3/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="Integration" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=b3f65980_002Db8f1_002D4055_002D932c_002Dd03b5a73a7a3/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Integration" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;TestAncestor&gt;
     &lt;TestId&gt;xUnit::0AAAA85C-9FDC-4FD5-9CC2-ED8385B40106::net8.0::DotNut.Tests.Integration&lt;/TestId&gt;
     &lt;TestId&gt;xUnit::0AAAA85C-9FDC-4FD5-9CC2-ED8385B40106::net8.0::DotNut.Tests.UnitTests2&lt;/TestId&gt;
     &lt;TestId&gt;xUnit::0AAAA85C-9FDC-4FD5-9CC2-ED8385B40106::net8.0::DotNut.Tests.UnitTest1&lt;/TestId&gt;
+    &lt;TestId&gt;xUnit::0AAAA85C-9FDC-4FD5-9CC2-ED8385B40106::net8.0::DotNut.Tests.Nut29Tests&lt;/TestId&gt;
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=e248e720_002Dbd67_002D4ee8_002Db76a_002D987813522b83/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="Nut11_SIG_ALL" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;

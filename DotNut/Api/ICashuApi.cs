@@ -57,4 +57,16 @@ public interface ICashuApi : IDisposable
         CancellationToken cancellationToken = default
     );
     Task<GetInfoResponse> GetInfo(CancellationToken cancellationToken = default);
+
+    Task<TResponse> BatchCheckMintQuoteState<TResponse>(
+        string method,
+        PostBatchedMintQuoteStateRequest request,
+        CancellationToken cancellationToken = default
+    );
+
+    Task<PostBatchedMintResponse> BatchMint(
+        string method,
+        PostBatchedMintRequest request,
+        CancellationToken cancellationToken = default
+    );
 }

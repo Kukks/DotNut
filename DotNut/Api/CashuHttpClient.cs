@@ -173,6 +173,34 @@ public class CashuHttpClient : ICashuApi
         return await HandleResponse<GetInfoResponse>(response, cancellationToken);
     }
 
+    public async Task<TResponse> BatchCheckMintQuoteState<TResponse>(
+        string method,
+        PostBatchedMintQuoteStateRequest request,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var response = await _httpClient.PostAsync(
+            $"v1/mint/quote/{method}/check",
+            new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json"),
+            cancellationToken
+        );
+        return await HandleResponse<TResponse>(response, cancellationToken);
+    }
+
+    public async Task<PostBatchedMintResponse> BatchMint(
+        string method,
+        PostBatchedMintRequest request,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var response = await _httpClient.PostAsync(
+            $"v1/mint/{method}/batch",
+            new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json"),
+            cancellationToken
+        );
+        return await HandleResponse<PostBatchedMintResponse>(response, cancellationToken);
+    }
+
     protected async Task<T> HandleResponse<T>(
         HttpResponseMessage response,
         CancellationToken cancellationToken

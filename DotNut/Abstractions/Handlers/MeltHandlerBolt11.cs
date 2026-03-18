@@ -11,6 +11,7 @@ public class MeltHandlerBolt11(
 ) : IMeltHandler<PostMeltQuoteBolt11Response, List<Proof>>
 {
     public PostMeltQuoteBolt11Response GetQuote() => quote;
+
     public List<OutputData> GetBlankOutputs() => blankOutputs;
 
     public async Task<List<Proof>> Melt(IEnumerable<Proof> inputs, CancellationToken ct = default)

@@ -3,7 +3,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using DotNut.ApiModels;
-using DotNut.ApiModels.Info;
 
 namespace DotNut.Abstractions;
 
@@ -213,6 +212,41 @@ public class MintInfo
         }
     }
 
+    /// <summary>
+    /// Checks support for NUT 29 (batch minting)
+    /// </summary>
+    public BatchMintInfo IsSupportedBatchMint()
+    {
+        return CheckNut29();
+    }
+
+    private BatchMintInfo CheckNut29()
+    {
+        if (_mintInfo.Nuts?.TryGetValue(29, out var nutJson) == true)
+        {
+            try
+            {
+                var nut29 = JsonSerializer.Deserialize<BatchMintInfo>(
+                    nutJson.RootElement.GetRawText()
+                );
+                if (nut29 is not null)
+                {
+                    return new BatchMintInfo
+                    {
+                        Supported = true,
+                        MaxBatchSize = nut29.MaxBatchSize,
+                        Methods = nut29.Methods,
+                    };
+                }
+            }
+            catch (JsonException)
+            {
+                // Ignore parsing errors
+            }
+        }
+        return new BatchMintInfo { Supported = false };
+    }
+
     public List<ContactInfo>? Contact => _mintInfo.Contact;
     public string? Description => _mintInfo.Description;
     public string? DescriptionLong => _mintInfo.DescriptionLong;
@@ -269,7 +303,7 @@ internal class ProtectedEndpoints
 internal class ProtectedEndpoint
 {
     public string Method { get; set; } = string.Empty;
-    public System.Text.RegularExpressions.Regex Regex { get; set; }
+    public Regex Regex { get; set; }
 }
 
 public class WebSocketSupportResult
@@ -278,7 +312,83 @@ public class WebSocketSupportResult
     public WebSocketSupport[]? Params { get; set; }
 }
 
+public class MPPInfo
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [JsonPropertyName("methods")]
+    public MPPMethod[]? Methods { get; set; }
+
+    public class MPPMethod
+    {
+        [JsonPropertyName("method")]
+        public string Method { get; set; }
+
+        [JsonPropertyName("unit")]
+        public string Unit { get; set; }
+    }
+}
+
 public class MppSupport : MPPInfo
 {
     public bool Supported { get; set; }
+}
+
+public class SwapInfo
+{
+    [JsonPropertyName("methods")]
+    public SwapMethod[] Methods { get; set; }
+
+    [JsonPropertyName("disabled")]
+    public bool Disabled { get; set; }
+
+    public class SwapMethod
+    {
+        [JsonPropertyName("method")]
+        public string Method { get; set; }
+
+        [JsonPropertyName("unit")]
+        public string Unit { get; set; }
+
+        [JsonPropertyName("min_amount")]
+        public ulong MinAmount { get; set; }
+
+        [JsonPropertyName("max_amount")]
+        public ulong MaxAmount { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        [JsonPropertyName("options")]
+        public SwapOptions? Options { get; set; }
+
+        public class SwapOptions
+        {
+            [JsonPropertyName("description")]
+            public bool? Description { get; set; }
+        }
+    }
+}
+
+public class WebSocketSupport
+{
+    [JsonPropertyName("method")]
+    public string Method { get; set; }
+
+    [JsonPropertyName("unit")]
+    public string Unit { get; set; }
+
+    [JsonPropertyName("commands")]
+    public string[] Commands { get; set; }
+}
+
+public class BatchMintInfo
+{
+    public bool Supported { get; set; }
+    public bool AllSupported => Methods is null;
+
+    [JsonPropertyName("max_batch_size")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int? MaxBatchSize { get; set; }
+
+    [JsonPropertyName("methods")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public string[]? Methods { get; set; }
 }

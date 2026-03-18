@@ -345,7 +345,7 @@ public class Integration
                         gotPaid = true;
                         await sub.CloseAsync();
                     }
-                        
+
                     break;
 
                 case WsMessage.Error error:
@@ -510,7 +510,6 @@ public class Integration
         await Assert.ThrowsAsync<CashuProtocolException>(async () =>
             await wallet.Swap().FromInputs(proofs).ProcessAsync()
         );
-
 
         var swappedProofs = await wallet
             .Swap()

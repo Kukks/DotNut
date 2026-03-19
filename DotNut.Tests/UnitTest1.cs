@@ -1002,6 +1002,25 @@ public class UnitTest1
     }
 
     [Fact]
+    public void Nut13P2PkTests()
+    {
+        var mnemonic = new Mnemonic("half depart obvious quality work element tank gorilla view sugar picture humble");
+        string[] keys =
+        [
+            "03381fbf0996b81d49c35bae17a70d71db9a9e802b1af5c2516fc90381f4741e06",
+            "039bbb7a9cd234da13a113cdd8e037a25c66bbf3a77139d652786a1d7e9d73e600",
+            "02ffd52ed54761750d75b67342544cc8da8a0994f84c46d546e0ab574dd3651a29",
+            "02751ab780960ff177c2300e440fddc0850238a78782a1cab7b0ae03c41978d92d",
+            "0391a9ba1c3caf39ca0536d44419a6ceeda922ee61aa651a72a60171499c02b423"
+        ];
+        for(var i = 0UL; i < (ulong)keys.Length; i++)
+        {
+            var privkey = mnemonic.DeriveP2PkPrivkey(i);
+            Assert.Equal(new PubKey(keys[i]), (PubKey)privkey.Key.CreatePubKey());
+        }
+    }
+
+    [Fact]
     public void NullExpiryTests_PostMintQuoteBolt11Response()
     {
         // Test JSON with null expiry field

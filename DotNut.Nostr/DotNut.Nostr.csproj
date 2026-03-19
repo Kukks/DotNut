@@ -9,13 +9,17 @@
     <Description>Support Cashu payment requests through Nostr </Description>
     <Copyright>MIT</Copyright>
     <PackageProjectUrl>https://github.com/Kukks/DotNut</PackageProjectUrl>
-    <PackageVersion>1.0.0</PackageVersion>
+    <PackageVersion>1.0.1</PackageVersion>
     <RepositoryUrl>https://github.com/Kukks/DotNut</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>bitcoin cashu ecash secp256k1 nostr</PackageTags>
     <PackageLicenseUrl>https://github.com/Kukks/DotNut/blob/master/LICENSE</PackageLicenseUrl>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="DotNut.Tests" />
+  </ItemGroup>
+  
   <ItemGroup>
     <PackageReference Include="NNostr.Client" Version="0.0.53" />
     <ProjectReference Include="..\DotNut\DotNut.csproj" />

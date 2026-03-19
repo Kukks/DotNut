@@ -92,7 +92,7 @@ public class MintListBackupHandler
         return JsonSerializer.Deserialize<MintListBackup>(decrypted);
     }
 
-    private PrivKey DeriveBackupPrivkey()
+    internal PrivKey DeriveBackupPrivkey()
     {
         var seed = _mnemonic.DeriveSeed();
         byte[] combinedData = [.. seed, .. SEPARATOR];

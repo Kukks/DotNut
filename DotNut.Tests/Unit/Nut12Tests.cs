@@ -25,7 +25,7 @@ public class Nut12Tests
         );
 
         Assert.NotNull(blindSig?.DLEQ);
-        blindSig.Verify(A, B_);
+        Assert.True(blindSig.Verify(A, B_));
     }
 
     [Fact]

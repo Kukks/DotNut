@@ -127,7 +127,7 @@ public static class CashuTokenHelper
                 );
 
                 if (match is null)
-                    throw new Exception(
+                    throw new InvalidOperationException(
                         $"Couldn't map short keyset ID {proof.Id} to any known keysets of the current Mint"
                     );
 

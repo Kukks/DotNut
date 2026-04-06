@@ -95,7 +95,7 @@ public static class CashuTokenHelper
         return s.Length <= 16 ? id : new KeysetId(s.Substring(0, 16));
     }
 
-    private static List<Proof> MapShortKeysetIds(
+    public static List<Proof> MapShortKeysetIds(
         List<Proof> proofs,
         List<KeysetId>? keysetIds = null
     )
@@ -127,7 +127,7 @@ public static class CashuTokenHelper
                 );
 
                 if (match is null)
-                    throw new Exception(
+                    throw new InvalidOperationException(
                         $"Couldn't map short keyset ID {proof.Id} to any known keysets of the current Mint"
                     );
 

@@ -1,7 +1,8 @@
-using System.Security.Cryptography;
 using DotNut.Abstractions;
 using DotNut.NBitcoin.BIP39;
 using NBip32Fast;
+using NBitcoin.Secp256k1;
+using HMACSHA256 = System.Security.Cryptography.HMACSHA256;
 
 namespace DotNut.NUT13;
 
@@ -125,5 +126,19 @@ public static class Nut13
         var keysetIdInt = long.Parse("0" + keysetId, System.Globalization.NumberStyles.HexNumber);
         var mod = (long)Math.Pow(2, 31) - 1;
         return keysetIdInt % mod;
+    }
+
+    public static PrivKey DeriveP2PkPrivkey(this Mnemonic mnemonic, ulong counter)
+    {
+        var seed = mnemonic.DeriveSeed();
+        return seed.DeriveP2PkPrivkey(counter);
+    }
+    public static PrivKey DeriveP2PkPrivkey(this byte[] seed, ulong counter)
+    {
+         var path = (KeyPath) KeyPath.Parse($"m/129372'/10'/0'/0'/{counter}")!;
+         var pkBytes =  BIP32.Instance.DerivePath(path, seed)
+             .PrivateKey;
+        
+        return ECPrivKey.Create(pkBytes);
     }
 }

@@ -63,6 +63,8 @@ public interface ICashuApi : IDisposable
         PostBatchedMintQuoteStateRequest request,
         CancellationToken cancellationToken = default
     );
+    
+    Task<PostMintQuotesByPubkeyResponse> GetMintQuotesByPubkeys(PostMintQuoteBolt11Request request, CancellationToken cancellationToken = default);
 
     Task<PostBatchedMintResponse> BatchMint(
         string method,

@@ -287,7 +287,9 @@ public class PaymentRequestBech32Encoder
                     pr.Nut10 = DecodeNut10(value);
                     break;
                 case 0x09:
-                    pr.MintsStrict = value.Length == 1 && value[0] == 0x01;
+                    if (value.Length != 1 || (value[0] != 0x00 && value[0] != 0x01))
+                        throw new FormatException("Invalid mintsStrict flag");
+                    pr.MintsStrict = value[0] == 0x01;
                     break;
             }
         }

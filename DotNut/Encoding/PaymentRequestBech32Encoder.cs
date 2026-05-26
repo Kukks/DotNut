@@ -21,6 +21,7 @@ public class PaymentRequestBech32Encoder
         Description = 0x06,
         Transport = 0x07,
         Nut10 = 0x08,
+        MintsStrict = 0x09,
     }
 
     public static string Encode(PaymentRequest paymentRequest)
@@ -111,6 +112,11 @@ public class PaymentRequestBech32Encoder
             var subWriter = new ArrayBufferWriter<byte>(128);
             EncodeNut10(subWriter, nut10);
             WriteTlv(writer, TlvTag.Nut10, subWriter.WrittenSpan);
+        }
+
+        if (paymentRequest.MintsStrict is { } strict)
+        {
+            WriteTlv(writer, TlvTag.MintsStrict, strict ? [0x01] : [0x00]);
         }
     }
 
@@ -279,6 +285,9 @@ public class PaymentRequestBech32Encoder
                     break;
                 case 0x08:
                     pr.Nut10 = DecodeNut10(value);
+                    break;
+                case 0x09:
+                    pr.MintsStrict = value.Length == 1 && value[0] == 0x01;
                     break;
             }
         }

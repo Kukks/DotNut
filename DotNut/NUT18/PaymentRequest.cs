@@ -9,6 +9,7 @@ public class PaymentRequest
     public string? Unit { get; set; }
     public bool? OneTimeUse { get; set; }
     public string[]? Mints { get; set; }
+    public bool? MintsStrict { get; set; }
     public string? Memo { get; set; }
     public PaymentRequestTransport[] Transports { get; set; }
     public Nut10LockingCondition? Nut10 { get; set; }

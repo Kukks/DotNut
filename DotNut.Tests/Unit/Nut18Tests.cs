@@ -23,7 +23,7 @@ public class Nut18Tests
     [Fact]
     public void PreferredMintWithFeeReserveAndSupportedMethods_Bech32()
     {
-        // Test vector from NUT-26 PR #381
+        // Test vector from NUT-18 PR `#381`
         const string creqB =
             "CREQB1QYQP2URJV4NX2UNJV4J97EN9V40K6ET5DPHKGUCZQQYQQQQQQQQQQQRYQVQQZQQ9QQVXSAR5WPEN5TE0D45KUAPWV4UXZMTSD3JJUCM0D5YSQQGQPGQQSQQQQQQQQQQQQG9SQPNZDAK8GVF3PVQQVCN0D36RZVSUP24PH";
         var pr = PaymentRequest.Parse(creqB);

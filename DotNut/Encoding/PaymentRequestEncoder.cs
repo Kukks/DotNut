@@ -21,6 +21,10 @@ public class PaymentRequestEncoder : ICBORToFromConverter<PaymentRequest>
             cbor.Add("m", paymentRequest.Mints);
         if (paymentRequest.MintsStrict is not null)
             cbor.Add("ms", paymentRequest.MintsStrict);
+        if (paymentRequest.FeeReserve is not null)
+            cbor.Add("fr", paymentRequest.FeeReserve);
+        if (paymentRequest.SupportedMethods is not null)
+            cbor.Add("sm", paymentRequest.SupportedMethods);
         if (paymentRequest.Memo is not null)
             cbor.Add("d", paymentRequest.Memo);
         var transports = CBORObject.NewArray();
@@ -102,6 +106,12 @@ public class PaymentRequestEncoder : ICBORToFromConverter<PaymentRequest>
                     break;
                 case "ms":
                     paymentRequest.MintsStrict = value.AsBoolean();
+                    break;
+                case "fr":
+                    paymentRequest.FeeReserve = value.ToObject<ulong>();
+                    break;
+                case "sm":
+                    paymentRequest.SupportedMethods = value.Values.Select(v => v.AsString()).ToArray();
                     break;
                 case "d":
                     paymentRequest.Memo = value.AsString();

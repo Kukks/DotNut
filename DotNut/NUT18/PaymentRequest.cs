@@ -10,6 +10,8 @@ public class PaymentRequest
     public bool? OneTimeUse { get; set; }
     public string[]? Mints { get; set; }
     public bool? MintsStrict { get; set; }
+    public ulong? FeeReserve { get; set; }
+    public string[]? SupportedMethods { get; set; }
     public string? Memo { get; set; }
     public PaymentRequestTransport[] Transports { get; set; }
     public Nut10LockingCondition? Nut10 { get; set; }

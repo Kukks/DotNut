@@ -22,6 +22,8 @@ public class PaymentRequestBech32Encoder
         Transport = 0x07,
         Nut10 = 0x08,
         MintsStrict = 0x09,
+        FeeReserve = 0x0a,
+        SupportedMethods = 0x0b,
     }
 
     public static string Encode(PaymentRequest paymentRequest)
@@ -117,6 +119,21 @@ public class PaymentRequestBech32Encoder
         if (paymentRequest.MintsStrict is { } strict)
         {
             WriteTlv(writer, TlvTag.MintsStrict, strict ? [0x01] : [0x00]);
+        }
+
+        if (paymentRequest.FeeReserve is { } feeReserve)
+        {
+            Span<byte> feeBytes = stackalloc byte[8];
+            BinaryPrimitives.WriteUInt64BigEndian(feeBytes, feeReserve);
+            WriteTlv(writer, TlvTag.FeeReserve, feeBytes);
+        }
+
+        if (paymentRequest.SupportedMethods is { } supportedMethods)
+        {
+            foreach (var method in supportedMethods)
+            {
+                WriteTlvUtf8(writer, TlvTag.SupportedMethods, method);
+            }
         }
     }
 
@@ -248,6 +265,7 @@ public class PaymentRequestBech32Encoder
         var offset = 0;
         var mints = new List<string>();
         var transports = new List<PaymentRequestTransport>();
+        var supportedMethods = new List<string>();
 
         while (offset < data.Length)
         {
@@ -291,11 +309,20 @@ public class PaymentRequestBech32Encoder
                         throw new FormatException("Invalid mintsStrict flag");
                     pr.MintsStrict = value[0] == 0x01;
                     break;
+                case 0x0a:
+                    pr.FeeReserve = BinaryPrimitives.ReadUInt64BigEndian(value);
+                    break;
+                case 0x0b:
+                    supportedMethods.Add(Encoding.UTF8.GetString(value));
+                    break;
             }
         }
 
         if (mints.Count > 0)
             pr.Mints = mints.ToArray();
+
+        if (supportedMethods.Count > 0)
+            pr.SupportedMethods = supportedMethods.ToArray();
 
         pr.Transports = transports.ToArray();
 

@@ -1,39 +1,46 @@
-using Xunit;
-
 namespace DotNut.Tests.Unit;
 
 public class Nut18Tests
 {
     [Fact]
-    public void PreferredMintWithFeeReserveAndSupportedMethods_Cbor()
+    public void PreferredMintWithSupportedMethods_Cbor()
     {
-        // Test vector from NUT-18 PR #381
+        // Test vector from NUT-18 "Preferred Mint List with Supported Methods"
         const string creqA =
-            "creqAp2FpdXByZWZlcnJlZF9mZWVfbWV0aG9kc2FhGGRhdWNzYXRhbYF4GGh0dHBzOi8vbWludC5leGFtcGxlLmNvbWJtc_RiZnICYnNtgmZib2x0MTFmYm9sdDEy";
+            "creqApmFpdXByZWZlcnJlZF9mZWVfbWV0aG9kc2FhGGRhdWNzYXRhbYF4GGh0dHBzOi8vbWludC5leGFtcGxlLmNvbWJtcPVic22CoWJtbmZib2x0MTGiYm1uZmJvbHQxMmJtZgU=";
         var pr = PaymentRequest.Parse(creqA);
-        Assert.Equal("preferred_fee_methods", pr.PaymentId);
-        Assert.Equal((ulong)100, pr.Amount);
-        Assert.Equal("sat", pr.Unit);
-        Assert.Equal("https://mint.example.com", Assert.Single(pr.Mints));
-        Assert.False(pr.MintsStrict);
-        Assert.Equal((ulong)2, pr.FeeReserve);
-        Assert.Equal(new[] { "bolt11", "bolt12" }, pr.SupportedMethods);
+        AssertPreferredMintRequest(pr);
+
+        // The CBOR encoder emits canonically ordered keys, so re-encoding is only
+        // asserted to be semantically equivalent, not byte-identical to the vector.
+        AssertPreferredMintRequest(PaymentRequest.Parse(pr.ToString()));
     }
 
     [Fact]
-    public void PreferredMintWithFeeReserveAndSupportedMethods_Bech32()
+    public void PreferredMintWithSupportedMethods_Bech32()
     {
-        // Test vector from NUT-18 PR `#381`
+        // Test vector from NUT-26 "Preferred Mint List with Supported Methods"
         const string creqB =
-            "CREQB1QYQP2URJV4NX2UNJV4J97EN9V40K6ET5DPHKGUCZQQYQQQQQQQQQQQRYQVQQZQQ9QQVXSAR5WPEN5TE0D45KUAPWV4UXZMTSD3JJUCM0D5YSQQGQPGQQSQQQQQQQQQQQQG9SQPNZDAK8GVF3PVQQVCN0D36RZVSUP24PH";
+            "CREQB1QYQP2URJV4NX2UNJV4J97EN9V40K6ET5DPHKGUCZQQYQQQQQQQQQQQRYQVQQZQQ9QQVXSAR5WPEN5TE0D45KUAPWV4UXZMTSD3JJUCM0D5YSQQGPPGQQJQGQQE3X7MR5XYCS5QQ5QYQQVCN0D36RZVSZQQYQQQQQQQQQQQQ9FJ2568";
         var pr = PaymentRequest.Parse(creqB);
+        AssertPreferredMintRequest(pr);
+
+        Assert.Equal(creqB, pr.ToBech32String());
+    }
+
+    private static void AssertPreferredMintRequest(PaymentRequest pr)
+    {
         Assert.Equal("preferred_fee_methods", pr.PaymentId);
         Assert.Equal((ulong)100, pr.Amount);
         Assert.Equal("sat", pr.Unit);
         Assert.Equal("https://mint.example.com", Assert.Single(pr.Mints));
-        Assert.False(pr.MintsStrict);
-        Assert.Equal((ulong)2, pr.FeeReserve);
-        Assert.Equal(new[] { "bolt11", "bolt12" }, pr.SupportedMethods);
+        Assert.True(pr.MintPreferred);
+
+        Assert.Equal(2, pr.SupportedMethods?.Length);
+        Assert.Equal("bolt11", pr.SupportedMethods[0].Method);
+        Assert.Null(pr.SupportedMethods[0].Fee);
+        Assert.Equal("bolt12", pr.SupportedMethods[1].Method);
+        Assert.Equal((ulong)5, pr.SupportedMethods[1].Fee);
     }
 
 

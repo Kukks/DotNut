@@ -9,9 +9,13 @@ public class PaymentRequest
     public string? Unit { get; set; }
     public bool? OneTimeUse { get; set; }
     public string[]? Mints { get; set; }
-    public bool? MintsStrict { get; set; }
-    public ulong? FeeReserve { get; set; }
-    public string[]? SupportedMethods { get; set; }
+
+    /// <summary>
+    /// Whether <see cref="Mints"/> is advisory (<c>true</c>) or strict (<c>false</c> or <c>null</c>).
+    /// Ignored when no mint list is set.
+    /// </summary>
+    public bool? MintPreferred { get; set; }
+    public SupportedMethod[]? SupportedMethods { get; set; }
     public string? Memo { get; set; }
     public PaymentRequestTransport[] Transports { get; set; }
     public Nut10LockingCondition? Nut10 { get; set; }

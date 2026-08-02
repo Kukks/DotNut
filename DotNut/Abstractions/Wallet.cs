@@ -19,6 +19,7 @@ public class Wallet : IWalletBuilder
         _keysets.ToDictionary(k => k.Id, k => k.InputFee ?? 0);
     private Mnemonic? _mnemonic;
     private ICounter? _counter;
+    private IDerivationCounter? _derivationCounter;
 
     private IWebsocketService? _wsService;
 
@@ -118,12 +119,17 @@ public class Wallet : IWalletBuilder
     public IWalletBuilder WithCounter(ICounter counter)
     {
         this._counter = counter;
+        // Derivation counters are opt-in: an ICounter that does not implement
+        // IDerivationCounter simply has no keyset-independent counters.
+        this._derivationCounter = counter as IDerivationCounter;
         return this;
     }
 
     public IWalletBuilder WithCounter(IDictionary<KeysetId, uint> counter)
     {
-        this._counter = new InMemoryCounter(counter);
+        var inMemory = new InMemoryCounter(counter);
+        this._counter = inMemory;
+        this._derivationCounter = inMemory;
         return this;
     }
 
@@ -399,6 +405,8 @@ public class Wallet : IWalletBuilder
     public Mnemonic? GetMnemonic() => _mnemonic;
 
     public ICounter? GetCounter() => _counter;
+
+    public IDerivationCounter? GetDerivationCounter() => _derivationCounter;
 
     /*
      * Private helpers

@@ -7,7 +7,8 @@ public class MintHandlerBolt12(
     IWalletBuilder wallet,
     PostMintQuoteBolt12Response quote,
     GetKeysResponse.KeysetItemResponse keyset,
-    List<OutputData> outputs
+    List<OutputData> outputs,
+    PrivKey? derivedQuoteKey = null
 ) : IMintHandler<PostMintQuoteBolt12Response, List<Proof>>
 {
     private string? _signature;
@@ -38,6 +39,12 @@ public class MintHandlerBolt12(
 
     public async Task<List<Proof>> Mint(CancellationToken ct = default)
     {
+        // The quote was locked to a key we derived ourselves, so sign without being asked.
+        if (this._signature is null && derivedQuoteKey is not null)
+        {
+            SignWithPrivkey(derivedQuoteKey);
+        }
+
         if (this._signature is null)
         {
             throw new ArgumentNullException(

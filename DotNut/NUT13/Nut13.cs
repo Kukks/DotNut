@@ -1,12 +1,15 @@
-using System.Security.Cryptography;
 using DotNut.Abstractions;
 using DotNut.NBitcoin.BIP39;
 using NBip32Fast;
+using NBitcoin.Secp256k1;
+using HMACSHA256 = System.Security.Cryptography.HMACSHA256;
 
 namespace DotNut.NUT13;
 
 public static class Nut13
 {
+    private const uint HardenedOffset = 0x80000000;
+
     public static byte[] DeriveBlindingFactor(
         this Mnemonic mnemonic,
         KeysetId keysetId,
@@ -125,5 +128,28 @@ public static class Nut13
         var keysetIdInt = long.Parse("0" + keysetId, System.Globalization.NumberStyles.HexNumber);
         var mod = (long)Math.Pow(2, 31) - 1;
         return keysetIdInt % mod;
+    }
+
+    /// <summary>
+    /// Derives a private key to lock proofs to, using the NUT-13 P2PK path
+    /// <c>m/129373'/10'/0'/0'/{counter}</c>.
+    /// </summary>
+    public static PrivKey DeriveP2PkPrivkey(this Mnemonic mnemonic, uint counter)
+    {
+        var seed = mnemonic.DeriveSeed();
+        return seed.DeriveP2PkPrivkey(counter);
+    }
+
+    /// <inheritdoc cref="DeriveP2PkPrivkey(Mnemonic, uint)"/>
+    public static PrivKey DeriveP2PkPrivkey(this byte[] seed, uint counter)
+    {
+        // The counter is a non-hardened child index, so it must stay below 2^31.
+        // KeyPath would otherwise silently parse it as a hardened index.
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(counter, HardenedOffset - 1, nameof(counter));
+
+        var path = (KeyPath)KeyPath.Parse($"m/129373'/10'/0'/0'/{counter}")!;
+        var pkBytes = BIP32.Instance.DerivePath(path, seed).PrivateKey;
+
+        return ECPrivKey.Create(pkBytes);
     }
 }

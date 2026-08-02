@@ -268,6 +268,13 @@ public interface IWalletBuilder : IDisposable
     ICounter? GetCounter();
 
     /// <summary>
+    /// Returns the current Counter instance as an <see cref="IDerivationCounter"/>, or null when
+    /// it does not support keyset-independent derivation counters.
+    /// </summary>
+    /// <returns></returns>
+    IDerivationCounter? GetDerivationCounter();
+
+    /// <summary>
     /// Create swap transaction builder.
     /// </summary>
     /// <returns>Swap transaction builder</returns>

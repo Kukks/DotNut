@@ -38,7 +38,7 @@
     &lt;TestId&gt;xUnit::0AAAA85C-9FDC-4FD5-9CC2-ED8385B40106::net8.0::DotNut.Tests.UnitTests2&lt;/TestId&gt;
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=b3f65980_002Db8f1_002D4055_002D932c_002Dd03b5a73a7a3/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Integration" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=b3f65980_002Db8f1_002D4055_002D932c_002Dd03b5a73a7a3/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="Integration" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;TestAncestor&gt;
     &lt;TestId&gt;xUnit::0AAAA85C-9FDC-4FD5-9CC2-ED8385B40106::net8.0::DotNut.Tests.Integration&lt;/TestId&gt;
     &lt;TestId&gt;xUnit::0AAAA85C-9FDC-4FD5-9CC2-ED8385B40106::net8.0::DotNut.Tests.UnitTests2&lt;/TestId&gt;
@@ -46,7 +46,7 @@
     &lt;TestId&gt;xUnit::0AAAA85C-9FDC-4FD5-9CC2-ED8385B40106::net8.0::DotNut.Tests.Nut29Tests&lt;/TestId&gt;
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=e248e720_002Dbd67_002D4ee8_002Db76a_002D987813522b83/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="Nut11_SIG_ALL" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=e248e720_002Dbd67_002D4ee8_002Db76a_002D987813522b83/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Nut11_SIG_ALL" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;TestAncestor&gt;
     &lt;TestId&gt;xUnit::0AAAA85C-9FDC-4FD5-9CC2-ED8385B40106::net8.0::DotNut.Tests.UnitTest1.Nut11_SIG_ALL&lt;/TestId&gt;
   &lt;/TestAncestor&gt;

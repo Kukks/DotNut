@@ -3,6 +3,8 @@ using DotNut.Abstractions;
 using DotNut.Abstractions.Websockets;
 using DotNut.Api;
 using DotNut.ApiModels;
+using DotNut.NBitcoin.BIP39;
+using DotNut.NUT13;
 
 namespace DotNut.Tests;
 
@@ -428,6 +430,73 @@ public class Integration
             .Swap()
             .FromInputs(proofs)
             .WithPrivkeys([privKeyBob])
+            .ProcessAsync();
+
+        Assert.NotEmpty(swappedProofs);
+    }
+
+    [Fact]
+    public async Task MintsBolt12WithDeterministicQuoteKey()
+    {
+        var wallet = Wallet.Create().WithMint(MintUrl).WithMnemonic(seed).WithCounter(counter);
+
+        var derivationCounter = wallet.GetDerivationCounter()!;
+        var before = await derivationCounter.GetCounter(DerivationPurpose.MintQuoteLock);
+
+        // No pubkey and no SignWithPrivkey — both come from the seed.
+        var mintQuote = await wallet
+            .CreateMintQuote()
+            .WithDeterministicPubkey()
+            .WithUnit("sat")
+            .WithAmount(1337)
+            .ProcessAsyncBolt12();
+
+        Assert.Equal(
+            new Mnemonic(seed).DeriveMintQuotePrivkey(before).Key.CreatePubKey().ToHex(),
+            mintQuote.GetQuote().Pubkey
+        );
+        Assert.Equal(
+            before + 1,
+            await derivationCounter.GetCounter(DerivationPurpose.MintQuoteLock)
+        );
+
+        await PayInvoice();
+        var proofs = await mintQuote.Mint();
+
+        Assert.Equal(1337UL, Utils.SumProofs(proofs));
+    }
+
+    [Fact]
+    public async Task SwapDeterministicP2Pk()
+    {
+        // Shares the counter with the other deterministic tests, otherwise restarting it from
+        // zero would re-derive secrets they already minted with this seed.
+        var wallet = Wallet.Create().WithMint(MintUrl).WithMnemonic(seed).WithCounter(counter);
+
+        var derivationCounter = wallet.GetDerivationCounter()!;
+        var before = await derivationCounter.GetCounter(DerivationPurpose.P2Pk);
+
+        var mintHandler = await wallet
+            .CreateMintQuote()
+            .WithAmount(1337)
+            .WithDeterministicP2PkLock()
+            .ProcessAsyncBolt11();
+
+        await PayInvoice();
+        var proofs = await mintHandler.Mint();
+
+        // The lock key is the one at the counter we started from, and it moved past it.
+        var derived = new Mnemonic(seed).DeriveP2PkPrivkey(before);
+        Assert.Equal(before + 1, await derivationCounter.GetCounter(DerivationPurpose.P2Pk));
+
+        await Assert.ThrowsAsync<CashuProtocolException>(async () =>
+            await wallet.Swap().FromInputs(proofs).ProcessAsync()
+        );
+
+        var swappedProofs = await wallet
+            .Swap()
+            .FromInputs(proofs)
+            .WithPrivkeys([derived])
             .ProcessAsync();
 
         Assert.NotEmpty(swappedProofs);

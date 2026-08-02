@@ -3,6 +3,8 @@ using DotNut.Abstractions.Handlers;
 using DotNut.Api;
 using DotNut.ApiModels;
 using DotNut.ApiModels.Mint.bolt12;
+using DotNut.NBitcoin.BIP39;
+using DotNut.NUT13;
 
 namespace DotNut.Abstractions;
 
@@ -18,12 +20,17 @@ class MintQuoteBuilder : IMintQuoteBuilder
 
     private string? _pubkey;
 
+    //for nut20
+    private bool _deterministicQuoteKey = false;
+    private PrivKey? _quoteKey;
+
     private KeysetId? _keysetId;
     private GetKeysResponse.KeysetItemResponse? _keyset;
 
     //for p2pk
     private P2PkBuilder? _builder;
     private bool _shouldBlind = false;
+    private bool _deterministicP2Pk = false;
 
     public MintQuoteBuilder(Wallet wallet)
     {
@@ -54,6 +61,12 @@ class MintQuoteBuilder : IMintQuoteBuilder
         return this;
     }
 
+    public IMintQuoteBuilder WithDeterministicPubkey()
+    {
+        this._deterministicQuoteKey = true;
+        return this;
+    }
+
     public IMintQuoteBuilder WithKeyset(KeysetId keysetId)
     {
         this._keysetId = keysetId;
@@ -79,6 +92,13 @@ class MintQuoteBuilder : IMintQuoteBuilder
     public IMintQuoteBuilder WithP2PkLock(P2PkBuilder p2pkBuilder)
     {
         this._builder = p2pkBuilder;
+        return this;
+    }
+
+    public IMintQuoteBuilder WithDeterministicP2PkLock(P2PkBuilder? p2pkBuilder = null)
+    {
+        this._builder = p2pkBuilder ?? new P2PkBuilder();
+        this._deterministicP2Pk = true;
         return this;
     }
 
@@ -115,6 +135,11 @@ class MintQuoteBuilder : IMintQuoteBuilder
             );
         }
 
+        if (this._deterministicQuoteKey)
+        {
+            await _applyDeterministicQuoteKey(ct);
+        }
+
         var api = await this._wallet.GetMintApi(ct);
         if (api is null)
         {
@@ -132,7 +157,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
             await this._wallet.GetKeys(this._keysetId, true, false, ct)
             ?? throw new ArgumentException($"Cant get keys for keysetId: {_keysetId}");
 
-        var outputs = await this._createOutputs();
+        var outputs = await this._createOutputs(ct);
 
         var reqBolt11 = new PostMintQuoteBolt11Request()
         {
@@ -145,7 +170,13 @@ class MintQuoteBuilder : IMintQuoteBuilder
             PostMintQuoteBolt11Response,
             PostMintQuoteBolt11Request
         >("bolt11", reqBolt11, ct);
-        return new MintHandlerBolt11(this._wallet, quoteBolt11, this._keyset, outputs);
+        return new MintHandlerBolt11(
+            this._wallet,
+            quoteBolt11,
+            this._keyset,
+            outputs,
+            this._quoteKey
+        );
     }
 
     public async Task<IMintHandler<PostMintQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(
@@ -161,6 +192,11 @@ class MintQuoteBuilder : IMintQuoteBuilder
                 nameof(ICashuApi),
                 "Can't request mint quote without mint API"
             );
+        }
+
+        if (this._deterministicQuoteKey)
+        {
+            await _applyDeterministicQuoteKey(ct);
         }
 
         if (this._pubkey == null)
@@ -189,7 +225,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
                 ?? throw new ArgumentException($"Cant fetch keys for keysetId: {_keysetId}");
         }
 
-        var outputs = await this._createOutputs();
+        var outputs = await this._createOutputs(ct);
 
         var req = new PostMintQuoteBolt12Request()
         {
@@ -202,11 +238,69 @@ class MintQuoteBuilder : IMintQuoteBuilder
             PostMintQuoteBolt12Response,
             PostMintQuoteBolt12Request
         >("bolt12", req, ct);
-        return new MintHandlerBolt12(this._wallet, mintQuote, this._keyset, outputs);
+        return new MintHandlerBolt12(
+            this._wallet,
+            mintQuote,
+            this._keyset,
+            outputs,
+            this._quoteKey
+        );
+    }
+
+    /// <summary>
+    /// Derives the P2PK key from the wallet seed and makes it the primary key on the builder.
+    /// Consumes one counter value, so this must happen exactly once per quote.
+    /// </summary>
+    async Task _applyDeterministicP2PkKey(CancellationToken ct)
+    {
+        var mnemonic =
+            this._wallet.GetMnemonic()
+            ?? throw new ArgumentNullException(
+                nameof(Mnemonic),
+                "Can't derive a P2PK lock without a mnemonic"
+            );
+
+        var counter =
+            this._wallet.GetDerivationCounter()
+            ?? throw new ArgumentNullException(
+                nameof(IDerivationCounter),
+                "Can't derive a P2PK lock without a counter implementing IDerivationCounter"
+            );
+
+        var (current, _) = await counter.FetchAndIncrement(DerivationPurpose.P2Pk, 1, ct);
+        var derived = mnemonic.DeriveP2PkPrivkey(current).Key.CreatePubKey();
+
+        this._builder!.Pubkeys = [derived, .. this._builder.Pubkeys ?? []];
+    }
+
+    /// <summary>
+    /// Derives the NUT-20 quote locking key from the wallet seed and locks the quote to it.
+    /// Consumes one counter value, so this must happen exactly once per quote.
+    /// </summary>
+    async Task _applyDeterministicQuoteKey(CancellationToken ct)
+    {
+        var mnemonic =
+            this._wallet.GetMnemonic()
+            ?? throw new ArgumentNullException(
+                nameof(Mnemonic),
+                "Can't derive a quote lock without a mnemonic"
+            );
+
+        var counter =
+            this._wallet.GetDerivationCounter()
+            ?? throw new ArgumentNullException(
+                nameof(IDerivationCounter),
+                "Can't derive a quote lock without a counter implementing IDerivationCounter"
+            );
+
+        var (current, _) = await counter.FetchAndIncrement(DerivationPurpose.MintQuoteLock, 1, ct);
+
+        this._quoteKey = mnemonic.DeriveMintQuotePrivkey(current);
+        this._pubkey = ((PubKey)this._quoteKey.Key.CreatePubKey()).ToString();
     }
 
     // skipped checks for keysetid and keys, since its validated before. make sure to remember about it.
-    async Task<List<OutputData>> _createOutputs()
+    async Task<List<OutputData>> _createOutputs(CancellationToken ct = default)
     {
         var outputs = new List<OutputData>();
 
@@ -233,6 +327,11 @@ class MintQuoteBuilder : IMintQuoteBuilder
         if (this._builder is null)
         {
             return await _wallet.CreateOutputs(_amounts, this._keysetId!);
+        }
+
+        if (this._deterministicP2Pk)
+        {
+            await _applyDeterministicP2PkKey(ct);
         }
 
         if (this._shouldBlind)

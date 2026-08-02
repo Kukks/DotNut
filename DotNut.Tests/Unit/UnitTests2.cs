@@ -103,6 +103,63 @@ public class UnitTests2
     }
 
     [Fact]
+    public async Task InMemoryCounter_DerivationPurpose()
+    {
+        var ctr = new InMemoryCounter();
+
+        Assert.Equal((uint)0, await ctr.GetCounter(DerivationPurpose.P2Pk));
+
+        var (old, @new) = await ctr.FetchAndIncrement(DerivationPurpose.P2Pk, 3);
+        Assert.Equal((uint)0, old);
+        Assert.Equal((uint)3, @new);
+        Assert.Equal((uint)3, await ctr.GetCounter(DerivationPurpose.P2Pk));
+
+        await ctr.SetCounter(DerivationPurpose.P2Pk, 1337);
+        Assert.Equal((uint)1337, await ctr.GetCounter(DerivationPurpose.P2Pk));
+
+        // Each purpose is its own counter, and neither touches the keyset counters.
+        Assert.Equal((uint)0, await ctr.GetCounter(DerivationPurpose.MintQuoteLock));
+        Assert.Empty(await ctr.Export());
+    }
+
+    [Fact]
+    public void Wallet_ExposesDerivationCounterOnlyWhenSupported()
+    {
+        var supported = Wallet.Create().WithCounter(new InMemoryCounter());
+        Assert.NotNull(supported.GetDerivationCounter());
+
+        // An ICounter that predates IDerivationCounter still works, it just has no
+        // keyset-independent counters.
+        var unsupported = Wallet.Create().WithCounter(new KeysetOnlyCounter());
+        Assert.NotNull(unsupported.GetCounter());
+        Assert.Null(unsupported.GetDerivationCounter());
+    }
+
+    private class KeysetOnlyCounter : ICounter
+    {
+        public Task<uint> GetCounterForId(KeysetId keysetId, CancellationToken ct = default) =>
+            Task.FromResult(0u);
+
+        public Task<uint> IncrementCounter(
+            KeysetId keysetId,
+            uint bumpBy = 1,
+            CancellationToken ct = default
+        ) => Task.FromResult(bumpBy);
+
+        public Task<(uint oldValue, uint newValue)> FetchAndIncrement(
+            KeysetId keysetId,
+            uint bumpBy = 1,
+            CancellationToken ct = default
+        ) => Task.FromResult((0u, bumpBy));
+
+        public Task SetCounter(KeysetId keysetId, uint counter, CancellationToken ct = default) =>
+            Task.CompletedTask;
+
+        public Task<IReadOnlyDictionary<KeysetId, uint>> Export() =>
+            Task.FromResult<IReadOnlyDictionary<KeysetId, uint>>(new Dictionary<KeysetId, uint>());
+    }
+
+    [Fact]
     public void SplitAmountsForPayment_ExactAmount_ReturnsCorrectSplit()
     {
         var amounts = Utils.SplitToProofsAmounts(30, _testKeyset);

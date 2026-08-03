@@ -2,6 +2,7 @@ using DotNut.Abstractions.Handlers;
 using DotNut.ApiModels;
 using DotNut.ApiModels.Melt;
 using DotNut.ApiModels.Melt.bolt12;
+using DotNut.ApiModels.Melt.Onchain;
 
 namespace DotNut.Abstractions;
 
@@ -9,10 +10,12 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
 {
     private readonly Wallet _wallet;
     private string? _invoice;
+    private string? _address;
     private List<OutputData>? _blankOutputs;
     private string _unit = "sat";
 
     private ulong? _amount;
+    private ulong? _feeIndex;
 
     private List<PrivKey>? _privKeys;
     private string? _htlcPreimage;
@@ -25,6 +28,18 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
     public IMeltQuoteBuilder WithInvoice(string invoice)
     {
         this._invoice = invoice;
+        return this;
+    }
+
+    public IMeltQuoteBuilder WithAddress(string address)
+    {
+        this._address = address;
+        return this;
+    }
+
+    public IMeltQuoteBuilder WithFeeIndex(ulong feeIndex)
+    {
+        this._feeIndex = feeIndex;
         return this;
     }
 
@@ -121,5 +136,38 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
             this._blankOutputs = await this._wallet.CreateOutputs(amounts, this._unit, ct);
         }
         return new MeltHandlerBolt12(_wallet, quote, _blankOutputs, _privKeys, _htlcPreimage);
+    }
+
+    public async Task<IMeltHandler<PostMeltQuoteOnchainResponse, List<Proof>>> ProcessAsyncOnchain(
+        CancellationToken ct = default
+    )
+    {
+        var mintApi = await _wallet.GetMintApi(ct);
+        await _wallet._maybeSyncKeys(ct);
+        ArgumentNullException.ThrowIfNull(_address);
+        ArgumentNullException.ThrowIfNull(_amount, nameof(_amount));
+
+        var req = new PostMeltQuoteOnchainRequest
+        {
+            Request = _address,
+            Unit = _unit,
+            Amount = _amount.Value,
+        };
+
+        var quote = await mintApi.CreateMeltQuote<PostMeltQuoteOnchainResponse, PostMeltQuoteOnchainRequest>(
+            "onchain", req, ct);
+
+        var feeOption = _feeIndex.HasValue
+            ? quote.FeeOptions.First(f => f.FeeIndex == _feeIndex.Value)
+            : quote.FeeOptions.First();
+
+        if (_blankOutputs == null)
+        {
+            var outputsAmount = Utils.CalculateNumberOfBlankOutputs(feeOption.FeeReserve);
+            var amounts = Enumerable.Repeat(1UL, outputsAmount).ToList();
+            _blankOutputs = await _wallet.CreateOutputs(amounts, _unit, ct);
+        }
+
+        return new MeltHandlerOnchain(_wallet, quote, _blankOutputs, feeOption.FeeIndex, _privKeys, _htlcPreimage);
     }
 }

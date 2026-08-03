@@ -3,6 +3,7 @@ using DotNut.Abstractions.Handlers;
 using DotNut.Api;
 using DotNut.ApiModels;
 using DotNut.ApiModels.Mint.bolt12;
+using DotNut.ApiModels.Onchain;
 
 namespace DotNut.Abstractions;
 
@@ -148,7 +149,7 @@ class MintQuoteBuilder : IMintQuoteBuilder
         return new MintHandlerBolt11(this._wallet, quoteBolt11, this._keyset, outputs);
     }
 
-    public async Task<IMintHandler<PostMintQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(
+    public async Task<MintHandlerBolt12> ProcessAsyncBolt12(
         CancellationToken ct = default
     )
     {
@@ -170,14 +171,6 @@ class MintQuoteBuilder : IMintQuoteBuilder
                 "Can't request bolt12 mint quote without pubkey!"
             );
         }
-        if (this._amount == null)
-        {
-            throw new ArgumentNullException(
-                nameof(_amount),
-                "Can't create bolt12 mint quote without amount!"
-            );
-        }
-
         this._keysetId ??=
             await this._wallet.GetActiveKeysetId(this._unit, ct)
             ?? throw new ArgumentException($"Can't get active keyset ID for unit: {_unit}");
@@ -189,11 +182,13 @@ class MintQuoteBuilder : IMintQuoteBuilder
                 ?? throw new ArgumentException($"Cant fetch keys for keysetId: {_keysetId}");
         }
 
-        var outputs = await this._createOutputs();
+        var outputs = (_outputs != null || _amount != null || _amounts != null)
+            ? await this._createOutputs()
+            : [];
 
         var req = new PostMintQuoteBolt12Request()
         {
-            Amount = this._amount.Value,
+            Amount = this._amount,
             Unit = this._unit,
             Pubkey = this._pubkey,
             Description = this._description,
@@ -203,6 +198,41 @@ class MintQuoteBuilder : IMintQuoteBuilder
             PostMintQuoteBolt12Request
         >("bolt12", req, ct);
         return new MintHandlerBolt12(this._wallet, mintQuote, this._keyset, outputs);
+    }
+
+    public async Task<MintHandlerOnchain> ProcessAsyncOnchain(
+        CancellationToken ct = default
+    )
+    {
+        await _wallet._maybeSyncKeys(ct);
+
+        if (_pubkey == null)
+            throw new ArgumentNullException(nameof(_pubkey), "Pubkey is required for onchain mint quote (NUT-20)");
+
+        var api = await _wallet.GetMintApi(ct);
+
+        _keysetId ??= await _wallet.GetActiveKeysetId(_unit, ct)
+            ?? throw new ArgumentException($"Can't get active keyset ID for unit: {_unit}");
+
+        _keyset ??= await _wallet.GetKeys(_keysetId, true, false, ct)
+            ?? throw new ArgumentException($"Can't get keys for keysetId: {_keysetId}");
+
+        // Outputs are intentionally deferred for onchain: amount_paid grows as UTXOs confirm,
+        // so the wallet sets outputs via WithOutputs before each Mint() call.
+        var outputs = (_outputs != null || _amount != null || _amounts != null)
+            ? await _createOutputs()
+            : [];
+
+        var req = new PostMintQuoteOnchainRequest
+        {
+            Unit = _unit,
+            PublicKey = _pubkey,
+        };
+
+        var quote = await api.CreateMintQuote<PostMintQuoteOnchainResponse, PostMintQuoteOnchainRequest>(
+            "onchain", req, ct);
+
+        return new MintHandlerOnchain(_wallet, quote, _keyset, outputs);
     }
 
     // skipped checks for keysetid and keys, since its validated before. make sure to remember about it.

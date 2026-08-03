@@ -1,5 +1,5 @@
+using DotNut.Abstractions.Handlers;
 using DotNut.ApiModels;
-using DotNut.ApiModels.Mint.bolt12;
 
 namespace DotNut.Abstractions;
 
@@ -65,9 +65,13 @@ public interface IMintQuoteBuilder
     );
 
     /// <summary>
-    /// Creates a bolt12 mint quote and handler.
+    /// Creates a bolt12 mint quote and handler. Supports multiple issuances via WithOutputs.
     /// </summary>
-    Task<IMintHandler<PostMintQuoteBolt12Response, List<Proof>>> ProcessAsyncBolt12(
-        CancellationToken ct = default
-    );
+    Task<MintHandlerBolt12> ProcessAsyncBolt12(CancellationToken ct = default);
+
+    /// <summary>
+    /// Creates an onchain mint quote and handler. Requires WithPubkey (NUT-20).
+    /// Provide WithOutputs or WithAmount to specify what to mint.
+    /// </summary>
+    Task<MintHandlerOnchain> ProcessAsyncOnchain(CancellationToken ct = default);
 }

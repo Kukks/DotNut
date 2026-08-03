@@ -220,6 +220,29 @@ public class MintInfo
         return CheckNut29();
     }
 
+    /// <summary>
+    /// Checks support for NUT 30 (onchain payment method)
+    /// </summary>
+    public Nut30Support IsSupportedNut30()
+    {
+        if (_mintInfo.Nuts?.TryGetValue(30, out var nutJson) == true)
+        {
+            try
+            {
+                var nut30 = JsonSerializer.Deserialize<Nut30Support>(nutJson.RootElement.GetRawText());
+                if (nut30 != null)
+                {
+                    nut30.Supported = true;
+                    return nut30;
+                }
+            }
+            catch (JsonException)
+            {
+            }
+        }
+        return new Nut30Support { Supported = false };
+    }
+
     private BatchMintInfo CheckNut29()
     {
         if (_mintInfo.Nuts?.TryGetValue(29, out var nutJson) == true)
@@ -391,4 +414,54 @@ public class BatchMintInfo
     [JsonPropertyName("methods")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public string[]? Methods { get; set; }
+}
+
+public class Nut30Support
+{
+    public bool Supported { get; set; }
+
+    [JsonPropertyName("methods")]
+    public Nut30MintMethod[]? MintMethods { get; set; }
+
+    [JsonPropertyName("melt_methods")]
+    public Nut30MeltMethod[]? MeltMethods { get; set; }
+
+    public class Nut30MintMethod
+    {
+        [JsonPropertyName("method")]
+        public string Method { get; set; }
+
+        [JsonPropertyName("unit")]
+        public string Unit { get; set; }
+
+        [JsonPropertyName("min_amount")]
+        public ulong? MinAmount { get; set; }
+
+        [JsonPropertyName("max_amount")]
+        public ulong? MaxAmount { get; set; }
+
+        [JsonPropertyName("options")]
+        public Nut30MintOptions? Options { get; set; }
+
+        public class Nut30MintOptions
+        {
+            [JsonPropertyName("confirmations")]
+            public uint? Confirmations { get; set; }
+        }
+    }
+
+    public class Nut30MeltMethod
+    {
+        [JsonPropertyName("method")]
+        public string Method { get; set; }
+
+        [JsonPropertyName("unit")]
+        public string Unit { get; set; }
+
+        [JsonPropertyName("min_amount")]
+        public ulong? MinAmount { get; set; }
+
+        [JsonPropertyName("max_amount")]
+        public ulong? MaxAmount { get; set; }
+    }
 }

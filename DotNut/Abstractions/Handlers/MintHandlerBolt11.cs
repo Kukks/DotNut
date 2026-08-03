@@ -30,7 +30,7 @@ public class MintHandlerBolt11(
         );
         return this;
     }
-
+    
     public PostMintQuoteBolt11Response GetQuote() => postMintQuoteBolt11Response;
 
     public List<OutputData> GetOutputs() => outputs;

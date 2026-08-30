@@ -29,4 +29,17 @@ public class PostMintQuoteBolt12Response
 
     [JsonPropertyName("amount_issued")]
     public ulong AmountIssued { get; set; }
+
+    /// <summary>Unix timestamp of the last change to the amounts. Increases monotonically.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("updated_at")]
+    public long? UpdatedAt { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonPropertyName("method")]
+    public string? Method { get; set; }
+
+    /// <summary>What can still be minted: <c>amount_paid - amount_issued</c>.</summary>
+    [JsonIgnore]
+    public ulong Mintable => AmountPaid > AmountIssued ? AmountPaid - AmountIssued : 0;
 }

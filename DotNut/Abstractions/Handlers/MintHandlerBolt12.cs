@@ -10,6 +10,7 @@ public class MintHandlerBolt12(
     List<OutputData> outputs
 ) : IMintHandler<PostMintQuoteBolt12Response, List<Proof>>
 {
+    private PostMintQuoteBolt12Response _quote = quote;
     private string? _signature;
 
     public IMintHandler<PostMintQuoteBolt12Response, List<Proof>> WithSignature(string signature)
@@ -26,15 +27,33 @@ public class MintHandlerBolt12(
     public IMintHandler<PostMintQuoteBolt12Response, List<Proof>> SignWithPrivkey(PrivKey privkey)
     {
         this._signature = privkey.SignMintQuote(
-            quote.Quote,
+            _quote.Quote,
             outputs.Select(o => o.BlindedMessage).ToList()
         );
         return this;
     }
 
-    public PostMintQuoteBolt12Response GetQuote() => quote;
+    public PostMintQuoteBolt12Response GetQuote() => _quote;
 
     public List<OutputData> GetOutputs() => outputs;
+
+    public async Task<PostMintQuoteBolt12Response> RefreshQuote(CancellationToken ct = default)
+    {
+        var client = await wallet.GetMintApi(ct);
+        var fresh = await client.CheckMintQuote<PostMintQuoteBolt12Response>(
+            "bolt12",
+            _quote.Quote,
+            ct
+        );
+
+        if (_quote.UpdatedAt is { } held && fresh.UpdatedAt is { } incoming && incoming < held)
+        {
+            return _quote;
+        }
+
+        _quote = fresh;
+        return _quote;
+    }
 
     public async Task<List<Proof>> Mint(CancellationToken ct = default)
     {
@@ -42,7 +61,7 @@ public class MintHandlerBolt12(
         {
             throw new ArgumentNullException(
                 nameof(this._signature),
-                $"Signature for mint quote {quote.Quote} is required!"
+                $"Signature for mint quote {_quote.Quote} is required!"
             );
         }
 
@@ -50,7 +69,7 @@ public class MintHandlerBolt12(
         var req = new PostMintRequest
         {
             Outputs = outputs.Select(o => o.BlindedMessage).ToArray(),
-            Quote = quote.Quote,
+            Quote = _quote.Quote,
             Signature = _signature,
         };
 

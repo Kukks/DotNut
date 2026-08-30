@@ -9,6 +9,7 @@ public class MintHandlerBolt11(
     List<OutputData> outputs
 ) : IMintHandler<PostMintQuoteBolt11Response, List<Proof>>
 {
+    private PostMintQuoteBolt11Response _quote = postMintQuoteBolt11Response;
     private string? _signature;
 
     public IMintHandler<PostMintQuoteBolt11Response, List<Proof>> WithSignature(string signature)
@@ -25,23 +26,41 @@ public class MintHandlerBolt11(
     public IMintHandler<PostMintQuoteBolt11Response, List<Proof>> SignWithPrivkey(PrivKey privkey)
     {
         this._signature = privkey.SignMintQuote(
-            postMintQuoteBolt11Response.Quote,
+            _quote.Quote,
             outputs.Select(o => o.BlindedMessage).ToList()
         );
         return this;
     }
 
-    public PostMintQuoteBolt11Response GetQuote() => postMintQuoteBolt11Response;
+    public PostMintQuoteBolt11Response GetQuote() => _quote;
 
     public List<OutputData> GetOutputs() => outputs;
 
+    public async Task<PostMintQuoteBolt11Response> RefreshQuote(CancellationToken ct = default)
+    {
+        var client = await wallet.GetMintApi(ct);
+        var fresh = await client.CheckMintQuote<PostMintQuoteBolt11Response>(
+            "bolt11",
+            _quote.Quote,
+            ct
+        );
+
+        if (_quote.UpdatedAt is { } held && fresh.UpdatedAt is { } incoming && incoming < held)
+        {
+            return _quote;
+        }
+
+        _quote = fresh;
+        return _quote;
+    }
+
     public async Task<List<Proof>> Mint(CancellationToken ct = default)
     {
-        if (postMintQuoteBolt11Response.PubKey is not null && this._signature is null)
+        if (_quote.PubKey is not null && this._signature is null)
         {
             throw new ArgumentNullException(
                 nameof(_signature),
-                $"Signature for mint quote {postMintQuoteBolt11Response.Quote} is required!"
+                $"Signature for mint quote {_quote.Quote} is required!"
             );
         }
         var client = await wallet.GetMintApi(ct);
@@ -49,7 +68,7 @@ public class MintHandlerBolt11(
         var req = new PostMintRequest
         {
             Outputs = outputs.Select(o => o.BlindedMessage).ToArray(),
-            Quote = postMintQuoteBolt11Response.Quote,
+            Quote = _quote.Quote,
             Signature = _signature,
         };
 

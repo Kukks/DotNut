@@ -9,7 +9,11 @@ public class P2PkBuilder
     public ECPubKey[]? RefundPubkeys { get; set; }
     public int SignatureThreshold { get; set; } = 1;
 
-    public ECPubKey[] Pubkeys { get; set; }
+    /// <summary>
+    /// Keys of the main pathway. Empty for a NUT-14 hashlock with no <c>pubkeys</c> tag, where
+    /// the preimage alone spends the proof.
+    /// </summary>
+    public ECPubKey[] Pubkeys { get; set; } = [];
 
     //SIG_INPUTS, SIG_ALL
     public string? SigFlag { get; set; }

@@ -19,10 +19,25 @@ public class PaymentRequestEncoder : ICBORToFromConverter<PaymentRequest>
             cbor.Add("s", paymentRequest.OneTimeUse);
         if (paymentRequest.Mints is not null)
             cbor.Add("m", paymentRequest.Mints);
+        if (paymentRequest.MintPreferred is not null)
+            cbor.Add("mp", paymentRequest.MintPreferred);
+        if (paymentRequest.SupportedMethods is not null)
+        {
+            var supportedMethods = CBORObject.NewArray();
+            foreach (var supportedMethod in paymentRequest.SupportedMethods)
+            {
+                var methodItem = CBORObject.NewMap().Add("mn", supportedMethod.Method);
+                if (supportedMethod.Fee is not null)
+                    methodItem.Add("mf", supportedMethod.Fee);
+                supportedMethods.Add(methodItem);
+            }
+
+            cbor.Add("sm", supportedMethods);
+        }
         if (paymentRequest.Memo is not null)
             cbor.Add("d", paymentRequest.Memo);
         var transports = CBORObject.NewArray();
-        foreach (var transport in paymentRequest.Transports)
+        foreach (var transport in paymentRequest.Transports ?? [])
         {
             var transportItem = CBORObject
                 .NewMap()
@@ -47,7 +62,9 @@ public class PaymentRequestEncoder : ICBORToFromConverter<PaymentRequest>
 
             transports.Add(transportItem);
         }
-        cbor.Add("t", transports);
+
+        if (transports.Count > 0)
+            cbor.Add("t", transports);
 
         if (paymentRequest.Nut10 is not null)
         {
@@ -97,6 +114,32 @@ public class PaymentRequestEncoder : ICBORToFromConverter<PaymentRequest>
                     break;
                 case "m":
                     paymentRequest.Mints = value.Values.Select(v => v.AsString()).ToArray();
+                    break;
+                case "mp":
+                    paymentRequest.MintPreferred = value.AsBoolean();
+                    break;
+                case "sm":
+                    paymentRequest.SupportedMethods = value
+                        .Values.Select(v =>
+                        {
+                            var supportedMethod = new SupportedMethod();
+                            foreach (var methodKey in v.Keys)
+                            {
+                                var methodValue = v[methodKey];
+                                switch (methodKey.AsString())
+                                {
+                                    case "mn":
+                                        supportedMethod.Method = methodValue.AsString();
+                                        break;
+                                    case "mf":
+                                        supportedMethod.Fee = methodValue.ToObject<ulong>();
+                                        break;
+                                }
+                            }
+
+                            return supportedMethod;
+                        })
+                        .ToArray();
                     break;
                 case "d":
                     paymentRequest.Memo = value.AsString();

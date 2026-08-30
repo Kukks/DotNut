@@ -21,6 +21,8 @@ public class PaymentRequestBech32Encoder
         Description = 0x06,
         Transport = 0x07,
         Nut10 = 0x08,
+        MintPreferred = 0x09,
+        SupportedMethod = 0x0a,
     }
 
     public static string Encode(PaymentRequest paymentRequest)
@@ -91,6 +93,21 @@ public class PaymentRequestBech32Encoder
             }
         }
 
+        if (paymentRequest.MintPreferred is { } preferred)
+        {
+            WriteTlv(writer, TlvTag.MintPreferred, preferred ? [0x01] : [0x00]);
+        }
+
+        if (paymentRequest.SupportedMethods is { } supportedMethods)
+        {
+            foreach (var supportedMethod in supportedMethods)
+            {
+                var subWriter = new ArrayBufferWriter<byte>(32);
+                EncodeSupportedMethod(subWriter, supportedMethod);
+                WriteTlv(writer, TlvTag.SupportedMethod, subWriter.WrittenSpan);
+            }
+        }
+
         if (paymentRequest.Memo is { } memo)
         {
             WriteTlvUtf8(writer, TlvTag.Description, memo);
@@ -111,6 +128,21 @@ public class PaymentRequestBech32Encoder
             var subWriter = new ArrayBufferWriter<byte>(128);
             EncodeNut10(subWriter, nut10);
             WriteTlv(writer, TlvTag.Nut10, subWriter.WrittenSpan);
+        }
+    }
+
+    private static void EncodeSupportedMethod(
+        IBufferWriter<byte> writer,
+        SupportedMethod supportedMethod
+    )
+    {
+        WriteTlvUtf8(writer, 0x01, supportedMethod.Method);
+
+        if (supportedMethod.Fee is { } fee)
+        {
+            Span<byte> feeBytes = stackalloc byte[8];
+            BinaryPrimitives.WriteUInt64BigEndian(feeBytes, fee);
+            WriteTlv(writer, 0x02, feeBytes);
         }
     }
 
@@ -242,6 +274,7 @@ public class PaymentRequestBech32Encoder
         var offset = 0;
         var mints = new List<string>();
         var transports = new List<PaymentRequestTransport>();
+        var supportedMethods = new List<SupportedMethod>();
 
         while (offset < data.Length)
         {
@@ -280,15 +313,53 @@ public class PaymentRequestBech32Encoder
                 case 0x08:
                     pr.Nut10 = DecodeNut10(value);
                     break;
+                case 0x09:
+                    if (value.Length != 1 || (value[0] != 0x00 && value[0] != 0x01))
+                        throw new FormatException("Invalid mintPreferred flag");
+                    pr.MintPreferred = value[0] == 0x01;
+                    break;
+                case 0x0a:
+                    supportedMethods.Add(DecodeSupportedMethod(value));
+                    break;
             }
         }
 
         if (mints.Count > 0)
             pr.Mints = mints.ToArray();
 
+        if (supportedMethods.Count > 0)
+            pr.SupportedMethods = supportedMethods.ToArray();
+
         pr.Transports = transports.ToArray();
 
         return pr;
+    }
+
+    private static SupportedMethod DecodeSupportedMethod(ReadOnlySpan<byte> data)
+    {
+        var supportedMethod = new SupportedMethod();
+        var offset = 0;
+
+        while (offset < data.Length)
+        {
+            var tag = data[offset];
+            var length = BinaryPrimitives.ReadUInt16BigEndian(data.Slice(offset + 1, 2));
+            offset += 3;
+            var value = data.Slice(offset, length);
+            offset += length;
+
+            switch (tag)
+            {
+                case 0x01:
+                    supportedMethod.Method = Encoding.UTF8.GetString(value);
+                    break;
+                case 0x02:
+                    supportedMethod.Fee = BinaryPrimitives.ReadUInt64BigEndian(value);
+                    break;
+            }
+        }
+
+        return supportedMethod;
     }
 
     private static PaymentRequestTransport DecodeTransport(ReadOnlySpan<byte> data)

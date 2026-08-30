@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using DotNut.ApiModels;
 
 namespace DotNut.Abstractions;
@@ -24,17 +23,9 @@ public class MintInfo
                 {
                     _protectedEndpoints = new ProtectedEndpoints
                     {
-                        Cache = new ConcurrentDictionary<string, bool>(),
+                        Cache = new ConcurrentDictionary<(string, string), bool>(),
                         ApiReturn = nut22
-                            .ProtectedEndpoints.Select(o => new ProtectedEndpoint
-                            {
-                                Method = o.Method,
-                                Regex = new Regex(
-                                    o.Path,
-                                    RegexOptions.None,
-                                    TimeSpan.FromMilliseconds(100)
-                                ),
-                            })
+                            .ProtectedEndpoints.Select(ProtectedEndpoint.Parse)
                             .ToArray(),
                     };
                 }
@@ -94,17 +85,23 @@ public class MintInfo
     /// <summary>
     /// Determines if an endpoint requires blind authentication token based on NUT-22
     /// </summary>
-    public bool RequiresBlindAuthToken(string path)
+    /// <param name="path">Request path, e.g. <c>/v1/mint/quote/bolt11</c>.</param>
+    /// <param name="method">
+    /// HTTP method. An entry only protects the method it names, so passing the wrong one, or
+    /// nothing, can send a token where none is needed.
+    /// </param>
+    public bool RequiresBlindAuthToken(string path, string method = "POST")
     {
         if (_protectedEndpoints == null)
             return false;
 
-        if (_protectedEndpoints.Cache.TryGetValue(path, out var cachedValue))
+        var key = (method, path);
+        if (_protectedEndpoints.Cache.TryGetValue(key, out var cachedValue))
             return cachedValue;
 
-        var isProtectedEndpoint = _protectedEndpoints.ApiReturn.Any(e => e.Regex.IsMatch(path));
+        var isProtectedEndpoint = _protectedEndpoints.ApiReturn.Any(e => e.Matches(method, path));
 
-        _protectedEndpoints.Cache[path] = isProtectedEndpoint;
+        _protectedEndpoints.Cache[key] = isProtectedEndpoint;
         return isProtectedEndpoint;
     }
 
@@ -296,14 +293,43 @@ public class ProtectedEndpointSpec
 
 internal class ProtectedEndpoints
 {
-    public ConcurrentDictionary<string, bool> Cache { get; set; } = new();
+    public ConcurrentDictionary<(string Method, string Path), bool> Cache { get; set; } = new();
     public ProtectedEndpoint[] ApiReturn { get; set; } = Array.Empty<ProtectedEndpoint>();
 }
 
+/// <summary>
+/// One entry of a mint's <c>protected_endpoints</c>. NUT-21 and NUT-22 allow exactly two shapes,
+/// and a trailing <c>*</c> is the only wildcard: without it the request path must equal
+/// <see cref="Prefix"/>, with it the path must start with it.
+/// </summary>
 internal class ProtectedEndpoint
 {
     public string Method { get; set; } = string.Empty;
-    public Regex Regex { get; set; }
+    public string Prefix { get; set; } = string.Empty;
+    public bool IsPrefixMatch { get; set; }
+
+    public static ProtectedEndpoint Parse(ProtectedEndpointSpec spec)
+    {
+        var path = spec.Path;
+        var isPrefix = path.EndsWith('*');
+
+        return new ProtectedEndpoint
+        {
+            Method = spec.Method,
+            Prefix = isPrefix ? path[..^1] : path,
+            IsPrefixMatch = isPrefix,
+        };
+    }
+
+    public bool Matches(string method, string path)
+    {
+        if (!string.IsNullOrEmpty(Method) && !Method.Equals(method, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return IsPrefixMatch ? path.StartsWith(Prefix, StringComparison.Ordinal) : path == Prefix;
+    }
 }
 
 public class WebSocketSupportResult

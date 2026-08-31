@@ -201,6 +201,16 @@ public class CashuHttpClient : ICashuApi
         return await HandleResponse<PostBatchedMintResponse>(response, cancellationToken);
     }
 
+    public async Task<PostMintQuotesByPubkeyResponse> GetMintQuotesByPubkeys(PostMintQuoteBolt11Request request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsync(
+            "https://mint.host:3338/v1/mint/quote/bolt11/pubkey",
+            new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json"),
+            cancellationToken);
+        return await HandleResponse<PostMintQuotesByPubkeyResponse>(response, cancellationToken);
+    }
+
     protected async Task<T> HandleResponse<T>(
         HttpResponseMessage response,
         CancellationToken cancellationToken

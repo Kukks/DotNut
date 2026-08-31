@@ -1,0 +1,3 @@
+[submodule "DotNut.BLS12-381"]
+	path = DotNut.BLS12-381
+	url = https://github.com/d4rp4t/DotNut.BLS12-381.git

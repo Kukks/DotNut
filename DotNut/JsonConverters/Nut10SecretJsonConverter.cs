@@ -12,14 +12,18 @@ public class Nut10SecretJsonConverter : JsonConverter<Nut10Secret>
     )
     {
         if (reader.TokenType == JsonTokenType.Null)
+        {
             return null;
+        }
         if (reader.TokenType != JsonTokenType.StartArray)
         {
             throw new JsonException("Expected array");
         }
         reader.Read();
         if (reader.TokenType != JsonTokenType.String)
+        {
             throw new JsonException("Expected string");
+        }
         var key = reader.GetString();
         reader.Read();
 
@@ -37,7 +41,9 @@ public class Nut10SecretJsonConverter : JsonConverter<Nut10Secret>
                 throw new JsonException("Unknown secret type");
         }
         if (proofSecret is null)
+        {
             throw new JsonException("Invalid proof secret");
+        }
         reader.Read();
         if (reader.TokenType != JsonTokenType.EndArray)
         {

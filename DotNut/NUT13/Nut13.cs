@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
+using System.Text;
 using DotNut.Abstractions;
+using DotNut.Crypto;
 using DotNut.NBitcoin.BIP39;
 using NBip32Fast;
 
@@ -27,30 +29,37 @@ public static class Nut13
     )
     {
         var outputs = new List<OutputData>();
-
         var amountList = amounts.ToList();
+        var isBls = keysetId.IsBlsKeyset();
 
         for (uint i = 0; i < amountList.Count; i++)
         {
             var secret = DeriveSecret(mnemonic, keysetId, counter + i);
-            var r = new PrivKey(DeriveBlindingFactor(mnemonic, keysetId, counter + i));
+            var rBytes = DeriveBlindingFactor(mnemonic, keysetId, counter + i);
+            var r = new PrivKey(rBytes);
 
-            var Y = secret.ToCurve();
-            var B_ = Cashu.ComputeB_(Y, r);
+            PubKey B_;
+            if (isBls)
+            {
+                var b_ = BlsCashu.BlindMessage(secret.GetBytes(), rBytes);
+                B_ = new PubKey(b_);
+            }
+            else
+            {
+                B_ = Cashu.ComputeB_(secret.ToCurve(), r);
+            }
 
-            outputs.Add(
-                new OutputData()
+            outputs.Add(new OutputData
+            {
+                BlindedMessage = new BlindedMessage
                 {
-                    BlindedMessage = new BlindedMessage()
-                    {
-                        Amount = amountList[(int)i],
-                        Id = keysetId,
-                        B_ = B_,
-                    },
-                    Secret = secret,
-                    BlindingFactor = r,
-                }
-            );
+                    Amount = amountList[(int)i],
+                    Id = keysetId,
+                    B_ = B_,
+                },
+                Secret = secret,
+                BlindingFactor = r,
+            });
         }
 
         return outputs;
@@ -65,8 +74,13 @@ public static class Nut13
                     .Instance.DerivePath(GetNut13DerivationPath(keysetId, counter, false), seed)
                     .PrivateKey.ToArray();
             case 0x01:
-            {
                 return DeriveHmac(seed, keysetId, counter, false);
+            case 0x02:
+            {
+                // Same HMAC as v1, but reduce mod BLS Fr order via wide reduction.
+                // The 256-bit HMAC output may be >= r, so we cannot use FromBytesBigEndian directly.
+                var hmacBytes = DeriveHmac(seed, keysetId, counter, false);
+                return BlsCashu.ReduceHmacToScalarBytes(hmacBytes);
             }
             default:
                 throw new ArgumentException("Invalid keyset id prefix");
@@ -83,6 +97,7 @@ public static class Nut13
                     .PrivateKey;
                 return new StringSecret(Convert.ToHexString(key).ToLower());
             case 0x01:
+            case 0x02: // BLS v3 uses same HMAC path for the secret
             {
                 var secretBytes = DeriveHmac(seed, keysetId, counter, true);
                 return new StringSecret(Convert.ToHexString(secretBytes).ToLower());

@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
+using DotNut.Crypto;
 using DotNut.NUT13;
 
 namespace DotNut.Abstractions;
@@ -100,25 +102,31 @@ public static class Utils
 
         var outputs = new List<OutputData>(amountsList.Count);
 
+        var isBls = keysetId.IsBlsKeyset();
+
         if (mnemonic is not null && counter is { } c)
         {
             for (uint i = 0; i < amountsList.Count; i++)
             {
                 var secret = mnemonic.DeriveSecret(keysetId, c + i);
-                var r = new PrivKey(mnemonic.DeriveBlindingFactor(keysetId, c + i));
-                var B_ = Cashu.ComputeB_(secret.ToCurve(), r);
-                var output = new OutputData
+                var rBytes = mnemonic.DeriveBlindingFactor(keysetId, c + i);
+                var r = new PrivKey(rBytes);
+                PubKey B_;
+                if (isBls)
                 {
-                    BlindedMessage = new BlindedMessage
-                    {
-                        Amount = amountsList[(int)i],
-                        B_ = B_,
-                        Id = keysetId,
-                    },
+                    var b_ = BlsCashu.BlindMessage(secret.GetBytes(), rBytes);
+                    B_ = new PubKey(b_);
+                }
+                else
+                {
+                    B_ = Cashu.ComputeB_(secret.ToCurve(), r);
+                }
+                outputs.Add(new OutputData
+                {
+                    BlindedMessage = new BlindedMessage { Amount = amountsList[(int)i], B_ = B_, Id = keysetId },
                     BlindingFactor = r,
                     Secret = secret,
-                };
-                outputs.Add(output);
+                });
             }
             return outputs;
         }
@@ -126,20 +134,26 @@ public static class Utils
         foreach (var amount in amountsList)
         {
             var secret = RandomSecret();
-            var r = RandomPrivkey();
-            var B_ = Cashu.ComputeB_(secret.ToCurve(), r);
-            var output = new OutputData
+            PubKey B_;
+            PrivKey r;
+            if (isBls)
             {
-                BlindedMessage = new BlindedMessage
-                {
-                    Amount = amount,
-                    B_ = B_,
-                    Id = keysetId,
-                },
+                var rBytes = BlsCashu.GenerateRandomScalar();
+                r = new PrivKey(rBytes);
+                var b_ = BlsCashu.BlindMessage(secret.GetBytes(), rBytes);
+                B_ = new PubKey(b_);
+            }
+            else
+            {
+                r = RandomPrivkey();
+                B_ = Cashu.ComputeB_(secret.ToCurve(), r);
+            }
+            outputs.Add(new OutputData
+            {
+                BlindedMessage = new BlindedMessage { Amount = amount, B_ = B_, Id = keysetId },
                 BlindingFactor = r,
                 Secret = secret,
-            };
-            outputs.Add(output);
+            });
         }
         return outputs;
     }
@@ -277,11 +291,7 @@ public static class Utils
         PubKey? P2PkE = null
     )
     {
-        //unblind signature
         var C = Cashu.ComputeC(promise.C_, r, amountPubkey);
-
-        DLEQProof? dleq = null;
-
         var proof = new Proof
         {
             Id = promise.Id,
@@ -290,23 +300,40 @@ public static class Utils
             C = C,
             P2PkE = P2PkE,
         };
-
-        if (promise.DLEQ is null)
-        {
-            return proof;
-        }
-
-        proof.DLEQ = new DLEQProof
-        {
-            E = promise.DLEQ.E,
-            S = promise.DLEQ.S,
-            R = r.Key.Clone(),
-        };
+        if (promise.DLEQ is null) return proof;
+        proof.DLEQ = new DLEQProof { E = promise.DLEQ.E, S = promise.DLEQ.S, R = r.Key.Clone() };
         if (!proof.Verify(amountPubkey))
-        {
-            throw new InvalidOperationException($"Could not verify mint signature on proof");
-        }
+            throw new InvalidOperationException("Could not verify mint signature on proof");
         return proof;
+    }
+
+    /// <summary>
+    /// Constructs a v3 (BLS12-381) proof from a blind signature.
+    /// Performs multiplicative unblinding and pairing verification.
+    /// </summary>
+    public static Proof ConstructBlsProofFromPromise(
+        BlindSignature promise,
+        PrivKey r,
+        ISecret secret,
+        BlsG2PubKey amountKey
+    )
+    {
+        if (!promise.C_.IsBlsG1)
+            throw new InvalidOperationException("Expected BLS G1 blind signature C_");
+
+        var C = BlsCashu.UnblindSignature(promise.C_.GetBlsG1Point(), r.Key.ToBytes());
+
+        var secretBytes = secret.GetBytes();
+        if (!BlsCashu.VerifySignature(amountKey.Point, C, secretBytes))
+            throw new InvalidOperationException("Could not verify BLS mint signature on proof");
+
+        return new Proof
+        {
+            Id = promise.Id,
+            Amount = promise.Amount,
+            Secret = secret,
+            C = new PubKey(C),
+        };
     }
 
     public static List<Proof> ConstructProofsFromPromises(
@@ -315,31 +342,47 @@ public static class Utils
         Keyset keys
     )
     {
+        if (keys is BlsKeyset blsKeys)
+            return ConstructProofsFromPromises(promises, outputs, blsKeys);
+
         var bs = promises as IReadOnlyList<BlindSignature> ?? promises.ToList();
         var os = outputs as IReadOnlyList<OutputData> ?? outputs.ToList();
         if (os.Count < bs.Count)
-        {
-            throw new ArgumentException("Outputs must as least equal amount of elements!");
-        }
+            throw new ArgumentException("Outputs must at least equal amount of elements!");
 
-        List<Proof> proofs = new List<Proof>(bs.Count);
+        var proofs = new List<Proof>(bs.Count);
         for (int i = 0; i < bs.Count; i++)
         {
             if (!keys.TryGetValue(bs[i].Amount, out var key))
-            {
                 throw new ArgumentException(
-                    $"Provided keyset doesn't contain PubKey for amount {bs[i].Amount}"
-                );
-            }
+                    $"Provided keyset doesn't contain PubKey for amount {bs[i].Amount}");
+            proofs.Add(ConstructProofFromPromise(bs[i], os[i].BlindingFactor, os[i].Secret, key, os[i].P2BkE));
+        }
+        return proofs;
+    }
 
-            var proof = ConstructProofFromPromise(
-                bs[i],
-                os[i].BlindingFactor,
-                os[i].Secret,
-                key,
-                os[i].P2BkE
-            );
-            proofs.Add(proof);
+    /// <summary>Constructs v3 (BLS12-381) proofs from blind signatures using the mint's G2 keys.</summary>
+    public static List<Proof> ConstructProofsFromPromises(
+        IEnumerable<BlindSignature> promises,
+        IEnumerable<OutputData> outputs,
+        BlsKeyset keys
+    )
+    {
+        var bs = promises as IReadOnlyList<BlindSignature> ?? promises.ToList();
+        var os = outputs as IReadOnlyList<OutputData> ?? outputs.ToList();
+        if (os.Count < bs.Count)
+            throw new ArgumentException("Outputs must at least equal amount of elements!");
+
+        var proofs = new List<Proof>(bs.Count);
+        for (int i = 0; i < bs.Count; i++)
+        {
+            if (!keys.TryGetValue(bs[i].Amount, out var key))
+                throw new ArgumentException(
+                    $"Provided BLS keyset doesn't contain key for amount {bs[i].Amount}");
+            if (!key.IsBlsG2)
+                throw new InvalidOperationException($"Keyset entry for amount {bs[i].Amount} is not a BLS G2 key");
+            proofs.Add(ConstructBlsProofFromPromise(bs[i], os[i].BlindingFactor, os[i].Secret,
+                new BlsG2PubKey(key.GetBlsG2Point())));
         }
         return proofs;
     }

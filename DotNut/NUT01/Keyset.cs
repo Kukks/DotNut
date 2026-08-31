@@ -7,7 +7,7 @@ using SHA256 = System.Security.Cryptography.SHA256;
 
 namespace DotNut;
 
-[JsonConverter(typeof(KeysetJsonConverter))]
+[JsonConverter(typeof(AnyKeysetJsonConverter))]
 public class Keyset : Dictionary<ulong, PubKey>
 {
     public KeysetId GetKeysetId(
@@ -98,12 +98,16 @@ public class Keyset : Dictionary<ulong, PubKey>
                     Convert.ToHexString(new[] { version }) + Convert.ToHexString(hash).ToLower()
                 );
             }
+            case 0x02:
+                throw new ArgumentException(
+                    "Version 0x02 is a BLS12-381 keyset. Use BlsKeyset.GetKeysetId() instead.");
+
             default:
                 throw new ArgumentException($"Unsupported keyset version: {version}");
         }
     }
 
-    public bool VerifyKeysetId(
+    public virtual bool VerifyKeysetId(
         KeysetId keysetId,
         string? unit = null,
         ulong? inputFeePpk = null,
@@ -114,7 +118,9 @@ public class Keyset : Dictionary<ulong, PubKey>
         var derived = GetKeysetId(version, unit, inputFeePpk, finalExpiration).ToString();
         var presented = keysetId.ToString();
         if (presented.Length > derived.Length)
+        {
             return false;
+        }
         return string.Equals(derived, presented, StringComparison.InvariantCultureIgnoreCase)
             || derived.StartsWith(presented, StringComparison.InvariantCultureIgnoreCase);
     }

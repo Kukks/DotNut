@@ -151,6 +151,8 @@ class SwapBuilder : ISwapBuilder
             {
                 if (proof.DLEQ == null)
                 {
+                    // BLS v3 proofs don't use DLEQ — skip client-side verification.
+                    if (proof.Id.IsBlsKeyset()) continue;
                     throw new ArgumentNullException(
                         nameof(proof.DLEQ),
                         "Can't verify non-existent DLEQ proof!"

@@ -47,8 +47,19 @@ public class KeysetJsonConverter : JsonConverter<Keyset>
 
             reader.Read();
             var pubkey = JsonSerializer.Deserialize<PubKey>(ref reader, options);
-            if (pubkey is null || pubkey.Key.ToBytes().Length != 33)
-                throw new JsonException("Invalid public key (not compressed?)");
+            if (pubkey is null)
+            {
+                throw new JsonException("Invalid public key");
+            }
+            if (pubkey.IsBlsG1)
+            {
+                throw new JsonException(
+                    "Key is a BLS12-381 G1 point — this is a BLS v3 keyset. Deserialize as BlsKeyset.");
+            }
+            if (pubkey.Key is null || pubkey.Key.ToBytes().Length != 33)
+            {
+                throw new JsonException("Invalid secp256k1 public key (not compressed?)");
+            }
             keyset.Add(amount, pubkey);
         }
 

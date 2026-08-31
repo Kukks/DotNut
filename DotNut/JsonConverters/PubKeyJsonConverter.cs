@@ -25,7 +25,10 @@ public class PubKeyJsonConverter : JsonConverter<PubKey>
             throw new JsonException("Expected string");
         }
 
-        return new PubKey(str, true);
+        // Accept both secp256k1 compressed (66 chars) and BLS G1 compressed (96 chars)
+        if (str.Length != 66 && str.Length != 96)
+            throw new JsonException($"Expected 66-char secp or 96-char BLS G1 hex, got length {str.Length}");
+        return new PubKey(str);
     }
 
     public override void Write(Utf8JsonWriter writer, PubKey? value, JsonSerializerOptions options)

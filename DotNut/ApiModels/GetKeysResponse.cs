@@ -26,7 +26,12 @@ public class GetKeysResponse
         [JsonPropertyName("final_expiry")]
         public ulong? FinalExpiry { get; set; }
 
+        /// <summary>
+        /// The keyset public keys. For secp256k1 (v0/v1/v2) keysets this is a <see cref="Keyset"/>;
+        /// for BLS12-381 v3 keysets this is a <see cref="BlsKeyset"/>. Use <c>is BlsKeyset</c> to distinguish.
+        /// </summary>
         [JsonPropertyName("keys")]
+        [JsonConverter(typeof(JsonConverters.AnyKeysetJsonConverter))]
         public Keyset Keys { get; set; }
     }
 }

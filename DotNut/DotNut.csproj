@@ -23,4 +23,10 @@
     <PackageReference Include="NBip32Fast" Version="1.0.5" />
     <PackageReference Include="PeterO.Cbor" Version="4.5.5" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DotNut.BLS12-381\DotNut.BLS12-381\DotNut.BLS12-381.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="JsonConverters\BLSPubKeyJsonConverter.cs" />
+  </ItemGroup>
 </Project>

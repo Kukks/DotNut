@@ -41,7 +41,7 @@ public class CashuTokenV4Encoder : ICashuTokenEncoder, ICBORToFromConverter<Cash
                     .NewOrderedMap()
                     .Add("a", proof.Amount)
                     .Add("s", Encoding.UTF8.GetString(proof.Secret.GetBytes()))
-                    .Add("c", proof.C.Key.ToBytes());
+                    .Add("c", proof.C.IsBlsG1 ? proof.C.GetBlsG1Point().ToCompressed() : proof.C.Key!.ToBytes());
                 if (proof.DLEQ is not null)
                 {
                     proofItem.Add(

@@ -83,6 +83,17 @@ public class KeysetId : IEquatable<KeysetId>, IEqualityComparer<KeysetId>
         return Convert.ToByte(versionStr, 16);
     }
 
+    /// <summary>
+    /// Returns true for v3 BLS12-381 keyset IDs (modern hex, version byte 0x02).
+    /// Strict gate: does not assume future versions are BLS.
+    /// </summary>
+    public bool IsBlsKeyset()
+    {
+        if (_id.Length != 16 && _id.Length != 66) return false;
+        if (!System.Text.RegularExpressions.Regex.IsMatch(_id, "^[0-9a-fA-F]+$")) return false;
+        return _id.StartsWith("02", StringComparison.OrdinalIgnoreCase);
+    }
+
     public byte[] GetBytes()
     {
         return Convert.FromHexString(_id);

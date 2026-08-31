@@ -14,7 +14,11 @@ public class MeltHandlerBolt11(
 
     public List<OutputData> GetBlankOutputs() => blankOutputs;
 
-    public async Task<List<Proof>> Melt(IEnumerable<Proof> inputs, CancellationToken ct = default)
+    public async Task<List<Proof>> Melt(
+        IEnumerable<Proof> inputs,
+        bool preferAsync = false,
+        CancellationToken ct = default
+    )
     {
         //we're operating on copy here since later the proof state is mutated in stripFingerprints
         var proofs = inputs.DeepCopyList();
@@ -35,6 +39,8 @@ public class MeltHandlerBolt11(
             Quote = quote.Quote,
             Inputs = proofs.ToArray(),
             Outputs = blankOutputs.Select(bo => bo.BlindedMessage).ToArray(),
+            // Only sent when asked for, so mints that predate the field see no change.
+            PreferAsync = preferAsync ? true : null,
         };
 
         var res = await client.Melt<PostMeltQuoteBolt11Response, PostMeltRequest>(

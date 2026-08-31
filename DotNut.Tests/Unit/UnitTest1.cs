@@ -106,7 +106,7 @@ public class UnitTest1
         Assert.NotNull(response);
         Assert.Equal("melt-quote-id", response.Quote);
         Assert.Equal((ulong)1000, response.Amount);
-        Assert.Equal(50, response.FeeReserve);
+        Assert.Equal((ulong)50, response.FeeReserve);
         Assert.Equal("PAID", response.State);
         Assert.Null(response.Expiry);
         Assert.Equal("test-preimage", response.PaymentPreimage);
@@ -126,7 +126,7 @@ public class UnitTest1
         Assert.NotNull(response2);
         Assert.Equal("melt-quote-id-2", response2.Quote);
         Assert.Equal((ulong)500, response2.Amount);
-        Assert.Equal(25, response2.FeeReserve);
+        Assert.Equal((ulong)25, response2.FeeReserve);
         Assert.Equal("UNPAID", response2.State);
         Assert.Null(response2.Expiry);
         Assert.Null(response2.PaymentPreimage);
@@ -147,7 +147,7 @@ public class UnitTest1
         Assert.NotNull(response3);
         Assert.Equal("melt-quote-id-3", response3.Quote);
         Assert.Equal((ulong)2000, response3.Amount);
-        Assert.Equal(100, response3.FeeReserve);
+        Assert.Equal((ulong)100, response3.FeeReserve);
         Assert.Equal("PENDING", response3.State);
         Assert.Equal(1640995200, response3.Expiry);
         Assert.Null(response3.PaymentPreimage);

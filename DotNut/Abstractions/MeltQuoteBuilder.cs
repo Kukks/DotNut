@@ -84,7 +84,7 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
 
         if (_blankOutputs == null)
         {
-            var outputsAmount = Utils.CalculateNumberOfBlankOutputs((ulong)quote.FeeReserve);
+            var outputsAmount = Utils.CalculateNumberOfBlankOutputs(quote.FeeReserve ?? 0);
             var amounts = Enumerable.Repeat(1UL, outputsAmount).ToList();
             this._blankOutputs = await this._wallet.CreateOutputs(amounts, this._unit, ct);
         }
@@ -116,7 +116,7 @@ class MeltQuoteBuilder : IMeltQuoteBuilder
 
         if (_blankOutputs == null)
         {
-            var outputsAmount = Utils.CalculateNumberOfBlankOutputs((ulong)quote.FeeReserve);
+            var outputsAmount = Utils.CalculateNumberOfBlankOutputs(quote.FeeReserve ?? 0);
             var amounts = Enumerable.Repeat(1UL, outputsAmount).ToList();
             this._blankOutputs = await this._wallet.CreateOutputs(amounts, this._unit, ct);
         }

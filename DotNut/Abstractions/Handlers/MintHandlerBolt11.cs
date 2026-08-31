@@ -1,3 +1,4 @@
+using DotNut.Api;
 using DotNut.ApiModels;
 
 namespace DotNut.Abstractions.Handlers;
@@ -11,6 +12,7 @@ public class MintHandlerBolt11(
 {
     private PostMintQuoteBolt11Response _quote = postMintQuoteBolt11Response;
     private string? _signature;
+    private PrivKey? _signingKey;
 
     public IMintHandler<PostMintQuoteBolt11Response, List<Proof>> WithSignature(string signature)
     {
@@ -25,6 +27,7 @@ public class MintHandlerBolt11(
 
     public IMintHandler<PostMintQuoteBolt11Response, List<Proof>> SignWithPrivkey(PrivKey privkey)
     {
+        this._signingKey = privkey;
         this._signature = privkey.SignMintQuote(
             _quote.Quote,
             outputs.Select(o => o.BlindedMessage).ToList()
@@ -72,7 +75,25 @@ public class MintHandlerBolt11(
             Signature = _signature,
         };
 
-        var promises = await client.Mint<PostMintRequest, PostMintResponse>("bolt11", req, ct);
+        PostMintResponse promises;
+        try
+        {
+            promises = await client.Mint<PostMintRequest, PostMintResponse>("bolt11", req, ct);
+        }
+        catch (CashuProtocolException e)
+            when (e.Error.Code == CashuErrorCodes.MintRequestSignatureInvalid
+                && _signingKey is not null
+            )
+        {
+            // The mint predates the domain-separated NUT-20 message. Nothing was issued, so
+            // signing the same outputs again with the superseded message is safe.
+            req.Signature = _signingKey.SignMintQuoteLegacy(
+                postMintQuoteBolt11Response.Quote,
+                req.Outputs.ToList()
+            );
+            promises = await client.Mint<PostMintRequest, PostMintResponse>("bolt11", req, ct);
+        }
+
         return Utils.ConstructProofsFromPromises(
             promises.Signatures.ToList(),
             outputs,

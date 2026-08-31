@@ -1,33 +1,158 @@
 using System.Text.Json;
 using DotNut.ApiModels;
-using NBitcoin.Secp256k1;
 using SHA256 = System.Security.Cryptography.SHA256;
+
 namespace DotNut.Tests;
 
 public class Nut20Tests
 {
+    // Test vector from tests/20-test.md. The quote pubkey belongs to secret key 0x01.
+    private const string SignedMintQuote = """
+        {
+          "quote": "0192d3c0-7e8a-7c3d-8e9f-1a2b3c4d5e6f",
+          "outputs": [
+            {
+              "amount": 1,
+              "id": "009a1f293253e41e",
+              "B_": "036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2"
+            },
+            {
+              "amount": 1,
+              "id": "009a1f293253e41e",
+              "B_": "021f8a566c205633d029094747d2e18f44e05993dda7a5f88f496078205f656e59"
+            }
+          ],
+          "signature": "4881093a332ff7c79f3e598ce5b249d64978b47165a0b19c18adf0ced0246228e61e702f0abaf1bf27b92be4336bdbabacfbe4c914076386b3c66fdcd0b3480e"
+        }
+        """;
+
+    private const string QuotePubkey =
+        "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+
+    [Fact]
+    public void MessageToSignMatchesTestVector()
+    {
+        var parsed = JsonSerializer.Deserialize<PostMintRequest>(SignedMintQuote);
+        Assert.NotNull(parsed);
+
+        var msg = MintQuoteSigner.GetMessageToSign(parsed.Quote, parsed.Outputs);
+
+        // "Cashu_MintQuoteSig_v1" || len32(quote) || quote || (len32(amount) || amount
+        // || len32(B_) || B_) per output.
+        Assert.Equal(
+            "43617368755f4d696e7451756f74655369675f7631"
+                + "00000024"
+                + "30313932643363302d376538612d376333642d386539662d316132623363346435653666"
+                + "00000001"
+                + "01"
+                + "00000021"
+                + "036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2"
+                + "00000001"
+                + "01"
+                + "00000021"
+                + "021f8a566c205633d029094747d2e18f44e05993dda7a5f88f496078205f656e59",
+            Convert.ToHexString(msg).ToLowerInvariant()
+        );
+
+        Assert.Equal(
+            "c164fd384879f74ab6ea2e7cf13d90ed42e6df9d5de607eeb5c9cc7d36fb1c21",
+            Convert.ToHexString(SHA256.HashData(msg)).ToLowerInvariant()
+        );
+    }
+
     [Fact]
     public void ValidSignatureOnMintQuote()
     {
-        var validSignedMintQuote = "{\n  \"quote\": \"9d745270-1405-46de-b5c5-e2762b4f5e00\",\n  \"outputs\": [\n    {\n      \"amount\": 1,\n      \"id\": \"00456a94ab4e1c46\",\n      \"B_\": \"0342e5bcc77f5b2a3c2afb40bb591a1e27da83cddc968abdc0ec4904201a201834\"\n    },\n    {\n      \"amount\": 1,\n      \"id\": \"00456a94ab4e1c46\",\n      \"B_\": \"032fd3c4dc49a2844a89998d5e9d5b0f0b00dde9310063acb8a92e2fdafa4126d4\"\n    },\n    {\n      \"amount\": 1,\n      \"id\": \"00456a94ab4e1c46\",\n      \"B_\": \"033b6fde50b6a0dfe61ad148fff167ad9cf8308ded5f6f6b2fe000a036c464c311\"\n    },\n    {\n      \"amount\": 1,\n      \"id\": \"00456a94ab4e1c46\",\n      \"B_\": \"02be5a55f03e5c0aaea77595d574bce92c6d57a2a0fb2b5955c0b87e4520e06b53\"\n    },\n    {\n      \"amount\": 1,\n      \"id\": \"00456a94ab4e1c46\",\n      \"B_\": \"02209fc2873f28521cbdde7f7b3bb1521002463f5979686fd156f23fe6a8aa2b79\"\n    }\n  ],\n  \"signature\": \"d4b386f21f7aa7172f0994ee6e4dd966539484247ea71c99b81b8e09b1bb2acbc0026a43c221fd773471dc30d6a32b04692e6837ddaccf0830a63128308e4ee0\"\n}";
-        var signedParsed = JsonSerializer.Deserialize<PostMintRequest>(validSignedMintQuote);
-        var pubkey = new PubKey( "03d56ce4e446a85bbdaa547b4ec2b073d40ff802831352b8272b7dd7a4de5a7cac");
-        byte[] expectedMsg = [57, 100, 55, 52, 53, 50, 55, 48, 45, 49, 52, 48, 53, 45, 52, 54, 100, 101, 45, 98, 53, 99, 53, 45, 101, 50, 55, 54, 50, 98, 52, 102, 53, 101, 48, 48, 48, 51, 52, 50, 101, 53, 98, 99, 99, 55, 55, 102, 53, 98, 50, 97, 51, 99, 50, 97, 102, 98, 52, 48, 98, 98, 53, 57, 49, 97, 49, 101, 50, 55, 100, 97, 56, 51, 99, 100, 100, 99, 57, 54, 56, 97, 98, 100, 99, 48, 101, 99, 52, 57, 48, 52, 50, 48, 49, 97, 50, 48, 49, 56, 51, 52, 48, 51, 50, 102, 100, 51, 99, 52, 100, 99, 52, 57, 97, 50, 56, 52, 52, 97, 56, 57, 57, 57, 56, 100, 53, 101, 57, 100, 53, 98, 48, 102, 48, 98, 48, 48, 100, 100, 101, 57, 51, 49, 48, 48, 54, 51, 97, 99, 98, 56, 97, 57, 50, 101, 50, 102, 100, 97, 102, 97, 52, 49, 50, 54, 100, 52, 48, 51, 51, 98, 54, 102, 100, 101, 53, 48, 98, 54, 97, 48, 100, 102, 101, 54, 49, 97, 100, 49, 52, 56, 102, 102, 102, 49, 54, 55, 97, 100, 57, 99, 102, 56, 51, 48, 56, 100, 101, 100, 53, 102, 54, 102, 54, 98, 50, 102, 101, 48, 48, 48, 97, 48, 51, 54, 99, 52, 54, 52, 99, 51, 49, 49, 48, 50, 98, 101, 53, 97, 53, 53, 102, 48, 51, 101, 53, 99, 48, 97, 97, 101, 97, 55, 55, 53, 57, 53, 100, 53, 55, 52, 98, 99, 101, 57, 50, 99, 54, 100, 53, 55, 97, 50, 97, 48, 102, 98, 50, 98, 53, 57, 53, 53, 99, 48, 98, 56, 55, 101, 52, 53, 50, 48, 101, 48, 54, 98, 53, 51, 48, 50, 50, 48, 57, 102, 99, 50, 56, 55, 51, 102, 50, 56, 53, 50, 49, 99, 98, 100, 100, 101, 55, 102, 55, 98, 51, 98, 98, 49, 53, 50, 49, 48, 48, 50, 52, 54, 51, 102, 53, 57, 55, 57, 54, 56, 54, 102, 100, 49, 53, 54, 102, 50, 51, 102, 101, 54, 97, 56, 97, 97, 50, 98, 55, 57];
-        Assert.NotNull(signedParsed);
-        
-        var msg = MintQuoteSigner.GetMessageToSign(signedParsed.Quote, signedParsed.Outputs);
-        Assert.True(msg.SequenceEqual(expectedMsg));
-        
-        Assert.True(signedParsed.VerifySignature(pubkey));
+        var parsed = JsonSerializer.Deserialize<PostMintRequest>(SignedMintQuote);
+        Assert.NotNull(parsed);
+
+        Assert.True(parsed.VerifySignature(new PubKey(QuotePubkey)));
     }
 
     [Fact]
     public void InvalidSignatureOnMintQuote()
     {
-        var invalidSignedMintQuote = "{\n  \"quote\": \"9d745270-1405-46de-b5c5-e2762b4f5e00\",\n  \"outputs\": [\n    {\n      \"amount\": 1,\n      \"id\": \"00456a94ab4e1c46\",\n      \"B_\": \"0342e5bcc77f5b2a3c2afb40bb591a1e27da83cddc968abdc0ec4904201a201834\"\n    },\n    {\n      \"amount\": 1,\n      \"id\": \"00456a94ab4e1c46\",\n      \"B_\": \"032fd3c4dc49a2844a89998d5e9d5b0f0b00dde9310063acb8a92e2fdafa4126d4\"\n    },\n    {\n      \"amount\": 1,\n      \"id\": \"00456a94ab4e1c46\",\n      \"B_\": \"033b6fde50b6a0dfe61ad148fff167ad9cf8308ded5f6f6b2fe000a036c464c311\"\n    },\n    {\n      \"amount\": 1,\n      \"id\": \"00456a94ab4e1c46\",\n      \"B_\": \"02be5a55f03e5c0aaea77595d574bce92c6d57a2a0fb2b5955c0b87e4520e06b53\"\n    },\n    {\n      \"amount\": 1,\n      \"id\": \"00456a94ab4e1c46\",\n      \"B_\": \"02209fc2873f28521cbdde7f7b3bb1521002463f5979686fd156f23fe6a8aa2b79\"\n    }\n  ],\n  \"signature\": \"cb2b8e7ea69362dfe2a07093f2bbc319226db33db2ef686c940b5ec976bcbfc78df0cd35b3e998adf437b09ee2c950bd66dfe9eb64abd706e43ebc7c669c36c3\"\n}";
-        var signedParsed = JsonSerializer.Deserialize<PostMintRequest>(invalidSignedMintQuote);
-        var pubkey = new PubKey("03d56ce4e446a85bbdaa547b4ec2b073d40ff802831352b8272b7dd7a4de5a7cac");
-        Assert.NotNull(signedParsed);
-        Assert.False(signedParsed.VerifySignature(pubkey));
+        var parsed = JsonSerializer.Deserialize<PostMintRequest>(SignedMintQuote);
+        Assert.NotNull(parsed);
+
+        // Same request, signature off by its last byte.
+        parsed.Signature = parsed.Signature![..^2] + "0f";
+
+        Assert.False(parsed.VerifySignature(new PubKey(QuotePubkey)));
+    }
+
+    [Fact]
+    public void SignatureCoversTheOutputs()
+    {
+        var parsed = JsonSerializer.Deserialize<PostMintRequest>(SignedMintQuote);
+        Assert.NotNull(parsed);
+
+        // Swapping two outputs keeps the same set but changes the order they are committed in.
+        (parsed.Outputs[0], parsed.Outputs[1]) = (parsed.Outputs[1], parsed.Outputs[0]);
+
+        Assert.False(parsed.VerifySignature(new PubKey(QuotePubkey)));
+    }
+
+    [Fact]
+    public void SignAndVerifyRoundTrip()
+    {
+        var privkey = new PrivKey(
+            "0000000000000000000000000000000000000000000000000000000000000001"
+        );
+        var parsed = JsonSerializer.Deserialize<PostMintRequest>(SignedMintQuote);
+        Assert.NotNull(parsed);
+
+        parsed.Signature = privkey.SignMintQuote(parsed.Quote, parsed.Outputs.ToList());
+
+        Assert.True(parsed.VerifySignature(new PubKey(QuotePubkey)));
+    }
+
+    [Fact]
+    public void LegacySignatureIsAcceptedUnlessRefused()
+    {
+        var privkey = new PrivKey(
+            "0000000000000000000000000000000000000000000000000000000000000001"
+        );
+        var parsed = JsonSerializer.Deserialize<PostMintRequest>(SignedMintQuote);
+        Assert.NotNull(parsed);
+
+        parsed.Signature = privkey.SignMintQuoteLegacy(parsed.Quote, parsed.Outputs.ToList());
+
+        // Mints that understand the current message still accept the superseded one, the way
+        // cdk and nutshell do, but a caller can insist on the current format.
+        Assert.True(parsed.VerifySignature(new PubKey(QuotePubkey)));
+        Assert.False(parsed.VerifySignature(new PubKey(QuotePubkey), allowLegacy: false));
+    }
+
+    [Fact]
+    public void LegacyMessageIsTheSupersededFormat()
+    {
+        var parsed = JsonSerializer.Deserialize<PostMintRequest>(SignedMintQuote);
+        Assert.NotNull(parsed);
+
+        var msg = MintQuoteSigner.GetLegacyMessageToSign(parsed.Quote, parsed.Outputs);
+
+        // Quote id and the hex of every output, concatenated as UTF-8. No domain tag, no lengths.
+        Assert.Equal(
+            "0192d3c0-7e8a-7c3d-8e9f-1a2b3c4d5e6f"
+                + "036d6caac248af96f6afa7f904f550253a0f3ef3f5aa2fe6838a95b216691468e2"
+                + "021f8a566c205633d029094747d2e18f44e05993dda7a5f88f496078205f656e59",
+            System.Text.Encoding.UTF8.GetString(msg)
+        );
+    }
+
+    [Theory]
+    // Canonical minimal big-endian: zero is empty, no leading zero bytes.
+    [InlineData(0UL, "")]
+    [InlineData(1UL, "01")]
+    [InlineData(255UL, "ff")]
+    [InlineData(256UL, "0100")]
+    [InlineData(ulong.MaxValue, "ffffffffffffffff")]
+    public void AmountsUseMinimalBigEndian(ulong amount, string expected)
+    {
+        Assert.Equal(
+            expected,
+            Convert.ToHexString(MintQuoteSigner.ToMinimalBigEndian(amount)).ToLowerInvariant()
+        );
     }
 }

@@ -61,8 +61,115 @@ public class P2PkBuilder
         };
     }
 
+    /// <summary>
+    /// Tags NUT-11 gives meaning to. Each may appear at most once.
+    /// </summary>
+    private static readonly string[] KnownTags =
+    [
+        "pubkeys",
+        "locktime",
+        "refund",
+        "n_sigs",
+        "n_sigs_refund",
+        "sigflag",
+    ];
+
+    /// <summary>
+    /// Checks the NUT-11 well-formedness rules. A secret that breaks any of them makes the
+    /// proof unspendable, so it is rejected rather than interpreted.
+    /// </summary>
+    /// <returns>What is wrong, or null when the secret is well formed.</returns>
+    internal static string? FindMalformation(P2PKProofSecret proofSecret)
+    {
+        var tags = proofSecret.Tags ?? [];
+
+        foreach (var tag in KnownTags)
+        {
+            if (tags.Count(t => t.FirstOrDefault() == tag) > 1)
+            {
+                return $"Tag '{tag}' appears more than once";
+            }
+        }
+
+        var sigFlag = TagValues(tags, "sigflag").FirstOrDefault();
+        if (sigFlag is not null && sigFlag != "SIG_INPUTS" && sigFlag != "SIG_ALL")
+        {
+            return $"Unknown sigflag '{sigFlag}'";
+        }
+
+        string[] mainKeys = [proofSecret.Data, .. TagValues(tags, "pubkeys")];
+        var refundKeys = TagValues(tags, "refund").ToArray();
+
+        // A key may appear in both pathways, but not twice within one.
+        if (HasDuplicate(mainKeys))
+        {
+            return "Duplicate pubkey in the main pathway";
+        }
+        if (HasDuplicate(refundKeys))
+        {
+            return "Duplicate pubkey in the refund pathway";
+        }
+
+        if (FindBadThreshold(tags, "n_sigs", mainKeys.Length) is { } mainError)
+        {
+            return mainError;
+        }
+        if (FindBadThreshold(tags, "n_sigs_refund", refundKeys.Length) is { } refundError)
+        {
+            return refundError;
+        }
+
+        return null;
+    }
+
+    private static string? FindBadThreshold(string[][] tags, string tag, int keyCount)
+    {
+        var raw = TagValues(tags, tag).FirstOrDefault();
+        if (raw is null)
+        {
+            return null;
+        }
+
+        if (!int.TryParse(raw, out var threshold) || threshold < 1)
+        {
+            return $"'{tag}' must be a positive integer, got '{raw}'";
+        }
+
+        return threshold > keyCount
+            ? $"'{tag}' is {threshold} but its pathway has {keyCount} key(s)"
+            : null;
+    }
+
+    private static IEnumerable<string> TagValues(string[][] tags, string tag) =>
+        tags.FirstOrDefault(t => t.FirstOrDefault() == tag)?.Skip(1) ?? [];
+
+    /// <summary>
+    /// Compares keys the way NUT-11 does: by lowercase x-coordinate, ignoring the 02/03 parity
+    /// prefix, since either prefix is spendable by the same Schnorr secret.
+    /// </summary>
+    private static bool HasDuplicate(IReadOnlyCollection<string> keys)
+    {
+        var seen = new HashSet<string>();
+        foreach (var key in keys)
+        {
+            if (!seen.Add(XOnly(key)))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static string XOnly(string pubkeyHex) =>
+        pubkeyHex.Length == 66 ? pubkeyHex[2..].ToLowerInvariant() : pubkeyHex.ToLowerInvariant();
+
     public static P2PkBuilder Load(P2PKProofSecret proofSecret)
     {
+        if (FindMalformation(proofSecret) is { } malformation)
+        {
+            throw new FormatException($"Malformed P2PK secret: {malformation}");
+        }
+
         var builder = new P2PkBuilder();
         var primaryPubkey = proofSecret.Data.ToPubKey();
         var pubkeys = proofSecret.Tags?.FirstOrDefault(strings =>

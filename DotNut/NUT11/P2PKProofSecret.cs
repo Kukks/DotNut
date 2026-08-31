@@ -107,6 +107,21 @@ public class P2PKProofSecret : Nut10ProofSecret
         throw new InvalidOperationException("Not enough valid keys to sign!");
     }
 
+    /// <summary>
+    /// NUT-11 compares keys by x-coordinate, ignoring the 02/03 parity prefix, because a Schnorr
+    /// signature made with one secret verifies against either form. Matching on the full key
+    /// would refuse to sign a proof locked to the other prefix of a key we hold.
+    /// ECXOnlyPubKey has no value equality, so the 32 bytes are compared directly.
+    /// </summary>
+    private static bool IsAllowed(byte[][] allowedXOnly, ECPubKey candidate)
+    {
+        var x = candidate.ToXOnlyPubKey().ToBytes();
+        return allowedXOnly.Any(allowed => allowed.AsSpan().SequenceEqual(x));
+    }
+
+    private static byte[][] ToXOnlyBytes(IEnumerable<ECPubKey> keys) =>
+        keys.Select(k => k.ToXOnlyPubKey().ToBytes()).ToArray();
+
     private (bool IsValid, P2PKWitness Witness) TrySignPath(
         ECPubKey[] allowedKeys,
         int requiredSignatures,
@@ -114,7 +129,7 @@ public class P2PKProofSecret : Nut10ProofSecret
         byte[] msg
     )
     {
-        var allowedKeysSet = new HashSet<ECPubKey>(allowedKeys);
+        var allowedXOnly = ToXOnlyBytes(allowedKeys);
         var result = new P2PKWitness();
 
         foreach (var privKey in availableKeys)
@@ -122,8 +137,7 @@ public class P2PKProofSecret : Nut10ProofSecret
             if (result.Signatures.Length >= requiredSignatures)
                 break;
 
-            var pubkey = privKey.CreatePubKey();
-            if (allowedKeysSet.Contains(pubkey))
+            if (IsAllowed(allowedXOnly, privKey.CreatePubKey()))
             {
                 var sig = privKey.SignBIP340(msg);
                 result.Signatures = result.Signatures.Append(sig.ToHex()).ToArray();

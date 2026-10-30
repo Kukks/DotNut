@@ -1,9 +1,11 @@
 ﻿using System.Text.Json.Serialization;
+using DotNut.JsonConverters;
 
 namespace DotNut.ApiModels;
 
 public class GetKeysetsResponse
 {
+    [JsonConverter(typeof(SkipUnknownKeysetsJsonConverter))]
     [JsonPropertyName("keysets")]
     public KeysetItemResponse[] Keysets { get; set; }
 

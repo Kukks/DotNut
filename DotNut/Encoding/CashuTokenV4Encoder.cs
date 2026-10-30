@@ -93,11 +93,17 @@ public class CashuTokenV4Encoder : ICashuTokenEncoder, ICBORToFromConverter<Cash
                     Proofs = obj["t"]
                         .Values.SelectMany(proofSet =>
                         {
-                            var id = new KeysetId(
-                                Convert
-                                    .ToHexString(proofSet["i"].GetByteString())
-                                    .ToLowerInvariant()
-                            );
+                            if (
+                                !KeysetId.TryParse(
+                                    Convert
+                                        .ToHexString(proofSet["i"].GetByteString())
+                                        .ToLowerInvariant(),
+                                    out var id
+                                )
+                            )
+                            {
+                                return Enumerable.Empty<Proof>();
+                            }
 
                             return proofSet["p"]
                                 .Values.Select(proof => new Proof()
@@ -116,7 +122,7 @@ public class CashuTokenV4Encoder : ICashuTokenEncoder, ICBORToFromConverter<Cash
                                             R = ECPrivKey.Create(cborDLEQ["r"].GetByteString()),
                                         }
                                         : null,
-                                    Id = id,
+                                    Id = id!,
 
                                     P2PkE = proof.GetOrDefault("pe", null) is { } p2pkE
                                         ? (PubKey?)ECPubKey.Create(p2pkE.GetByteString())

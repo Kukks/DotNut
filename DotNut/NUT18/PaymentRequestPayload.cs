@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using DotNut.JsonConverters;
 
 namespace DotNut;
 
@@ -17,6 +18,7 @@ public class PaymentRequestPayload
     [JsonPropertyName("unit")]
     public string Unit { get; set; }
 
+    [JsonConverter(typeof(SkipUnknownKeysetsJsonConverter))]
     [JsonPropertyName("proofs")]
     public Proof[] Proofs { get; set; }
 }

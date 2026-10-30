@@ -55,16 +55,23 @@ public class KeysetId : IEquatable<KeysetId>, IEqualityComparer<KeysetId>
 
     public KeysetId(string Id)
     {
-        if (
-            Id.Length != 66 // full length keysetId v2
-            && Id.Length != 16 // keysetId v1 or keysetId v2 short
-            && Id.Length != 12
-        ) // old pre-v1 base64 keysetId
+        if (!IsValidLength(Id))
         {
             throw new ArgumentException("KeysetId must be 66, 16 or 12 (legacy) characters long");
         }
         _id = Id;
     }
+
+    public static bool TryParse(string? id, out KeysetId? keysetId)
+    {
+        keysetId = id is not null && IsValidLength(id) ? new KeysetId(id) : null;
+        return keysetId is not null;
+    }
+
+    private static bool IsValidLength(string id) =>
+        id.Length == 66 // full length keysetId v2
+        || id.Length == 16 // keysetId v1 or keysetId v2 short
+        || id.Length == 12; // old pre-v1 base64 keysetId
 
     [Obsolete("KeysetId v2 can't be derived with this function. Use only for keysetId v1")]
     public KeysetId(Keyset keyset)

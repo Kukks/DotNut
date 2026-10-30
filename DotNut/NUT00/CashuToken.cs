@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using DotNut.JsonConverters;
 
 namespace DotNut;
 
@@ -17,6 +18,7 @@ public class CashuToken
         [JsonPropertyName("mint")]
         public string Mint { get; set; }
 
+        [JsonConverter(typeof(SkipUnknownKeysetsJsonConverter))]
         [JsonPropertyName("proofs")]
         public List<Proof> Proofs { get; set; }
     }

@@ -39,7 +39,7 @@ public class SkipUnknownKeysetsJsonConverter : JsonConverterFactory
         {
             if (
                 element.ValueKind == JsonValueKind.Object
-                && element.TryGetProperty("id", out var id)
+                && TryGetId(element, options, out var id)
                 && id.ValueKind == JsonValueKind.String
                 && !KeysetId.TryParse(id.GetString(), out _)
             )
@@ -49,6 +49,24 @@ public class SkipUnknownKeysetsJsonConverter : JsonConverterFactory
             items.Add(element.Deserialize<T>(options)!);
         }
         return items;
+    }
+
+    private static bool TryGetId(JsonElement element, JsonSerializerOptions options, out JsonElement id)
+    {
+        if (!options.PropertyNameCaseInsensitive)
+        {
+            return element.TryGetProperty("id", out id);
+        }
+        foreach (var property in element.EnumerateObject())
+        {
+            if (string.Equals(property.Name, "id", StringComparison.OrdinalIgnoreCase))
+            {
+                id = property.Value;
+                return true;
+            }
+        }
+        id = default;
+        return false;
     }
 
     private static void WriteItems<T>(Utf8JsonWriter writer, IEnumerable<T> value, JsonSerializerOptions options)

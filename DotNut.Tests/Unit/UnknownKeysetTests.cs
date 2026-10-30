@@ -41,6 +41,24 @@ public class UnknownKeysetTests
     }
 
     [Fact]
+    public void CaseInsensitiveOptions_SkipsUnknownKeysetIdsRegardlessOfCase()
+    {
+        var json = $$"""
+            { "keysets": [
+              { "id": "{{KnownId}}", "unit": "sat", "active": true },
+              { "ID": "02abcdef", "unit": "sat", "active": true }
+            ] }
+            """;
+
+        var response = JsonSerializer.Deserialize<GetKeysetsResponse>(
+            json,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+        )!;
+
+        Assert.Equal(KnownId, Assert.Single(response.Keysets).Id.ToString());
+    }
+
+    [Fact]
     public void TokenV3_SkipsProofsWithUnknownKeysetIds()
     {
         var json = $$"""
